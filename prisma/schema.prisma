@@ -1,0 +1,374 @@
+// Modèle de données TimeSheet (PROMPT.md §8).
+// Invariant : toute table métier porte divisionId. Aucune requête hors de lib/data.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DivisionStatus {
+  ACTIVE
+  ONBOARDING
+  SUSPENDED
+}
+
+enum Unit {
+  HOURS
+  DAYS
+}
+
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum Role {
+  STAFF
+  MANAGER
+  OWNER
+  DIVISION_ADMIN
+  PLATFORM_ADMIN
+}
+
+enum Permission {
+  ENTER_TIME
+  VALIDATE_TEAM
+  MANAGE_PROJECTS
+  VIEW_REPORTING
+  VIEW_DIVISION
+  ADMINISTER_DIVISION
+}
+
+enum InternshipKind {
+  ACADEMIC
+  PROFESSIONAL
+  GRADUATE
+}
+
+enum ProjectStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  ON_HOLD
+  DONE
+}
+
+enum TimesheetStatus {
+  DRAFT
+  SUBMITTED
+  REJECTED
+  VALIDATED
+}
+
+enum AttendanceStatus {
+  GENERATED
+  SIGNED_BY_INTERN
+  SIGNED_BY_SUPERVISOR
+  SENT
+}
+
+enum SignatureMethod {
+  DRAWN
+  PASSWORD
+}
+
+enum AuditResult {
+  SUCCESS
+  FAILURE
+}
+
+model Division {
+  id             String         @id @default(cuid())
+  name           String
+  slug           String         @unique
+  direction      String
+  department     String?
+  service        String?
+  status         DivisionStatus @default(ONBOARDING)
+  onboardingStep Int            @default(1)
+  createdAt      DateTime       @default(now())
+
+  settings     DivisionSettings?
+  permissions  RolePermission[]
+  teams        Team[]
+  users        User[]
+  projects     Project[]
+  timesheets   Timesheet[]
+  attendance   AttendanceSheet[]
+  holidays     Holiday[]
+  auditEntries AuditLog[]
+}
+
+model DivisionSettings {
+  divisionId               String    @id
+  division                 Division  @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  unit                     Unit      @default(HOURS)
+  workingDays              Weekday[] @default([MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY])
+  hoursPerDay              Decimal   @default(8) @db.Decimal(4, 2)
+  step                     Decimal   @default(0.5) @db.Decimal(4, 2)
+  deadlineDay              Weekday   @default(FRIDAY)
+  deadlineTime             String    @default("18:00")
+  fillAlertThreshold       Int       @default(80)
+  allowFutureWeeks         Boolean   @default(false)
+  lockAfterValidation      Boolean   @default(true)
+  ownerValidation          Boolean   @default(false)
+  hrEmail                  String?
+  hrAutoSend               Boolean   @default(true)
+  reminderAfterWorkingDays Int       @default(3)
+  delegateToOwner          Boolean   @default(true)
+}
+
+model RolePermission {
+  divisionId String
+  division   Division   @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  role       Role
+  permission Permission
+  granted    Boolean
+
+  @@id([divisionId, role, permission])
+}
+
+model Holiday {
+  id         String   @id @default(cuid())
+  divisionId String
+  division   Division @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  date       DateTime @db.Date
+  label      String
+
+  @@unique([divisionId, date])
+}
+
+model Team {
+  id         String   @id @default(cuid())
+  divisionId String
+  division   Division @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  name       String
+  managerId  String?
+  manager    User?    @relation("TeamManager", fields: [managerId], references: [id])
+  members    User[]   @relation("TeamMembers")
+
+  @@index([divisionId])
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  divisionId           String? // null pour l'admin plateforme
+  division             Division? @relation(fields: [divisionId], references: [id])
+  email                String    @unique
+  passwordHash         String?
+  firstName            String
+  lastName             String
+  role                 Role
+  managerId            String?
+  manager              User?     @relation("Reports", fields: [managerId], references: [id])
+  reports              User[]    @relation("Reports")
+  teamId               String?
+  team                 Team?     @relation("TeamMembers", fields: [teamId], references: [id])
+  managedTeams         Team[]    @relation("TeamManager")
+  active               Boolean   @default(true)
+  usualArrival         String    @default("08:00")
+  usualDeparture       String    @default("17:00")
+  locale               String    @default("fr")
+  defaultSignatureMode SignatureMethod @default(DRAWN)
+  copyPreviousWeek     Boolean   @default(false)
+  notificationPrefs    Json      @default("{}")
+  createdAt            DateTime  @default(now())
+
+  internship       Internship?
+  memberships      ProjectMember[]
+  timesheets       Timesheet[]       @relation("TimesheetOwner")
+  decidedSheets    Timesheet[]       @relation("TimesheetDecider")
+  timesheetEvents  TimesheetEvent[]
+  attendanceSheets AttendanceSheet[]
+  signatures       Signature[]
+  projectChanges   Project[]         @relation("ProjectStatusChanger")
+  sessions         Session[]
+
+  @@index([divisionId])
+  @@index([managerId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires      DateTime
+}
+
+model Internship {
+  userId     String         @id
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind       InternshipKind
+  direction  String
+  department String
+  service    String
+  startDate  DateTime       @db.Date
+  endDate    DateTime       @db.Date
+}
+
+model Project {
+  id                String        @id @default(cuid())
+  divisionId        String
+  division          Division      @relation(fields: [divisionId], references: [id])
+  code              String
+  name              String
+  startDate         DateTime      @db.Date
+  endDate           DateTime?     @db.Date
+  budgetHours       Decimal?      @db.Decimal(8, 2)
+  status            ProjectStatus @default(NOT_STARTED)
+  statusChangedAt   DateTime      @default(now())
+  statusChangedById String?
+  statusChangedBy   User?         @relation("ProjectStatusChanger", fields: [statusChangedById], references: [id])
+  archivedAt        DateTime?
+  isSystem          Boolean       @default(false) // activité système « Absence » (PROMPT.md §20)
+
+  activities Activity[]
+  members    ProjectMember[]
+  lines      TimesheetLine[]
+
+  @@unique([divisionId, code])
+  @@index([divisionId, status])
+}
+
+model Activity {
+  id        String          @id @default(cuid())
+  projectId String
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  lines     TimesheetLine[]
+}
+
+model ProjectMember {
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+}
+
+model Timesheet {
+  id              String          @id @default(cuid())
+  divisionId      String
+  division        Division        @relation(fields: [divisionId], references: [id])
+  userId          String
+  user            User            @relation("TimesheetOwner", fields: [userId], references: [id])
+  isoYear         Int
+  isoWeek         Int
+  status          TimesheetStatus @default(DRAFT)
+  comment         String?
+  submittedAt     DateTime?
+  submissionCount Int             @default(0)
+  decidedById     String?
+  decidedBy       User?           @relation("TimesheetDecider", fields: [decidedById], references: [id])
+  decidedAt       DateTime?
+  rejectionReason String?
+  updatedAt       DateTime        @updatedAt
+
+  lines  TimesheetLine[]
+  events TimesheetEvent[]
+
+  @@unique([userId, isoYear, isoWeek])
+  @@index([divisionId, status])
+}
+
+model TimesheetLine {
+  id          String      @id @default(cuid())
+  timesheetId String
+  timesheet   Timesheet   @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id])
+  activityId  String
+  activity    Activity    @relation(fields: [activityId], references: [id])
+  position    Int
+  entries     TimeEntry[]
+
+  @@unique([timesheetId, projectId, activityId])
+}
+
+model TimeEntry {
+  lineId  String
+  line    TimesheetLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  date    DateTime      @db.Date
+  hours   Decimal       @db.Decimal(5, 2)
+  flagged Boolean       @default(false)
+
+  @@id([lineId, date])
+}
+
+model TimesheetEvent {
+  id          String    @id @default(cuid())
+  timesheetId String
+  timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  type        String
+  actorId     String
+  actor       User      @relation(fields: [actorId], references: [id])
+  at          DateTime  @default(now())
+  note        String?
+
+  @@index([timesheetId, at])
+}
+
+model AttendanceSheet {
+  id          String           @id @default(cuid())
+  divisionId  String
+  division    Division         @relation(fields: [divisionId], references: [id])
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  year        Int
+  month       Int
+  status      AttendanceStatus @default(GENERATED)
+  generatedAt DateTime         @default(now())
+  absenceDays Int              @default(0)
+  observation String?
+  pdfPath     String?
+  pdfSha256   String?
+  sentAt      DateTime?
+  sentTo      String?
+
+  signatures Signature[]
+
+  @@unique([userId, year, month])
+  @@index([divisionId, status])
+}
+
+model Signature {
+  id                String          @id @default(cuid())
+  attendanceSheetId String
+  attendanceSheet   AttendanceSheet @relation(fields: [attendanceSheetId], references: [id], onDelete: Cascade)
+  signerId          String
+  signer            User            @relation(fields: [signerId], references: [id])
+  signerRole        Role
+  method            SignatureMethod
+  drawing           String?
+  signedAt          DateTime        @default(now())
+  documentSha256    String
+  ip                String?
+  userAgent         String?
+}
+
+// En ajout seul : aucune route ne modifie ni ne supprime une ligne.
+model AuditLog {
+  id          String      @id @default(cuid())
+  at          DateTime    @default(now())
+  actorId     String?
+  actorLabel  String
+  divisionId  String?
+  division    Division?   @relation(fields: [divisionId], references: [id])
+  action      String
+  objectLabel String
+  result      AuditResult
+  metadata    Json        @default("{}")
+
+  @@index([divisionId, at])
+  @@index([action, at])
+}

@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Saisie hebdomadaire</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./ods.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="page">
+<aside class="sidenav">
+<a class="sidenav-brand" href="02-Tableau-de-bord.dc.html"><span class="sidenav-brand-text"><span class="sidenav-app"><span class="wm-time">Time</span>Sheet</span><span class="small">CX Expertise</span></span></a>
+<nav class="sidenav-group" aria-label="Navigation principale">
+<ul class="sidenav-list">
+<li><a class="nav-link" href="02-Tableau-de-bord.dc.html"><svg class="nav-ico" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="5" height="5"></rect><rect x="12" y="3" width="5" height="5"></rect><rect x="3" y="12" width="5" height="5"></rect><rect x="12" y="12" width="5" height="5"></rect></svg>Tableau de bord</a></li>
+<li><a class="nav-link" href="03-Saisie-hebdo.dc.html" aria-current="page"><svg class="nav-ico" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="14" height="13"></rect><path d="M3 9h14M7 2v4M13 2v4"></path></svg>Saisie hebdomadaire</a></li>
+<li><a class="nav-link" href="06-Fiche-RH.dc.html"><svg class="nav-ico" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 2h7l4 4v12H5z"></path><path d="M8 10h5M8 14h5"></path></svg>Fiche de présence</a></li>
+</ul>
+</nav>
+<div class="sidenav-group">
+<div class="sidenav-user"><span class="sidenav-avatar" aria-hidden="true">AN</span><span class="sidenav-user-text"><span class="fw-bold">Aïcha Ndongo</span><span class="small">Staff</span></span></div>
+<ul class="sidenav-list">
+<li><a class="nav-link" href="14-Parametres.dc.html"><svg class="nav-ico" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="5"></circle><circle cx="10" cy="10" r="1.5"></circle><path d="M10 2v3M10 15v3M2 10h3M15 10h3M4.3 4.3l2.2 2.2M13.5 13.5l2.2 2.2M4.3 15.7l2.2-2.2M13.5 6.5l2.2-2.2"></path></svg>Paramètres</a></li>
+<li><a class="nav-link" href="Main.dc.html"><svg class="nav-ico" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3H3v14h5"></path><path d="M12 6l4 4-4 4M16 10H7"></path></svg>Se déconnecter</a></li>
+</ul>
+</div>
+</aside>
+<div class="page-body">
+<main class="container" style="display: flex; flex-direction: column; gap: 30px; padding: 30px 0 60px">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<nav aria-label="Fil d'Ariane">
+<ol class="breadcrumb">
+<li><a href="02-Tableau-de-bord.dc.html">Tableau de bord</a></li>
+<li><span aria-current="page">Saisie hebdomadaire</span></li>
+</ol>
+</nav>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px">
+<h1>Saisie hebdomadaire</h1>
+<span class="badge {{ statusCls }}">{{ statusText }}</span>
+</div>
+</div>
+<sc-if value="{{ isSubmitted }}" hint-placeholder-val="{{ false }}">
+<div class="alert alert-success" role="status">
+<span class="mark mark-success" aria-hidden="true"></span>
+<div class="alert-body">
+<p class="alert-heading">Semaine 12 soumise</p>
+<p>Votre fiche est partie chez Samuel Etoga pour validation. Elle n'est plus modifiable, sauf s'il la rejette.</p>
+<p><a href="02-Tableau-de-bord.dc.html">Retour au tableau de bord</a></p>
+</div>
+</div>
+</sc-if>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px">
+<div class="ts-week" role="group" aria-label="Sélection de la semaine">
+<div class="ts-week-nav">
+<button class="btn btn-icon" type="button" aria-label="Semaine précédente : semaine 11"><span class="ico ico-left" aria-hidden="true"></span></button>
+<button class="ts-week-label" type="button" aria-haspopup="true" aria-expanded="false">Semaine 12 · 16–20 mars 2026<span class="ico ico-down" aria-hidden="true"></span></button>
+<button class="btn btn-icon" type="button" aria-label="Semaine suivante : semaine 13"><span class="ico ico-right" aria-hidden="true"></span></button>
+</div>
+<span class="badge bg-dark">Semaine courante</span>
+</div>
+<p class="ts-save" role="status"><span class="mark mark-success" aria-hidden="true"></span>{{ saveText }}</p>
+</div>
+<section style="display: flex; flex-direction: column; gap: 20px" aria-label="Grille de saisie">
+<sc-if value="{{ isEditing }}" hint-placeholder-val="{{ true }}">
+<p class="small text-secondary">Règle de la division : 8 h par jour ouvré, par pas de 0,5 h.</p>
+</sc-if>
+<div class="table-responsive">
+<sc-if value="{{ isEditing }}" hint-placeholder-val="{{ true }}">
+<table class="ts-grid">
+<caption class="visually-hidden">Heures par projet et par jour, semaine 12 du 16 au 20 mars 2026</caption>
+<thead>
+<tr>
+<th scope="col">Projet / activité</th>
+<th scope="col">Lun<small>16 mars</small></th>
+<th scope="col">Mar<small>17 mars</small></th>
+<th scope="col">Mer<small>18 mars</small></th>
+<th scope="col">Jeu<small>19 mars</small></th>
+<th scope="col">Ven<small>20 mars</small></th>
+<th scope="col" class="ts-col-total">Total</th>
+<th scope="col" class="ts-col-act"><span class="visually-hidden">Actions</span></th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ rows }}" as="row" hint-placeholder-count="3">
+<tr>
+<th scope="row">{{ row.name }}<small>{{ row.activity }}</small></th>
+<sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="5">
+<td><input class="form-control {{ cell.cls }}" type="text" inputmode="decimal" placeholder="0" value="{{ cell.value }}" onChange="{{ cell.set }}" aria-label="{{ cell.label }}"></td>
+</sc-for>
+<td class="ts-total">{{ row.total }}</td>
+<td class="ts-col-act"><button class="btn btn-icon btn-sm" type="button" aria-label="{{ row.removeLabel }}" onClick="{{ row.remove }}"><span class="ico ico-cross" aria-hidden="true"></span></button></td>
+</tr>
+</sc-for>
+</tbody>
+<tfoot>
+<tr>
+<th scope="row">Total par jour</th>
+<sc-for list="{{ days }}" as="day" hint-placeholder-count="5">
+<td><span class="ts-day">{{ day.total }}<span class="badge {{ day.cls }}">{{ day.text }}</span></span></td>
+</sc-for>
+<td>{{ weekTotal }}</td>
+<td class="ts-col-act"></td>
+</tr>
+</tfoot>
+</table>
+</sc-if>
+<sc-if value="{{ isSubmitted }}" hint-placeholder-val="{{ false }}">
+<table class="ts-grid is-readonly">
+<caption class="visually-hidden">Heures soumises, semaine 12 du 16 au 20 mars 2026, en lecture seule</caption>
+<thead>
+<tr>
+<th scope="col">Projet / activité</th>
+<th scope="col">Lun<small>16 mars</small></th>
+<th scope="col">Mar<small>17 mars</small></th>
+<th scope="col">Mer<small>18 mars</small></th>
+<th scope="col">Jeu<small>19 mars</small></th>
+<th scope="col">Ven<small>20 mars</small></th>
+<th scope="col" class="ts-col-total">Total</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ rows }}" as="row" hint-placeholder-count="3">
+<tr>
+<th scope="row">{{ row.name }}<small>{{ row.activity }}</small></th>
+<sc-for list="{{ row.ro }}" as="c" hint-placeholder-count="5">
+<td>{{ c.text }}</td>
+</sc-for>
+<td class="ts-total">{{ row.total }}</td>
+</tr>
+</sc-for>
+</tbody>
+<tfoot>
+<tr>
+<th scope="row">Total par jour</th>
+<sc-for list="{{ days }}" as="day" hint-placeholder-count="5">
+<td>{{ day.total }}</td>
+</sc-for>
+<td>{{ weekTotal }}</td>
+</tr>
+</tfoot>
+</table>
+</sc-if>
+</div>
+<sc-if value="{{ isEditing }}" hint-placeholder-val="{{ true }}">
+<div><button class="btn" type="button" disabled="{{ cannotAdd }}" onClick="{{ addRow }}"><span class="ico ico-plus" aria-hidden="true"></span>Ajouter une ligne</button></div>
+</sc-if>
+</section>
+<sc-if value="{{ isEditing }}" hint-placeholder-val="{{ true }}">
+<div style="max-width: 590px">
+<label class="form-label" for="commentaire">Commentaire pour votre manager (facultatif)</label>
+<textarea class="form-control" id="commentaire" rows="3"></textarea>
+</div>
+</sc-if>
+<sc-if value="{{ isEditing }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px; padding-top: 20px; border-top: 2px solid #000000">
+<div style="display: flex; flex-direction: column; gap: 10px; flex: 1 1 320px; max-width: 590px">
+<p><span class="h2">{{ totalH }}</span> saisies sur 40 h</p>
+<div class="progress" role="progressbar" aria-label="Avancement de la saisie de la semaine" aria-valuenow="{{ pctNow }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width: {{ pctCss }}"></div></div>
+<p class="small" id="raison-soumission">{{ hint }}</p>
+</div>
+<button class="btn btn-primary" type="button" disabled="{{ cannotSubmit }}" aria-describedby="raison-soumission" onClick="{{ openModal }}">Soumettre la semaine</button>
+</div>
+</sc-if>
+</main>
+<footer class="footer">
+<div class="container">
+<span>TimeSheet · usage interne</span>
+<a href="#">Aide</a>
+<a href="#">Accessibilité</a>
+<a href="#">Données personnelles</a>
+</div>
+</footer>
+</div>
+<sc-if value="{{ showModal }}" hint-placeholder-val="{{ false }}">
+<div class="modal-backdrop">
+<div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="titre-modale">
+<div class="modal-header">
+<h2 class="h3" id="titre-modale">Soumettre la semaine 12 ?</h2>
+<button class="btn btn-icon btn-sm" type="button" aria-label="Fermer" onClick="{{ closeModal }}"><span class="ico ico-cross" aria-hidden="true"></span></button>
+</div>
+<p>Vérifiez le récapitulatif avant d'envoyer votre fiche à votre manager.</p>
+<dl style="display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 20px">
+<dt class="text-secondary">Période</dt><dd class="fw-bold">16–20 mars 2026</dd>
+<dt class="text-secondary">Validateur</dt><dd class="fw-bold">Samuel Etoga, manager</dd>
+</dl>
+<table class="table">
+<caption class="visually-hidden">Heures par projet pour la semaine 12</caption>
+<thead>
+<tr><th scope="col">Projet / activité</th><th scope="col" class="num">Heures</th></tr>
+</thead>
+<tbody>
+<sc-for list="{{ rows }}" as="row" hint-placeholder-count="3">
+<tr><td>{{ row.label }}</td><td class="num">{{ row.total }}</td></tr>
+</sc-for>
+</tbody>
+<tfoot>
+<tr><th scope="row">Total de la semaine</th><td class="num">{{ weekTotalLong }}</td></tr>
+</tfoot>
+</table>
+<div class="alert alert-info">
+<span class="mark mark-info" aria-hidden="true"></span>
+<div class="alert-body"><p>Après soumission, la fiche n'est plus modifiable, sauf si votre manager la rejette.</p></div>
+</div>
+<div class="modal-footer">
+<button class="btn" type="button" onClick="{{ closeModal }}">Annuler</button>
+<button class="btn btn-primary" type="button" onClick="{{ confirm }}">Confirmer la soumission</button>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1050}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = {
+rows: [
+{ name: "Refonte parcours souscription", activity: "Tests utilisateurs", h: ["4", "4", "3", "", ""] },
+{ name: "Baromètre NPS T1 2026", activity: "Analyse", h: ["2", "4", "3", "", ""] },
+{ name: "Cartographie des irritants", activity: "Atelier", h: ["2", "0", "2", "", ""] }
+],
+pool: [{ name: "Veille et formation", activity: "Formation", h: ["", "", "", "", ""] }],
+modal: false,
+submitted: false,
+touched: false
+};
+}
+renderVals() {
+const s = this.state;
+const DAYS = ["lundi 16", "mardi 17", "mercredi 18", "jeudi 19", "vendredi 20"];
+const num = (v) => { const n = parseFloat(String(v).replace(",", ".")); return isNaN(n) || n < 0 ? 0 : n; };
+const fmt = (n) => String(Math.round(n * 100) / 100).replace(".", ",");
+const list = (a) => (a.length > 1 ? a.slice(0, -1).join(", ") + " et " + a[a.length - 1] : a[0]);
+const dayTot = DAYS.map((d, j) => s.rows.reduce((a, r) => a + num(r.h[j]), 0));
+const total = dayTot.reduce((a, b) => a + b, 0);
+const setCell = (i, j) => (e) => {
+const rows = s.rows.map((r) => ({ name: r.name, activity: r.activity, h: r.h.slice() }));
+rows[i].h[j] = e.target.value;
+this.setState({ rows: rows, touched: true });
+};
+const rows = s.rows.map((r, i) => ({
+name: r.name,
+activity: r.activity,
+label: r.name + " · " + r.activity,
+total: fmt(r.h.reduce((a, v) => a + num(v), 0)) + " h",
+removeLabel: "Retirer la ligne " + r.name,
+remove: () => this.setState({ rows: s.rows.filter((x, k) => k !== i), pool: s.pool.concat([{ name: r.name, activity: r.activity, h: ["", "", "", "", ""] }]), touched: true }),
+cells: r.h.map((v, j) => ({ value: v, label: r.name + ", " + DAYS[j] + ", heures", cls: dayTot[j] > 8 && num(v) > 0 ? "is-invalid" : "", set: setCell(i, j) })),
+ro: r.h.map((v) => ({ text: fmt(num(v)) }))
+}));
+const days = dayTot.map((t) => ({
+total: fmt(t) + " / 8 h",
+cls: t > 8 ? "bg-danger" : t === 8 ? "bg-success" : "bg-warning",
+text: t > 8 ? "Dépassement" : t === 8 ? "Complet" : t > 0 ? "Incomplet" : "À saisir"
+}));
+const over = DAYS.filter((d, j) => dayTot[j] > 8);
+const under = DAYS.filter((d, j) => dayTot[j] < 8);
+let hint = "La semaine est complète. Vous pouvez la soumettre.";
+if (over.length) hint = "Plafond de 8 h dépassé : " + list(over) + " mars. Corrigez avant de soumettre.";
+else if (under.length) hint = "Il reste " + fmt(40 - total) + " h à saisir : " + list(under) + " mars.";
+const pct = Math.max(0, Math.min(100, Math.round((total / 40) * 100)));
+return {
+rows: rows,
+days: days,
+weekTotal: fmt(total) + " / 40 h",
+weekTotalLong: fmt(total) + " h sur 40 h",
+totalH: fmt(total) + " h",
+pctNow: pct,
+pctCss: pct + "%",
+hint: hint,
+cannotSubmit: over.length > 0 || under.length > 0,
+cannotAdd: s.pool.length === 0,
+addRow: () => { if (s.pool.length) this.setState({ rows: s.rows.concat([s.pool[0]]), pool: s.pool.slice(1), touched: true }); },
+isEditing: !s.submitted,
+isSubmitted: s.submitted,
+showModal: s.modal && !s.submitted,
+openModal: () => this.setState({ modal: true }),
+closeModal: () => this.setState({ modal: false }),
+confirm: () => this.setState({ submitted: true, modal: false }),
+statusText: s.submitted ? "En attente de validation" : "Brouillon",
+statusCls: s.submitted ? "bg-info" : "",
+saveText: s.submitted ? "Soumise à l'instant" : s.touched ? "Brouillon enregistré à l'instant" : "Brouillon enregistré automatiquement à 10:42"
+};
+}
+}
+</script>
+</body>
+</html>

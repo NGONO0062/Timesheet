@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Gestion des projets</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./ods.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="page">
+<aside class="sidenav">
+<a class="sidenav-brand" href="07-File-validation.dc.html"><span class="sidenav-brand-text"><span class="sidenav-app"><span class="wm-time">Time</span>Sheet</span><span class="small">CX Expertise</span></span></a>
+<nav class="sidenav-group" aria-label="Navigation principale">
+<ul class="sidenav-list">
+<li><a class="nav-link" href="07-File-validation.dc.html"><svg class="nav-ico" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="14" height="14"></rect><path d="M6.5 10l2.5 2.5 4.5-5"></path></svg>Validation</a></li>
+<li><a class="nav-link" href="09-Projets.dc.html" aria-current="page"><svg class="nav-ico" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 4h6l2 3h8v10H2z"></path></svg>Projets</a></li>
+<li><a class="nav-link" href="10-Reporting.dc.html"><svg class="nav-ico" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 17h16M5 17v-6M10 17V4M15 17V8"></path></svg>Reporting</a></li>
+</ul>
+</nav>
+<div class="sidenav-group">
+<div class="sidenav-user"><span class="sidenav-avatar" aria-hidden="true">SE</span><span class="sidenav-user-text"><span class="fw-bold">Samuel Etoga</span><span class="small">Manager</span></span></div>
+<ul class="sidenav-list">
+<li><a class="nav-link" href="14-Parametres.dc.html"><svg class="nav-ico" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="5"></circle><circle cx="10" cy="10" r="1.5"></circle><path d="M10 2v3M10 15v3M2 10h3M15 10h3M4.3 4.3l2.2 2.2M13.5 13.5l2.2 2.2M4.3 15.7l2.2-2.2M13.5 6.5l2.2-2.2"></path></svg>Paramètres</a></li>
+<li><a class="nav-link" href="Main.dc.html"><svg class="nav-ico" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3H3v14h5"></path><path d="M12 6l4 4-4 4M16 10H7"></path></svg>Se déconnecter</a></li>
+</ul>
+</div>
+</aside>
+<div class="page-body">
+<main class="container" style="display: flex; flex-direction: column; gap: 30px; padding: 30px 0 60px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h1>Projets</h1>
+<p class="text-secondary">{{ summary }}</p>
+</div>
+<button class="btn btn-primary" type="button" aria-expanded="{{ panelOpen }}" aria-controls="panneau-projet" onClick="{{ openPanel }}"><span class="ico ico-plus" aria-hidden="true"></span>Nouveau projet</button>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px">
+<sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+<ul class="nav nav-pills" aria-label="Filtrer par statut">
+<sc-for list="{{ filters }}" as="f" hint-placeholder-count="5">
+<li><button class="nav-link {{ f.cls }}" type="button" aria-pressed="{{ f.on }}" onClick="{{ f.pick }}">{{ f.text }}</button></li>
+</sc-for>
+</ul>
+</sc-if>
+<sc-if value="{{ isBoard }}" hint-placeholder-val="{{ false }}">
+<p class="text-secondary">Une colonne par statut. Pour déplacer un projet, changez son étiquette.</p>
+</sc-if>
+<div class="btn-group" role="group" aria-label="Affichage">
+<button class="btn {{ listCls }}" type="button" aria-pressed="{{ isList }}" onClick="{{ showList }}">Liste</button>
+<button class="btn {{ boardCls }}" type="button" aria-pressed="{{ isBoard }}" onClick="{{ showBoard }}">Colonnes</button>
+</div>
+</div>
+<sc-if value="{{ hasNotice }}" hint-placeholder-val="{{ false }}">
+<div class="alert alert-success" role="status">
+<span class="mark mark-success" aria-hidden="true"></span>
+<div class="alert-body" style="flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px">
+<p>{{ notice }}</p>
+<sc-if value="{{ canUndo }}" hint-placeholder-val="{{ false }}">
+<button class="btn btn-link" type="button" onClick="{{ undo }}">Annuler</button>
+</sc-if>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ showTable }}" hint-placeholder-val="{{ true }}">
+<table class="table">
+<caption class="visually-hidden">{{ caption }}</caption>
+<thead>
+<tr>
+<th scope="col">Projet</th>
+<th scope="col" style="width: 150px">Statut</th>
+<th scope="col">Période</th>
+<th scope="col" class="num">Membres</th>
+<th scope="col" style="width: 230px">Heures consommées</th>
+<th scope="col">Action</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ rows }}" as="p" hint-placeholder-count="7">
+<tr>
+<th scope="row">{{ p.name }}<br><span class="small text-secondary" style="font-weight: 400">{{ p.code }}</span></th>
+<td>
+<div class="dropdown">
+<button class="badge ts-st-btn {{ p.stCls }}" type="button" aria-haspopup="true" aria-expanded="{{ p.menuOpen }}" aria-label="{{ p.stLabel }}" onClick="{{ p.toggleMenu }}">{{ p.stText }}<span class="ico ico-down" aria-hidden="true"></span></button>
+<sc-if value="{{ p.menuOpen }}" hint-placeholder-val="{{ false }}">
+<ul class="dropdown-menu" aria-label="Changer le statut">
+<sc-for list="{{ p.options }}" as="o" hint-placeholder-count="4">
+<li><button class="dropdown-item {{ o.cls }}" type="button" onClick="{{ o.pick }}"><span class="badge {{ o.stCls }}">{{ o.text }}</span><sc-if value="{{ o.current }}" hint-placeholder-val="{{ false }}"><span class="visually-hidden">(statut actuel)</span></sc-if></button></li>
+</sc-for>
+</ul>
+</sc-if>
+</div>
+</td>
+<td style="white-space: nowrap">{{ p.period }}</td>
+<td class="num">{{ p.members }}</td>
+<td>
+<div style="display: flex; flex-direction: column; gap: 5px">
+<span>{{ p.hoursText }}</span>
+<sc-if value="{{ p.hasBudget }}" hint-placeholder-val="{{ true }}">
+<div class="progress" role="progressbar" aria-label="{{ p.budgetLabel }}" aria-valuenow="{{ p.pctNow }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar {{ p.barCls }}" style="width: {{ p.pctCss }}"></div></div>
+</sc-if>
+<sc-if value="{{ p.over }}" hint-placeholder-val="{{ false }}">
+<span class="small fw-bold" style="display: flex; align-items: center; gap: 5px"><span class="mark mark-danger" aria-hidden="true"></span>{{ p.overText }}</span>
+</sc-if>
+</div>
+</td>
+<td><a href="#" aria-label="{{ p.editLabel }}">Modifier</a></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</sc-if>
+<sc-if value="{{ showEmpty }}" hint-placeholder-val="{{ false }}">
+<div class="ts-empty">
+<p class="h5">Aucun projet avec ce statut</p>
+<button class="btn" type="button" onClick="{{ showAll }}">Voir tous les projets</button>
+</div>
+</sc-if>
+<sc-if value="{{ isBoard }}" hint-placeholder-val="{{ false }}">
+<div class="ts-board">
+<sc-for list="{{ cols }}" as="c" hint-placeholder-count="4">
+<section class="ts-board-col" aria-label="{{ c.label }}">
+<h2 class="h6 ts-board-head"><span class="badge {{ c.stCls }}">{{ c.text }}</span><span class="small">{{ c.count }}</span></h2>
+<sc-for list="{{ c.items }}" as="p" hint-placeholder-count="2">
+<article class="ts-board-card">
+<div style="display: flex; flex-direction: column; gap: 5px">
+<h3 class="h6">{{ p.name }}</h3>
+<span class="small text-secondary">{{ p.code }} · {{ p.period }}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 5px">
+<span>{{ p.hoursText }}</span>
+<sc-if value="{{ p.hasBudget }}" hint-placeholder-val="{{ true }}">
+<div class="progress" role="progressbar" aria-label="{{ p.budgetLabel }}" aria-valuenow="{{ p.pctNow }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar {{ p.barCls }}" style="width: {{ p.pctCss }}"></div></div>
+</sc-if>
+<sc-if value="{{ p.over }}" hint-placeholder-val="{{ false }}">
+<span class="small fw-bold" style="display: flex; align-items: center; gap: 5px"><span class="mark mark-danger" aria-hidden="true"></span>{{ p.overText }}</span>
+</sc-if>
+</div>
+<span class="small">{{ p.membersText }}</span>
+<div class="dropdown">
+<button class="badge ts-st-btn {{ p.stCls }}" type="button" aria-haspopup="true" aria-expanded="{{ p.menuOpen }}" aria-label="{{ p.stLabel }}" onClick="{{ p.toggleMenu }}">{{ p.stText }}<span class="ico ico-down" aria-hidden="true"></span></button>
+<sc-if value="{{ p.menuOpen }}" hint-placeholder-val="{{ false }}">
+<ul class="dropdown-menu" aria-label="Changer le statut">
+<sc-for list="{{ p.options }}" as="o" hint-placeholder-count="4">
+<li><button class="dropdown-item {{ o.cls }}" type="button" onClick="{{ o.pick }}"><span class="badge {{ o.stCls }}">{{ o.text }}</span><sc-if value="{{ o.current }}" hint-placeholder-val="{{ false }}"><span class="visually-hidden">(statut actuel)</span></sc-if></button></li>
+</sc-for>
+</ul>
+</sc-if>
+</div>
+</article>
+</sc-for>
+<sc-if value="{{ c.isEmpty }}" hint-placeholder-val="{{ false }}">
+<p class="ts-board-empty">Aucun projet</p>
+</sc-if>
+</section>
+</sc-for>
+</div>
+</sc-if>
+</main>
+<footer class="footer">
+<div class="container">
+<span>TimeSheet · usage interne</span>
+<a href="#">Aide</a>
+<a href="#">Accessibilité</a>
+<a href="#">Données personnelles</a>
+</div>
+</footer>
+</div>
+<sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ false }}">
+<div class="modal-backdrop" style="padding: 0">
+<form class="offcanvas" id="panneau-projet" role="dialog" aria-modal="true" aria-labelledby="titre-panneau">
+<div class="modal-header">
+<h2 class="h3" id="titre-panneau">Nouveau projet</h2>
+<button class="btn btn-icon btn-sm" type="button" aria-label="Fermer le panneau" onClick="{{ closePanel }}"><span class="ico ico-cross" aria-hidden="true"></span></button>
+</div>
+<p class="small text-secondary">Les champs marqués d'un astérisque (*) sont obligatoires.</p>
+<div>
+<label class="form-label is-required" for="p-nom">Nom du projet</label>
+<input class="form-control" id="p-nom" type="text" aria-required="true" value="{{ newName }}" onChange="{{ setNewName }}">
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: 20px">
+<div>
+<label class="form-label is-required" for="p-debut">Date de début</label>
+<input class="form-control" id="p-debut" type="text" aria-required="true" defaultValue="06/04/2026" aria-describedby="p-format">
+</div>
+<div>
+<label class="form-label" for="p-fin">Date de fin</label>
+<input class="form-control" id="p-fin" type="text" defaultValue="26/06/2026" aria-describedby="p-format">
+</div>
+</div>
+<p class="form-text" id="p-format" style="margin-top: 0">Format des dates : jj/mm/aaaa.</p>
+<div>
+<label class="form-label" for="p-statut">Statut</label>
+<select class="form-select" id="p-statut" aria-describedby="p-statut-aide">
+<option>À démarrer</option>
+<option>En cours</option>
+<option>En pause</option>
+<option>Terminé</option>
+</select>
+<p class="form-text" id="p-statut-aide">Seuls les projets « En cours » acceptent la saisie des temps.</p>
+</div>
+<div>
+<label class="form-label" for="p-budget">Budget d'heures</label>
+<div class="input-group" style="max-width: 200px">
+<input class="form-control" id="p-budget" type="text" inputmode="numeric" defaultValue="320">
+<span class="input-group-text">h</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<label class="form-label" for="p-activite" style="margin-bottom: 0">Activités</label>
+<div style="display: flex; flex-wrap: wrap; gap: 5px">
+<span class="tag">Analyse<button class="btn-link btn" type="button" aria-label="Retirer l'activité Analyse"><span class="ico ico-cross" aria-hidden="true"></span></button></span>
+<span class="tag">Atelier<button class="btn-link btn" type="button" aria-label="Retirer l'activité Atelier"><span class="ico ico-cross" aria-hidden="true"></span></button></span>
+<span class="tag">Rédaction<button class="btn-link btn" type="button" aria-label="Retirer l'activité Rédaction"><span class="ico ico-cross" aria-hidden="true"></span></button></span>
+</div>
+<div class="input-group">
+<input class="form-control" id="p-activite" type="text" placeholder="Nouvelle activité">
+<button class="btn" type="button">Ajouter</button>
+</div>
+</div>
+<fieldset style="display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; border: 0">
+<legend class="form-label" style="padding: 0">Membres affectés (3 sur 6)</legend>
+<div class="form-check"><input class="form-check-input" type="checkbox" id="m1" defaultChecked="{{ true }}"><label for="m1">Aïcha Ndongo</label></div>
+<div class="form-check"><input class="form-check-input" type="checkbox" id="m2"><label for="m2">Ibrahim Njoya</label></div>
+<div class="form-check"><input class="form-check-input" type="checkbox" id="m3" defaultChecked="{{ true }}"><label for="m3">Kevin Fotso</label></div>
+<div class="form-check"><input class="form-check-input" type="checkbox" id="m4"><label for="m4">Laure Bikoï</label></div>
+<div class="form-check"><input class="form-check-input" type="checkbox" id="m5" defaultChecked="{{ true }}"><label for="m5">Sandrine Mvondo</label></div>
+<div class="form-check"><input class="form-check-input" type="checkbox" id="m6"><label for="m6">Yannick Essomba</label></div>
+</fieldset>
+<div class="modal-footer" style="margin-top: auto; padding-top: 20px; border-top: 2px solid #000000">
+<button class="btn" type="button" onClick="{{ closePanel }}">Annuler</button>
+<button class="btn btn-primary" type="button" disabled="{{ cannotCreate }}" onClick="{{ create }}">Créer le projet</button>
+</div>
+</form>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":870}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = {
+projects: [
+{ id: 1, name: "Refonte parcours souscription", code: "CX-2026-01", period: "5 janv. – 26 juin 2026", members: 4, used: 612, budget: 960, status: "progress" },
+{ id: 2, name: "Baromètre NPS T1 2026", code: "CX-2026-02", period: "5 janv. – 27 mars 2026", members: 3, used: 410, budget: 400, status: "progress" },
+{ id: 3, name: "Cartographie des irritants", code: "CX-2026-03", period: "2 févr. – 29 mai 2026", members: 5, used: 228, budget: 600, status: "progress" },
+{ id: 4, name: "Veille et formation", code: "CX-2026-00", period: "Toute l'année 2026", members: 6, used: 148, budget: 0, status: "progress" },
+{ id: 5, name: "Enquête boutiques T2 2026", code: "CX-2026-06", period: "6 avr. – 26 juin 2026", members: 3, used: 0, budget: 240, status: "todo" },
+{ id: 6, name: "Refonte FAQ en ligne", code: "CX-2026-05", period: "2 févr. – 30 avr. 2026", members: 2, used: 64, budget: 300, status: "hold" },
+{ id: 7, name: "Tests d'usage appli mobile", code: "CX-2026-04", period: "12 janv. – 27 févr. 2026", members: 4, used: 296, budget: 320, status: "done" }
+],
+filter: "all", view: "list", menu: null, panel: false, notice: "", last: null, newName: "Audit parcours réclamation"
+};
+}
+renderVals() {
+const s = this.state;
+const ST = {
+progress: { text: "En cours", many: "En cours", cls: "ts-st-progress" },
+todo: { text: "À démarrer", many: "À démarrer", cls: "ts-st-todo" },
+hold: { text: "En pause", many: "En pause", cls: "ts-st-hold" },
+done: { text: "Terminé", many: "Terminés", cls: "ts-st-done" }
+};
+const ORDER = ["progress", "todo", "hold", "done"];
+const count = (k) => s.projects.filter((p) => p.status === k).length;
+const setStatus = (p, k) => () => {
+if (p.status === k) { this.setState({ menu: null }); return; }
+const effect = k === "progress" ? "Ses membres peuvent y saisir des heures." : "La saisie des temps y est fermée.";
+this.setState({ projects: s.projects.map((x) => (x.id === p.id ? Object.assign({}, x, { status: k }) : x)), menu: null, last: { id: p.id, prev: p.status }, notice: "« " + p.name + " » est passé à « " + ST[k].text + " ». " + effect });
+};
+const decorate = (p) => {
+const pct = p.budget > 0 ? Math.round((p.used * 100) / p.budget) : 0;
+const over = p.budget > 0 && p.used > p.budget;
+return Object.assign({}, p, {
+stText: ST[p.status].text,
+stCls: ST[p.status].cls,
+stLabel: "Statut de " + p.name + " : " + ST[p.status].text + ". Modifier",
+editLabel: "Modifier " + p.name,
+membersText: p.members > 1 ? p.members + " membres" : p.members + " membre",
+menuOpen: s.menu === p.id,
+toggleMenu: () => this.setState({ menu: s.menu === p.id ? null : p.id }),
+options: ORDER.map((k) => ({ text: ST[k].text, stCls: ST[k].cls, current: p.status === k, cls: p.status === k ? "is-current" : "", pick: setStatus(p, k) })),
+hasBudget: p.budget > 0,
+hoursText: p.budget > 0 ? p.used + " / " + p.budget + " h · " + pct + " %" : p.used + " h · sans budget",
+budgetLabel: "Budget consommé, " + p.name,
+pctNow: Math.min(pct, 100),
+pctCss: Math.min(pct, 100) + "%",
+barCls: over ? "bg-danger" : "",
+over: over,
+overText: over ? "Budget dépassé de " + (p.used - p.budget) + " h" : ""
+});
+};
+const sorted = s.projects.slice().sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status) || a.code.localeCompare(b.code)).map(decorate);
+const rows = s.filter === "all" ? sorted : sorted.filter((p) => p.status === s.filter);
+const n = s.projects.length;
+const isList = s.view === "list";
+const pill = (k, text) => ({ text: text, on: s.filter === k, cls: s.filter === k ? "active" : "", pick: () => this.setState({ filter: k, menu: null }) });
+const statusOf = () => { const el = document.getElementById("p-statut"); const i = el ? el.selectedIndex : 0; return ["todo", "progress", "hold", "done"][i] || "todo"; };
+return {
+summary: n + " projets · " + count("progress") + " en cours",
+filters: [pill("all", "Tous (" + n + ")")].concat(ORDER.map((k) => pill(k, ST[k].many + " (" + count(k) + ")"))),
+rows: rows,
+caption: s.filter === "all" ? "Tous les projets de l'équipe" : "Projets de l'équipe au statut " + ST[s.filter].text,
+isList: isList,
+isBoard: !isList,
+listCls: isList ? "active" : "",
+boardCls: isList ? "" : "active",
+showList: () => this.setState({ view: "list", menu: null }),
+showBoard: () => this.setState({ view: "board", menu: null }),
+showTable: isList && rows.length > 0,
+showEmpty: isList && rows.length === 0,
+showAll: () => this.setState({ filter: "all" }),
+cols: ORDER.map((k) => { const items = sorted.filter((p) => p.status === k); return { text: ST[k].text, stCls: ST[k].cls, count: items.length, label: ST[k].text + ", " + (items.length > 1 ? items.length + " projets" : items.length + " projet"), items: items, isEmpty: items.length === 0 }; }),
+hasNotice: s.notice.length > 0,
+notice: s.notice,
+canUndo: s.last !== null,
+undo: () => this.setState({ projects: s.projects.map((x) => (x.id === s.last.id ? Object.assign({}, x, { status: s.last.prev }) : x)), last: null, notice: "Changement annulé." }),
+panelOpen: s.panel,
+openPanel: () => this.setState({ panel: true, menu: null }),
+closePanel: () => this.setState({ panel: false }),
+newName: s.newName,
+setNewName: (e) => this.setState({ newName: e.target.value }),
+cannotCreate: s.newName.trim().length === 0,
+create: () => { const k = statusOf(); this.setState({ projects: s.projects.concat([{ id: n + 1, name: s.newName.trim(), code: "CX-2026-07", period: "6 avr. – 26 juin 2026", members: 3, used: 0, budget: 320, status: k }]), panel: false, filter: "all", last: null, notice: "Projet « " + s.newName.trim() + " » créé avec le statut « " + ST[k].text + " »." }); }
+};
+}
+}
+</script>
+</body>
+</html>

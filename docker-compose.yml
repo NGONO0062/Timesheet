@@ -1,0 +1,21 @@
+# Environnement de développement : PostgreSQL et Mailpit.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: timesheet
+      POSTGRES_PASSWORD: timesheet
+      POSTGRES_DB: timesheet
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  mail:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  db-data:
