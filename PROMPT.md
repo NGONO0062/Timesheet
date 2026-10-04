@@ -19,7 +19,7 @@ Lis ce document en entier, puis `design/README.md`, avant d'écrire la première
 | Chemin | Contenu |
 |---|---|
 | `design/ods.css` | Feuille de style de la maquette. Elle applique les tokens du design system avec les noms de classes Boosted, plus les composants spécifiques préfixés `.ts-`. C'est la référence visuelle. |
-| `design/ecrans/*.html` | Les 29 planches en HTML statique. Ouvre-les dans un navigateur : c'est le rendu attendu, au pixel. |
+| `design/ecrans/*.html` | Les 30 planches en HTML statique. Ouvre-les dans un navigateur : c'est le rendu attendu, au pixel. |
 | `design/captures/*.png` | Captures des mêmes planches. |
 | `design/prototype/*.dc.html` | Sources du prototype pour les 5 écrans à logique (03, 06, 07, 08, 09). Le bloc `<script>` en bas de chaque fichier contient les règles de calcul et les transitions d'état. Le moteur de rendu est propre à l'outil de maquettage : reprends la logique, pas la syntaxe. |
 | `design/README.md` | Index des planches, note de composants par écran, hypothèses. |
@@ -142,6 +142,13 @@ L'application doit se comprendre sans mode d'emploi. Ces règles s'appliquent à
 9. **Une réponse immédiate.** Chaque action affiche son résultat sans rechargement de page, annoncé dans une zone de statut.
 
 ## 6. Structure de l'interface
+
+**Connexion.** La seule page sans navigation. Deux volets (`.ts-login`) : à gauche, sur fond noir, le mot TimeSheet, une phrase et les trois étapes de l'application (Saisir, Soumettre, Signer) ; à droite, le formulaire seul, centré, large de 400 px au plus, en contrôles de 50 px. Le noir du volet est celui de la barre latérale qu'on retrouve après la connexion. Sur mobile, le volet devient un bandeau en tête et les trois étapes disparaissent. Comportement :
+
+- bouton « Afficher / Masquer » sur le mot de passe ;
+- champ vide à l'envoi : message sous le champ concerné, focus sur le premier champ en erreur ;
+- identifiants incorrects : une alerte au-dessus du formulaire qui ne dit pas lequel des deux est faux, l'adresse e-mail reste saisie, le mot de passe est vidé ;
+- « Première connexion ? » explique que le compte vient d'une invitation de l'administrateur de division.
 
 **Desktop.** Barre latérale noire à gauche, 240 px, collante sur toute la hauteur. De haut en bas : le mot TimeSheet et le nom de la division, les liens du rôle avec icône, puis en bas de colonne le bloc utilisateur (initiales, nom, rôle), Paramètres et Se déconnecter. Lien courant : fond `#ff7900`, texte noir, `aria-current="page"`. Le contenu occupe le reste, dans un conteneur de 1200 px maximum, avec le pied de page en bas.
 
@@ -281,7 +288,7 @@ L'écran se lit de haut en bas, du plus urgent au moins urgent.
 - Heures consommées : somme des heures des fiches soumises ou validées, sur le budget, avec une barre. Au-delà de 100 %, la barre passe en rouge et un texte dit « Budget dépassé de 10 h ». Le budget n'a pas d'étiquette : une ligne ne porte qu'une étiquette, le statut.
 - Deux affichages, par un Button group « Liste / Colonnes » :
   - **Liste** : tableau filtrable par statut (pills « Tous », « En cours », « À démarrer », « En pause », « Terminés », chacune avec son compte). Tri par statut puis par code.
-  - **Colonnes** : une colonne par statut, une carte par projet. Pas de glisser-déposer : le statut se change par l'étiquette, au clavier comme à la souris. Sous 1024 px, seul l'affichage en liste est proposé.
+  - **Colonnes** : une colonne par statut, une carte par projet. Pas de glisser-déposer : le statut se change par l'étiquette, au clavier comme à la souris. Sous 1024 px, seul l'affichage en liste est proposé. Le choix d'affichage est gardé dans l'URL (`?vue=colonnes`).
 - Les projets archivés sont masqués. Un interrupteur « Afficher les projets archivés » les fait réapparaître. L'archivage se fait depuis le panneau de modification.
 - La création et la modification se font dans un Offcanvas à droite, la liste reste visible derrière.
 
@@ -355,7 +362,7 @@ Une page à ancres : Utilisateurs, Rôles et permissions, Workflows, Règles de 
 
 | # | Écran | Route | Maquette (`design/ecrans/`) |
 |---|---|---|---|
-| 1 | Connexion | `/connexion` | `01-Connexion`, `01-Connexion-mobile` |
+| 1 | Connexion | `/connexion` | `01-Connexion`, `01-Connexion-erreur`, `01-Connexion-mobile` |
 | 2 | Tableau de bord | `/tableau-de-bord` | `02-Tableau-de-bord`, `02-Tableau-de-bord-mobile` |
 | 3 | Saisie hebdomadaire | `/saisie/[annee]/[semaine]` | `03-Saisie-hebdo`, `03-Saisie-hebdo-mobile` |
 | 4 | Confirmation de soumission | modale de l'écran 3 | `04-Confirmation` |

@@ -15,8 +15,9 @@ Référence visuelle de l'application. Les règles métier et la méthode sont d
 
 | Planche | Cadre | Fichier |
 |---|---|---|
-| 01 · Connexion | 1280 × 800 | `ecrans/01-Connexion.html` |
-| 01 · Connexion · mobile 375 | 375 × 880 | `ecrans/01-Connexion-mobile.html` |
+| 01 · Connexion | 1280 × 820 | `ecrans/01-Connexion.html` |
+| 01 · Connexion · identifiants incorrects | 1280 × 970 | `ecrans/01-Connexion-erreur.html` |
+| 01 · Connexion · mobile 375 | 375 × 900 | `ecrans/01-Connexion-mobile.html` |
 | 02 · Tableau de bord | 1280 × 1570 | `ecrans/02-Tableau-de-bord.html` |
 | 02 · Tableau de bord · mobile 375 | 375 × 1990 | `ecrans/02-Tableau-de-bord-mobile.html` |
 | 03 · Saisie hebdomadaire | 1280 × 1050 | `ecrans/03-Saisie-hebdo.html` |
@@ -71,13 +72,19 @@ Pour chaque écran : composants ODS utilisés, composants spécifiques, tensions
 
 **01 · Connexion** (`01-Connexion`)
 
-- ODS : Orange navbar, Input, Input group, Button (primary, default), Card, Footer.
-- Spécifiques : aucun.
+- ODS : Input, Input group, Button (primary, default), Alert, Footer.
+- Spécifiques : page en deux volets (.ts-login). À gauche, le nom de l'application et ses trois étapes, sur le noir de la navigation latérale. À droite, le formulaire seul, centré, en contrôles de 50 px.
+- Dans le prototype : « Afficher » montre le mot de passe, « Se connecter » sans saisie affiche les messages sous les champs, avec saisie il ouvre le tableau de bord.
 - Tension : le marqueur requis #f16e00 fait 3,0:1 sur blanc, sous le 4,5:1 d'un texte. Il est doublé par aria-required et par la légende des champs obligatoires.
+
+**01 · Connexion · identifiants incorrects** (`01-Connexion-erreur`)
+
+- ODS : Alert (danger), Input, Button.
+- Le message ne dit pas lequel des deux champs est faux. L'adresse e-mail reste saisie, le mot de passe est vidé.
 
 **01 · Connexion · mobile 375** (`01-Connexion-mobile`)
 
-- Conteneur 312 px. Contrôles large de 50 px pour le tactile. H1 à 34 px comme sur desktop : titres courts obligatoires.
+- Le volet noir devient un bandeau en tête, avec le nom et la phrase d'accroche. Les trois étapes ne sont pas reprises : le formulaire passe d'abord. Conteneur 312 px, contrôles de 50 px.
 
 **02 · Tableau de bord** (`02-Tableau-de-bord`)
 
