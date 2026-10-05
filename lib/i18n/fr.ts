@@ -48,6 +48,23 @@ export const fr = {
     changeStatus: "Changer le statut",
     statusOf: "Statut de {name} : {status}. Modifier",
   },
+  project: {
+    statusChanged: "« {name} » est passé à « {status} ». {effect}",
+    entryOpen: "Ses membres peuvent y saisir des heures.",
+    entryClosed: "La saisie des temps y est fermée.",
+    entryNotYetOpen: "Saisie pas encore ouverte",
+    entryClosedShort: "Saisie fermée",
+    endDatePassed: "Date de fin dépassée",
+    budgetOver: "Budget dépassé de {hours}",
+  },
+  permissions: {
+    ENTER_TIME: "Saisir et soumettre ses temps",
+    VALIDATE_TEAM: "Valider les fiches de son équipe",
+    MANAGE_PROJECTS: "Gérer les projets : création, statut, membres",
+    VIEW_REPORTING: "Consulter le reporting",
+    VIEW_DIVISION: "Voir la vue consolidée de la division",
+    ADMINISTER_DIVISION: "Gérer les utilisateurs, workflows et règles",
+  },
   week: {
     group: "Sélection de la semaine",
     label: "Semaine {week}",

@@ -26,3 +26,8 @@ Chaque point avance avec sa valeur par défaut, isolée derrière un réglage ou
 5. **Signalement de cellules dans la planche C2-B.** La planche place le message de la cellule signalée à gauche du bouton « Soumettre à nouveau ». Le composant de grille place les messages d'erreur sous le tableau, et l'écran place le bouton en dessous. À valider sur l'écran 05 au jalon 2.
 6. **Git absent de la machine.** La méthode demande un commit par jalon. Git n'est pas installé : le dépôt n'est pas initialisé.
 7. **Polices.** Helvetica Neue n'est pas embarquée (licence) : la pile retombe sur Arial sous Windows. Les captures de comparaison sont faites dans les mêmes conditions.
+
+## Mise à jour des maquettes (branche `maj-maquettes`)
+
+8. **Lot 2, partie serveur reportée (accord du 4 octobre).** La migration de reprise n'a pas lieu d'être : aucune base n'existe encore, et la première migration (jalon 1) part du schéma qui porte déjà `status`, `statusChangedAt` et `statusChangedById`. Le seed (trois projets ajoutés à l'équipe de Samuel Etoga) arrive au jalon 1, le refus d'heures côté serveur au jalon 2, le changement de statut avec `AuditLog` et le test d'isolation entre divisions au jalon 4. Les règles pures sont déjà dans `lib/projects/rules.ts` et `lib/permissions.ts`, testées.
+9. **Poste de développement infecté.** Un virus remplace les exécutables non signés de `node_modules` (esbuild, moteur Prisma) par une souche de 533 504 octets (SHA-256 `1B68201A…170E`). Sur ce poste, le binaire esbuild officiel est remis avant chaque série de tests. Tant que la machine n'est pas nettoyée, les tests de bout en bout et les captures ne sont pas fiables ici.
