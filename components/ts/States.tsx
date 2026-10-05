@@ -20,21 +20,33 @@ export function EmptyState({ title, children, actions, headingLevel = 3 }: {
   );
 }
 
-/** Zone de statut de la sauvegarde automatique. */
-export function SaveIndicator({ state, time }: { state: "saved" | "saving" | "failed"; time?: string }) {
+export type SaveState = "idle" | "saved" | "saving" | "failed" | "info";
+
+/**
+ * Zone de statut de la sauvegarde automatique. Toujours présente, même vide,
+ * pour que les lecteurs d'écran annoncent le premier enregistrement.
+ * `short` : libellé mobile (« Brouillon enregistré à 10:42 »).
+ */
+export function SaveIndicator({ state, time, short, message }: { state: SaveState; time?: string; short?: boolean; message?: string }) {
   return (
     <p className="ts-save" role="status">
       {state === "saved" && (
         <>
           <Mark tone="success" />
-          {t(dict.grid.savedAt, { time: time ?? "" })}
+          {t(short ? dict.entry.savedShort : dict.grid.savedAt, { time: time ?? "" })}
         </>
       )}
       {state === "saving" && dict.grid.saving}
       {state === "failed" && (
         <>
           <Mark tone="danger" />
-          {dict.grid.saveFailed}
+          {message ? `${dict.grid.saveFailed}. ${message}` : dict.grid.saveFailed}
+        </>
+      )}
+      {state === "info" && message && (
+        <>
+          <Mark tone="info" />
+          {message}
         </>
       )}
     </p>

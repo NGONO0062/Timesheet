@@ -5,7 +5,7 @@ import { useId, type KeyboardEvent } from "react";
 import { FieldError } from "@/components/ods/Form";
 import { Icon } from "@/components/ods/Icon";
 import { cx } from "@/lib/cx";
-import { formatDayMonth, formatHours, formatHoursOf, formatNumber, formatWeekdayDay } from "@/lib/format";
+import { capitalize, formatDayMonth, formatHours, formatHoursOf, formatNumber, formatWeekdayDay } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
 import { isoWeekday } from "@/lib/iso-week";
 import { dayStatus, dayTotals, overDayMessage, parseHours, sum } from "@/lib/timesheet/rules";
@@ -34,6 +34,8 @@ type Props = {
   futureDays?: boolean[];
   onChange?: (rowId: string, day: number, raw: string) => void;
   onRemove?: (rowId: string) => void;
+  /** Identifiant posé sur la première cellule signalée (lien « Aller à la cellule signalée »). */
+  flaggedAnchor?: string;
 };
 
 const value = (raw: string | undefined, step: number) => {
@@ -41,7 +43,7 @@ const value = (raw: string | undefined, step: number) => {
   return p.kind === "ok" ? p.value : 0;
 };
 
-export function TimeGrid({ caption, days, expected, rows, step, readOnly, futureDays, onChange, onRemove }: Props) {
+export function TimeGrid({ caption, days, expected, rows, step, readOnly, futureDays, onChange, onRemove, flaggedAnchor }: Props) {
   const id = useId();
   const numbers = rows.map((r) => days.map((_, j) => value(r.values[j], step)));
   const totals = dayTotals(numbers, days.length);
@@ -66,11 +68,11 @@ export function TimeGrid({ caption, days, expected, rows, step, readOnly, future
     // Gauche / droite déplacent seulement quand le curseur est en bout de champ.
     if (move[1] === -1 && input.selectionStart !== 0) return;
     if (move[1] === 1 && input.selectionEnd !== input.value.length) return;
-    const target = document.getElementById(`${id}-c-${r + move[0]}-${c + move[1]}`);
+    const target = input.closest("table")?.querySelector<HTMLInputElement>(`[data-cell="${r + move[0]}-${c + move[1]}"]`);
     if (target) {
       e.preventDefault();
-      (target as HTMLInputElement).focus();
-      (target as HTMLInputElement).select();
+      target.focus();
+      target.select();
     }
   }
 
@@ -104,6 +106,7 @@ export function TimeGrid({ caption, days, expected, rows, step, readOnly, future
   }
 
   const weekTotal = sum(totals);
+  const firstFlag = rows.flatMap((row, r) => days.map((_, j) => (row.flagged?.[j] && !row.locked ? `${r}-${j}` : null))).find(Boolean);
   const weekExpected = sum(expected);
 
   return (
@@ -116,7 +119,7 @@ export function TimeGrid({ caption, days, expected, rows, step, readOnly, future
             <tr key={row.id}>
               <th scope="row">
                 {row.project}
-                <small>{row.activity}</small>
+                <small>{row.locked && !readOnly ? t(dict.grid.entryClosed, { activity: row.activity }) : row.activity}</small>
               </th>
               {days.map((d, j) => {
                 if (readOnly || row.locked) {
@@ -129,7 +132,8 @@ export function TimeGrid({ caption, days, expected, rows, step, readOnly, future
                 return (
                   <td key={j}>
                     <input
-                      id={`${id}-c-${r}-${j}`}
+                      id={flaggedAnchor && firstFlag === `${r}-${j}` ? flaggedAnchor : undefined}
+                      data-cell={`${r}-${j}`}
                       className={cx("form-control", (flagged || over || bad) && "is-invalid")}
                       type="text"
                       inputMode="decimal"
@@ -196,7 +200,11 @@ export function TimeGrid({ caption, days, expected, rows, step, readOnly, future
             days.map((d, j) =>
               row.flagged?.[j] ? (
                 <FieldError key={`f${r}-${j}`} id={ids.flag(r, j)}>
-                  {t(dict.grid.flagged, { day: `${capitalize(formatWeekdayDay(d))} ${dict.months[d.getUTCMonth()]}`, project: row.project })}
+                  {t(dict.grid.flagged, {
+                    day: `${capitalize(formatWeekdayDay(d))} ${dict.months[d.getUTCMonth()]}`,
+                    project: row.project,
+                    hours: formatHours(numbers[r]![j]!),
+                  })}
                 </FieldError>
               ) : null,
             ),
@@ -206,8 +214,4 @@ export function TimeGrid({ caption, days, expected, rows, step, readOnly, future
       )}
     </>
   );
-}
-
-function capitalize(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }

@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
-import { UpcomingScreen } from "@/components/ts/UpcomingScreen";
+import { redirect } from "next/navigation";
+import { now } from "@/lib/clock";
+import { currentWeek } from "@/lib/data/timesheets";
 import { requirePermission } from "@/lib/data/viewer";
-import { homeFor } from "@/lib/navigation";
+import { entryHref } from "@/lib/routes";
 
-export const metadata: Metadata = { title: "Saisie hebdomadaire" };
-
+// « Saisie hebdomadaire » ouvre la semaine en cours.
 export default async function Page() {
-  const viewer = await requirePermission("ENTER_TIME");
-  return <UpcomingScreen title="Saisie hebdomadaire" milestone={2} home={homeFor(viewer)} />;
+  await requirePermission("ENTER_TIME");
+  redirect(entryHref(currentWeek(now())));
 }

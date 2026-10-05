@@ -8,7 +8,8 @@ export type AuditAction =
   | "LOGIN_SUCCESS"
   | "LOGIN_FAILURE"
   | "LOGOUT"
-  | "PROJECT_STATUS_CHANGED";
+  | "PROJECT_STATUS_CHANGED"
+  | "TIMESHEET_SUBMITTED";
 
 export type AuditEntry = {
   actorId?: string | null;

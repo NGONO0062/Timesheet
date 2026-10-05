@@ -46,6 +46,9 @@ Application interne Orange Cameroun : projets, temps de travail, fiche de prése
 - Règles métier pures dans `lib/` (testées par Vitest). Prisma seulement dans `lib/data/` (règle ESLint).
 - Textes d'interface dans `lib/i18n/fr.ts`. Formats (virgule, espace insécable, dates) dans `lib/format.ts`.
 - Prisma 6 tant que Node < 22.12 (voir `docs/questions-ouvertes.md`).
+- Horloge : `now()` de `lib/clock.ts`, jamais `new Date()` pour une règle métier. `TIMESHEET_NOW` (démonstration) part du jeudi 19 mars 2026, semaine 12.
+- Saisie : règles pures dans `lib/timesheet/` (`rules`, `draft`, `dashboard`), données dans `lib/data/timesheets.ts`, actions dans `app/actions/timesheet.ts`.
+- Tests de bout en bout qui écrivent : comptes remis à zéro par `prisma/e2e-fixtures.ts` (préparation globale de Playwright).
 - Authentification : `auth.ts` (Auth.js, JWT). Utilisateur connecté : `getViewer()` / `requirePermission()` dans `lib/data/viewer.ts`. Navigation : `lib/navigation.ts`.
 
 <!-- BEGIN:nextjs-agent-rules -->

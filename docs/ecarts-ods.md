@@ -26,6 +26,7 @@ Repérés en comparant `/design` aux planches C1 à C4 rendues dans le même nav
 | `.text-secondary`, `.text-danger` | Utilitaires en `!important` sur d'autres valeurs | `#595959`, `#cd3c14` | Palette. Sélecteur `:root .text-secondary` : le compilateur CSS de Next fusionnait sinon la surcharge avec la règle de la section 1 et perdait le `!important`. |
 | Marqueur de champ requis | Astérisque en position absolue, sans espace | Astérisque dans le flux, précédé d'une espace | Maquette. |
 | Listes de définitions | `dt` en gras | 400 | Maquette. |
+| List group | Éléments en gras (`--bs-list-group-font-weight`) | 400 ; le gras est posé par `.fw-bold` là où la maquette le met | Maquette. |
 | Texte d'aide `.form-text` | Gras | 400 | Maquette. |
 | Message d'erreur `.invalid-feedback` | Icône en `::before` | Masquée, la pastille `.mark-danger` la remplace | Une forme par statut, pas deux. |
 | Boutons | `opacity` au désactivé, `z-index`, transitions | Opaque, sans transition | Désactivé opaque ; survol par inversion nette. |

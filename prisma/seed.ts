@@ -56,18 +56,31 @@ type ProjectSeed = {
 
 // Projets de l'équipe de Samuel Etoga (planche 09-Projets).
 const PROJECTS: ProjectSeed[] = [
-  { code: "CX-2026-00", name: "Veille et formation", start: "2026-01-01", end: "2026-12-31", budget: null, status: "IN_PROGRESS", activities: ["Formation", "Veille"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Ibrahim Njoya", "Sandrine Mvondo", "Yannick Essomba"] },
-  { code: "CX-2026-01", name: "Refonte parcours souscription", start: "2026-01-05", end: "2026-06-26", budget: 960, status: "IN_PROGRESS", activities: ["Tests utilisateurs", "Ateliers", "Rédaction"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Ibrahim Njoya"] },
-  { code: "CX-2026-02", name: "Baromètre NPS T1 2026", start: "2026-01-05", end: "2026-03-27", budget: 400, status: "IN_PROGRESS", activities: ["Analyse", "Collecte"], members: ["Aïcha Ndongo", "Sandrine Mvondo", "Yannick Essomba"] },
-  { code: "CX-2026-03", name: "Cartographie des irritants", start: "2026-02-02", end: "2026-05-29", budget: 600, status: "IN_PROGRESS", activities: ["Atelier", "Analyse"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Sandrine Mvondo", "Yannick Essomba"] },
+  { code: "CX-2026-00", name: "Veille et formation", start: "2026-01-01", end: "2026-12-31", budget: null, status: "IN_PROGRESS", activities: ["Formation"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Ibrahim Njoya", "Sandrine Mvondo", "Yannick Essomba"] },
+  { code: "CX-2026-01", name: "Refonte parcours souscription", start: "2026-01-05", end: "2026-06-26", budget: 960, status: "IN_PROGRESS", activities: ["Tests utilisateurs", "Atelier"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Ibrahim Njoya"] },
+  { code: "CX-2026-02", name: "Baromètre NPS T1 2026", start: "2026-01-05", end: "2026-03-27", budget: 400, status: "IN_PROGRESS", activities: ["Analyse"], members: ["Aïcha Ndongo", "Sandrine Mvondo", "Yannick Essomba"] },
+  { code: "CX-2026-03", name: "Cartographie des irritants", start: "2026-02-02", end: "2026-05-29", budget: 600, status: "IN_PROGRESS", activities: ["Atelier", "Rédaction"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Sandrine Mvondo", "Yannick Essomba"] },
   { code: "CX-2026-04", name: "Tests d'usage appli mobile", start: "2026-01-12", end: "2026-02-27", budget: 320, status: "DONE", activities: ["Tests utilisateurs"], members: ["Kevin Fotso", "Ibrahim Njoya", "Sandrine Mvondo", "Yannick Essomba"] },
   { code: "CX-2026-05", name: "Refonte FAQ en ligne", start: "2026-02-02", end: "2026-04-30", budget: 300, status: "ON_HOLD", activities: ["Rédaction"], members: ["Kevin Fotso", "Laure Bikoï"] },
-  { code: "CX-2026-06", name: "Enquête boutiques T2 2026", start: "2026-04-06", end: "2026-06-26", budget: 240, status: "NOT_STARTED", activities: ["Préparation", "Collecte"], members: ["Aïcha Ndongo", "Ibrahim Njoya", "Yannick Essomba"] },
+  { code: "CX-2026-06", name: "Enquête boutiques T2 2026", start: "2026-04-06", end: "2026-06-26", budget: 240, status: "NOT_STARTED", activities: ["Enquête", "Analyse"], members: ["Aïcha Ndongo", "Ibrahim Njoya", "Yannick Essomba"] },
 ];
 
 async function main() {
-  if (await prisma.division.findUnique({ where: { slug: "cx-expertise" } })) {
-    console.log("Données de démonstration déjà présentes. Pour repartir de zéro : npm run db:reset.");
+  const existing = await prisma.division.findUnique({ where: { slug: "cx-expertise" } });
+  if (existing) {
+    // Base du jalon 1 : on ajoute seulement les fiches de temps, sans rien effacer.
+    if ((await prisma.timesheet.count({ where: { divisionId: existing.id } })) > 0) {
+      console.log("Données de démonstration déjà présentes. Pour repartir de zéro : npm run db:reset.");
+      return;
+    }
+    const users = await prisma.user.findMany({ where: { divisionId: existing.id }, select: { id: true, firstName: true, lastName: true } });
+    const projects = await prisma.project.findMany({ where: { divisionId: existing.id }, include: { activities: true } });
+    await seedTimesheets(
+      existing.id,
+      new Map(users.map((u) => [`${u.firstName} ${u.lastName}`, u.id])),
+      new Map(projects.map((p) => [p.code, p])),
+    );
+    console.log("Fiches de temps de démonstration ajoutées (semaines 2 à 12 de 2026).");
     return;
   }
   const passwordHash = await hash(password!);
@@ -126,8 +139,10 @@ async function main() {
   });
 
   const samuel = ids.get("Samuel Etoga")!;
+  const projects = new Map<string, { id: string; activities: { id: string; name: string }[] }>();
   for (const p of PROJECTS) {
-    await prisma.project.create({
+    const project = await prisma.project.create({
+      include: { activities: true },
       data: {
         divisionId: division.id,
         code: p.code,
@@ -142,6 +157,7 @@ async function main() {
         members: { create: p.members.map((m) => ({ userId: ids.get(m)! })) },
       },
     });
+    projects.set(p.code, project);
   }
 
   // Activité système « Absence » (PROMPT.md §20) : compte dans le total du jour.
@@ -158,6 +174,8 @@ async function main() {
     },
   });
 
+  await seedTimesheets(division.id, ids, projects);
+
   // Admin plateforme : sans division.
   await prisma.user.create({
     data: { divisionId: null, email: "rose.ekambi@exemple.com", passwordHash, firstName: "Rose", lastName: "Ekambi", role: "PLATFORM_ADMIN", createdAt: created },
@@ -165,6 +183,134 @@ async function main() {
 
   const active = PEOPLE.filter((p) => p.active !== false).length;
   console.log(`Division CX Expertise : ${active} comptes actifs, ${PEOPLE.length - active} désactivé, ${PROJECTS.length} projets. Admin plateforme : Rose Ekambi.`);
+}
+
+// ---------------------------------------------------------------------------
+// Fiches de temps (écrans 02 à 05). Semaine de référence : 12 de 2026 (16–20 mars).
+// ---------------------------------------------------------------------------
+
+/** Heures par jour, du lundi au vendredi ; null pour une cellule laissée vide. */
+type Line = [code: string, activity: string, hours: Array<number | null>];
+
+function mondayOf(year: number, week: number): Date {
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const monday = new Date(jan4.getTime() - ((jan4.getUTCDay() + 6) % 7) * 86_400_000);
+  return new Date(monday.getTime() + (week - 1) * 7 * 86_400_000);
+}
+const plusDays = (date: Date, n: number) => new Date(date.getTime() + n * 86_400_000);
+/** Instant à Douala (UTC+1) : « 2026-03-20 16:42 ». */
+const douala = (iso: string) => new Date(`${iso.replace(" ", "T")}:00+01:00`);
+
+async function seedTimesheets(
+  divisionId: string,
+  ids: Map<string, string>,
+  projects: Map<string, { id: string; activities: { id: string; name: string }[] }>,
+) {
+  const samuel = ids.get("Samuel Etoga")!;
+
+  async function sheet(
+    user: string,
+    week: number,
+    status: "DRAFT" | "SUBMITTED" | "REJECTED" | "VALIDATED",
+    lines: Line[],
+    extra: { submittedAt?: string; decidedAt?: string; reason?: string; flagged?: [number, number][]; comment?: string } = {},
+  ) {
+    const monday = mondayOf(2026, week);
+    const userId = ids.get(user)!;
+    const ts = await prisma.timesheet.create({
+      data: {
+        divisionId,
+        userId,
+        isoYear: 2026,
+        isoWeek: week,
+        status,
+        comment: extra.comment ?? null,
+        submittedAt: extra.submittedAt ? douala(extra.submittedAt) : null,
+        submissionCount: extra.submittedAt ? 1 : 0,
+        decidedById: extra.decidedAt ? samuel : null,
+        decidedAt: extra.decidedAt ? douala(extra.decidedAt) : null,
+        rejectionReason: extra.reason ?? null,
+      },
+    });
+    for (const [i, [code, activityName, hours]] of lines.entries()) {
+      const project = projects.get(code)!;
+      const activity = project.activities.find((a) => a.name === activityName)!;
+      await prisma.timesheetLine.create({
+        data: {
+          timesheetId: ts.id,
+          projectId: project.id,
+          activityId: activity.id,
+          position: i,
+          entries: {
+            create: hours
+              .flatMap((h, day) => (h === null ? [] : [{ date: plusDays(monday, day), hours: h, flagged: Boolean(extra.flagged?.some(([l, d]) => l === i && d === day)) }])),
+          },
+        },
+      });
+    }
+    if (extra.submittedAt) await prisma.timesheetEvent.create({ data: { timesheetId: ts.id, type: "SUBMITTED", actorId: userId, at: douala(extra.submittedAt) } });
+    if (extra.decidedAt) {
+      await prisma.timesheetEvent.create({
+        data: { timesheetId: ts.id, type: status === "REJECTED" ? "REJECTED" : "VALIDATED", actorId: samuel, at: douala(extra.decidedAt), note: extra.reason ?? null },
+      });
+    }
+  }
+
+  // Semaines validées : soumises le vendredi, validées le lundi suivant.
+  const validated = (week: number) => {
+    const friday = plusDays(mondayOf(2026, week), 4).toISOString().slice(0, 10);
+    const nextMonday = plusDays(mondayOf(2026, week), 7).toISOString().slice(0, 10);
+    return { submittedAt: `${friday} 16:30`, decidedAt: `${nextMonday} 10:00` };
+  };
+  const january: Line[] = [
+    ["CX-2026-01", "Tests utilisateurs", [3, 3, 3, 3, 3]],
+    ["CX-2026-02", "Analyse", [3, 3, 3, 3, 3]],
+    ["CX-2026-00", "Formation", [2, 2, 2, 2, 2]],
+  ];
+  const february: Line[] = [
+    ["CX-2026-01", "Tests utilisateurs", [3, 3, 3, 3, 3]],
+    ["CX-2026-02", "Analyse", [2, 2, 2, 2, 2]],
+    ["CX-2026-03", "Atelier", [2, 2, 2, 2, 2]],
+    ["CX-2026-00", "Formation", [1, 1, 1, 1, 1]],
+  ];
+
+  // Aïcha Ndongo, stagiaire depuis le 5 janvier : semaines 2 à 10 validées,
+  // semaine 11 non saisie (manquante), semaine 12 en brouillon (24 h sur 40).
+  for (let week = 2; week <= 10; week++) await sheet("Aïcha Ndongo", week, "VALIDATED", week <= 5 ? january : february, validated(week));
+  await sheet("Aïcha Ndongo", 12, "DRAFT", [
+    ["CX-2026-01", "Tests utilisateurs", [4, 4, 3, null, null]],
+    ["CX-2026-02", "Analyse", [2, 4, 3, null, null]],
+    ["CX-2026-03", "Atelier", [2, 0, 2, null, null]],
+  ]);
+
+  // Kevin Fotso : semaine 12 rejetée, cellule du jeudi 19 signalée (écran 05).
+  const kevinWeek: Line[] = [
+    ["CX-2026-01", "Tests utilisateurs", [3, 3, 3, 3, 3]],
+    ["CX-2026-03", "Atelier", [3, 3, 3, 3, 3]],
+    ["CX-2026-00", "Formation", [2, 2, 2, 2, 2]],
+  ];
+  for (let week = 2; week <= 11; week++) await sheet("Kevin Fotso", week, "VALIDATED", week <= 5 ? kevinWeek.filter(([c]) => c !== "CX-2026-03").map(([c, a, h]) => [c, a, c === "CX-2026-01" ? [6, 6, 6, 6, 6] : h] as Line) : kevinWeek, validated(week));
+  await sheet(
+    "Kevin Fotso",
+    12,
+    "REJECTED",
+    [
+      ["CX-2026-01", "Tests utilisateurs", [4, 4, 3, 5, 4]],
+      ["CX-2026-03", "Atelier", [2, 4, 3, 3, 2]],
+      ["CX-2026-00", "Formation", [2, 0, 2, 0, 2]],
+    ],
+    {
+      submittedAt: "2026-03-20 16:42",
+      decidedAt: "2026-03-23 09:15",
+      reason: "Jeudi 19 mars, 5 h déclarées sur Refonte parcours souscription alors que l'atelier de tests a été annulé. Merci de réaffecter ces heures.",
+      flagged: [[0, 3]],
+    },
+  );
+
+  // Fiche de présence de février 2026 d'Aïcha Ndongo : générée, à signer (écran 06).
+  await prisma.attendanceSheet.create({
+    data: { divisionId, userId: ids.get("Aïcha Ndongo")!, year: 2026, month: 2, status: "GENERATED", generatedAt: douala("2026-03-09 08:00") },
+  });
 }
 
 main()

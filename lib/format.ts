@@ -70,10 +70,57 @@ export function formatRange(start: Date, end: Date, withYear = true): string {
   return `${a.day} ${dict.monthsShort[a.month]} ${a.year} – ${b.day} ${dict.monthsShort[b.month]} ${b.year}`;
 }
 
+/** « vendredi 20 mars 2026 » */
+export function formatLongDate(d: Date): string {
+  return `${dict.weekdays[parts(d).weekday]} ${formatDate(d)}`;
+}
+
+/** « 6 avril 2026 », ou « 6 avril » sans l'année. */
+export function formatDayMonthYear(d: Date, withYear = true): string {
+  return withYear ? formatDate(d) : formatDayMonth(d);
+}
+
+/**
+ * Période en toutes lettres, dans une phrase :
+ *   même mois  → « Du 9 au 13 mars 2026 »
+ *   deux mois  → « Du 27 février au 3 mars 2026 »
+ *   deux années→ « Du 29 décembre 2025 au 2 janvier 2026 »
+ */
+export function formatFromTo(start: Date, end: Date): string {
+  const a = parts(start);
+  const b = parts(end);
+  const from = a.year !== b.year ? formatDate(start) : a.month !== b.month ? formatDayMonth(start) : String(a.day);
+  return `${dict.fromTo.from} ${from} ${dict.fromTo.to} ${formatDate(end)}`;
+}
+
 /** Instant affiché dans le fuseau de la division : « 20 mars 2026, 16:42 ». */
 export function formatDateTime(instant: Date): string {
   const z = zoned(instant);
   return `${z.day} ${dict.months[z.month]} ${z.year}, ${z.time}`;
+}
+
+/** « 20 mars 2026 à 16:42 », dans le fuseau de la division. */
+export function formatDateAt(instant: Date): string {
+  const z = zoned(instant);
+  return `${z.day} ${dict.months[z.month]} ${z.year} ${dict.at} ${z.time}`;
+}
+
+/** « lundi 23 mars 2026 à 09:15 », dans le fuseau de la division. */
+export function formatLongDateAt(instant: Date): string {
+  const z = zoned(instant);
+  const weekday = dict.weekdays[(new Date(Date.UTC(z.year, z.month, z.day)).getUTCDay() + 6) % 7];
+  return `${weekday} ${formatDateAt(instant)}`;
+}
+
+/** Jour calendaire d'un instant, dans le fuseau de la division (minuit UTC). */
+export function zonedDay(instant: Date): Date {
+  const z = zoned(instant);
+  return new Date(Date.UTC(z.year, z.month, z.day));
+}
+
+/** Première lettre en capitale : « Jeudi 19 mars ». */
+export function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /** « 10:42 » dans le fuseau de la division. */

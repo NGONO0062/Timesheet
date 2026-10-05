@@ -108,6 +108,7 @@ dd{margin-bottom:0;margin-left:0}
 
 /* List group : une seule bordure basse par élément. */
 .list-group{margin:0;padding:0}
+.list-group{--bs-list-group-font-weight:400}
 .list-group-item{border:0;color:#000;background:#fff}
 .list-group-item+.list-group-item{border-top-width:0}
 
@@ -671,3 +672,44 @@ button.dropdown-item{width:100%;border:0;background:none;font-family:inherit;fon
   /* Cible tactile de 50 px (§13). */
   .ts-login-forgot{min-height:50px;display:flex;align-items:center}
 }
+
+/* Écrans staff (jalon 2) : deux mises en page, échangées sous 768 px
+   (02-Tableau-de-bord-mobile, 03-Saisie-hebdo-mobile). */
+@media (min-width:768px){.ts-narrow{display:none!important}}
+@media (max-width:767.98px){.ts-wide{display:none!important}}
+.ts-stack{display:flex;flex-direction:column;gap:30px}
+.ts-section{display:flex;flex-direction:column;gap:20px}
+.ts-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 20px}
+.ts-head-start{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px}
+/* Heures par jour de la semaine en cours : une case par jour, aujourd'hui en noir. */
+.ts-days{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.ts-days>li{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:10px 5px;border:2px solid #999;border-radius:6px}
+.ts-days>li.is-today{border-color:#000}
+/* Ligne « À faire » : pastille, texte, bouton. */
+.ts-todo-text{display:flex;align-items:flex-start;gap:10px;flex:1 1 320px}
+.ts-todo-text>div{display:flex;flex-direction:column;gap:5px}
+.ts-project-main{display:flex;flex-direction:column;gap:5px;flex:1 1 280px}
+.ts-project-status{flex:0 0 120px}
+.ts-project-tags{display:flex;flex-wrap:wrap;gap:5px;flex:0 1 240px}
+.ts-project-hours{min-width:120px;text-align:right}
+/* Saisie : barre de soumission sous un filet noir. */
+.ts-submitbar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px;padding-top:20px;border-top:2px solid #000}
+.ts-submitbar-sum{display:flex;flex-direction:column;gap:10px;flex:1 1 320px;max-width:590px}
+.ts-history{display:flex;flex-direction:column;gap:5px;flex:1 1 380px;min-width:0}
+/* Saisie mobile : un jour à la fois, une pill par jour. */
+.ts-day-pills{gap:5px;flex-wrap:nowrap}
+.ts-day-pills>li{flex:1 1 0}
+.ts-day-pills .nav-link{width:100%;min-height:80px;padding:5px 0;flex-direction:column;gap:0;font-size:14px;line-height:16px}
+.ts-day-line{padding:10px}
+.ts-day-line>label{flex:1 1 100%;display:flex;flex-direction:column;gap:5px}
+@media (max-width:767.98px){
+  .ts-stack-tight{gap:20px}
+  .ts-stack h2.h3{font-size:20px;line-height:22px;letter-spacing:-.4px}
+  .ts-todo-item{flex-direction:column;align-items:stretch;padding:10px}
+  .ts-todo-item>.ts-todo-text,.ts-narrow>.ts-submitbar-sum{flex:none}
+  .ts-todo-item>.btn{width:100%;min-height:50px;font-size:18px;line-height:20px}
+  .ts-cta{width:100%;min-height:50px;font-size:18px;line-height:20px}
+  .ts-list-tight>.list-group-item{padding:10px}
+}
+.dropdown.ts-block{display:block}
+.table-responsive>.ts-grid+*{margin-top:20px}
