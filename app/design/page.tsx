@@ -9,6 +9,9 @@ import {
   Popover, Progress, QuantitySelector, Radio, RadioGroup, RequiredLegend, SelectField, Spinner, SteppedProcess,
   Switch, Table, Tabs, Tag, TextareaField, TextField, Toast, Tooltip,
 } from "@/components/ods";
+import { ProjectStatusMenu } from "@/components/ts/StatusBadge";
+import { statusChangedMessage } from "@/lib/projects/rules";
+import type { ProjectStatus } from "@/lib/status";
 
 const HOVER = { background: "#000000", color: "#ffffff", borderColor: "#000000" };
 
@@ -39,6 +42,8 @@ export default function DesignPage() {
   const [qty, setQty] = useState("3");
   const [sw, setSw] = useState(true);
   const [tags, setTags] = useState(["Analyse", "Atelier", "Rédaction"]);
+  const [faq, setFaq] = useState<ProjectStatus>("ON_HOLD");
+  const [faqPrevious, setFaqPrevious] = useState<ProjectStatus | null>(null);
 
   return (
     <div className="page page-plain">
@@ -65,6 +70,49 @@ export default function DesignPage() {
               </ListGroupItem>
             ))}
           </ListGroup>
+          <Card>
+            <h3 className="h5">Étiquette de projet dans un tableau à défilement</h3>
+            <p className="small text-secondary">Le menu est rendu hors du flux : le conteneur à défilement ne le coupe pas. Sans la permission « Gérer les projets », l&apos;étiquette est un simple badge.</p>
+            <div className="table-responsive" style={{ maxWidth: 560 }}>
+              <table className="table" style={{ minWidth: 720 }}>
+                <caption className="visually-hidden">Projets et statut</caption>
+                <thead>
+                  <tr><th scope="col">Projet</th><th scope="col">Statut</th><th scope="col">Période</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Refonte FAQ en ligne<br /><span className="small text-secondary" style={{ fontWeight: 400 }}>Vue manager</span></th>
+                    <td>
+                      <ProjectStatusMenu
+                        projectName="Refonte FAQ en ligne"
+                        value={faq}
+                        canManage
+                        onChange={(next) => {
+                          setFaqPrevious(faq);
+                          setFaq(next);
+                        }}
+                      />
+                    </td>
+                    <td>2 févr. – 30 avr. 2026</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Refonte FAQ en ligne<br /><span className="small text-secondary" style={{ fontWeight: 400 }}>Vue collaborateur</span></th>
+                    <td><ProjectStatusMenu projectName="Refonte FAQ en ligne" value={faq} canManage={false} onChange={() => undefined} /></td>
+                    <td>2 févr. – 30 avr. 2026</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            {faqPrevious && (
+              <Alert
+                tone="success"
+                role="status"
+                action={<Button variant="link" onClick={() => { setFaq(faqPrevious); setFaqPrevious(null); }}>Annuler</Button>}
+              >
+                <p>{statusChangedMessage("Refonte FAQ en ligne", faq)}</p>
+              </Alert>
+            )}
+          </Card>
         </section>
 
         <section aria-labelledby="t-ods" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -189,7 +237,7 @@ export default function DesignPage() {
 
             <Specimen title="Alert">
               <Alert tone="info"><p>Soumise le 20 mars 2026 à 16:42. En attente de validation par Samuel Etoga.</p></Alert>
-              <Alert tone="success" role="status" action={<Button variant="link">Annuler</Button>}><p>« Refonte FAQ en ligne » est passé à « En cours ».</p></Alert>
+              <Alert tone="success" role="status" action={<Button variant="link">Annuler</Button>}><p>{statusChangedMessage("Refonte FAQ en ligne", "IN_PROGRESS")}</p></Alert>
               <Alert tone="warning" heading="Semaine 11 non saisie"><p>L&apos;échéance est dépassée.</p></Alert>
               <Alert tone="danger" heading="Les fiches n'ont pas pu être chargées" action={<Button>Réessayer</Button>}>
                 <p>Vos saisies sont conservées. Réessayez dans un instant.</p>

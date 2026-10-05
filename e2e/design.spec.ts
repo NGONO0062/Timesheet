@@ -93,3 +93,60 @@ test.describe("comportements clavier", () => {
     await expect(card.getByRole("button", { name: "Semaine courante" })).toBeVisible();
   });
 });
+
+test.describe("étiquette de projet (ProjectStatusMenu)", () => {
+  test.skip(({ viewport }) => (viewport?.width ?? 0) < 1024, "Vérifié sur desktop");
+
+  const row = (page: import("@playwright/test").Page, who: string) =>
+    page.locator("tr", { has: page.getByText(who) });
+
+  test("menu hors du flux, non coupé par le tableau à défilement", async ({ page }) => {
+    await page.goto("/design");
+    const trigger = row(page, "Vue manager").getByRole("button", { name: /Statut de Refonte FAQ en ligne : En pause/ });
+    await trigger.click();
+    const menu = page.getByRole("list", { name: "Changer le statut" });
+    await expect(menu).toBeVisible();
+    // Rendu dans <body>, pas dans le conteneur à défilement.
+    expect(await menu.evaluate((m) => m.parentElement === document.body)).toBe(true);
+    // Rien ne recouvre ni ne coupe le dernier statut : c'est lui qu'on trouve à son emplacement.
+    const last = menu.getByRole("button").last();
+    await expect(last).toBeInViewport();
+    expect(
+      await last.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+      }),
+    ).toBe(true);
+    // Clic extérieur : fermé.
+    await page.getByRole("heading", { name: "Composants", exact: true }).click();
+    await expect(menu).toBeHidden();
+  });
+
+  test("clavier : flèches, Entrée, Échap ; changement immédiat avec « Annuler »", async ({ page }) => {
+    await page.goto("/design");
+    const trigger = () => row(page, "Vue manager").getByRole("button", { name: /Statut de Refonte FAQ en ligne/ });
+    await trigger().focus();
+    await page.keyboard.press("ArrowDown");
+    const items = page.getByRole("list", { name: "Changer le statut" }).getByRole("button");
+    await expect(items.first()).toBeFocused();
+    await expect(items.first()).toContainText("(statut actuel)");
+    await page.keyboard.press("Escape");
+    await expect(trigger()).toBeFocused();
+
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    const card = page.locator(".card", { has: page.getByRole("heading", { name: "Étiquette de projet dans un tableau à défilement" }) });
+    await expect(card.getByRole("status")).toHaveText(/« Refonte FAQ en ligne » est passé à « En cours ». Ses membres peuvent y saisir des heures./);
+    await expect(trigger()).toHaveAccessibleName(/En cours/);
+    await card.getByRole("status").getByRole("button", { name: "Annuler" }).click();
+    await expect(trigger()).toHaveAccessibleName(/En pause/);
+  });
+
+  test("sans la permission, l'étiquette est un simple badge", async ({ page }) => {
+    await page.goto("/design");
+    const collaborator = row(page, "Vue collaborateur");
+    await expect(collaborator.getByRole("button")).toHaveCount(0);
+    await expect(collaborator.locator(".badge.ts-st-hold")).toHaveText("En pause");
+  });
+});

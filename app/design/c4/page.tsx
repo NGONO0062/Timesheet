@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
 import { Alert, Card, Table } from "@/components/ods";
-import { ProjectStatusButton, StatusBadge } from "@/components/ts/StatusBadge";
+import { ProjectStatusMenu, StatusBadge } from "@/components/ts/StatusBadge";
+import { statusChangedMessage } from "@/lib/projects/rules";
 import { Planche } from "../Planche";
 import type { ProjectStatus } from "@/lib/status";
-import { statusLook } from "@/lib/status";
 
 // Planche C4-Etiquettes-statut.
 export default function Page() {
@@ -45,10 +45,11 @@ export default function Page() {
         <Card>
           <h2 className="h5">Changer le statut d&apos;un projet</h2>
           <p>L&apos;étiquette est le bouton. Elle ouvre la liste des quatre statuts, le statut actuel est coché.</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-start", minHeight: 200 }}>
-            <ProjectStatusButton
+          <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-start", minHeight: 222 }}>
+            <ProjectStatusMenu
               projectName="Refonte parcours souscription"
               value={status}
+              canManage
               defaultOpen
               onChange={(next) => {
                 setPrevious(status);
@@ -66,11 +67,11 @@ export default function Page() {
                 </button>
               }
             >
-              <p>« Refonte parcours souscription » est passé à « {statusLook("project", status).label} ».{status === "IN_PROGRESS" ? " Ses membres peuvent y saisir des heures." : " La saisie des temps est fermée."}</p>
+              <p>{statusChangedMessage("Refonte parcours souscription", status)}</p>
             </Alert>
           ) : (
             <Alert tone="success" role="status" action={<button className="btn btn-link" type="button">Annuler</button>}>
-              <p>« Refonte FAQ en ligne » est passé à « En cours ». Ses membres peuvent y saisir des heures.</p>
+              <p>{statusChangedMessage("Refonte FAQ en ligne", "IN_PROGRESS")}</p>
             </Alert>
           )}
           <p className="small text-secondary">Le changement est immédiat et réversible : pas de fenêtre de confirmation, un message avec « Annuler ».</p>

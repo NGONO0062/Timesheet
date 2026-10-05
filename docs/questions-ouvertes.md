@@ -24,7 +24,7 @@ Chaque point avance avec sa valeur par défaut, isolée derrière un réglage ou
 3. **Bouton « Signer » désactivé en mode tracé.** La planche C3 le montre désactivé sans raison écrite. Le §5 du brief exige la raison à côté d'un bouton désactivé : le composant écrit « Tracez votre signature dans le cadre. » sous les boutons. En mode mot de passe, le bouton reste actif comme sur C3, et le manque s'affiche au clic.
 4. **Flèche du Select.** Dans la maquette, sans Boosted, le navigateur affiche sa flèche native. Avec Boosted, la flèche ODS est rétablie (voir `docs/ecarts-ods.md`). Rendu légèrement différent de la capture.
 5. **Signalement de cellules dans la planche C2-B.** La planche place le message de la cellule signalée à gauche du bouton « Soumettre à nouveau ». Le composant de grille place les messages d'erreur sous le tableau, et l'écran place le bouton en dessous. À valider sur l'écran 05 au jalon 2.
-6. **Git absent de la machine.** La méthode demande un commit par jalon. Git n'est pas installé : le dépôt n'est pas initialisé.
+6. **Git.** Réglé : Git 2.55 installé le 4 octobre, dépôt poussé sur GitHub (privé).
 7. **Polices.** Helvetica Neue n'est pas embarquée (licence) : la pile retombe sur Arial sous Windows. Les captures de comparaison sont faites dans les mêmes conditions.
 
 ## Mise à jour des maquettes (branche `maj-maquettes`)

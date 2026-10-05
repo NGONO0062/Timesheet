@@ -626,3 +626,7 @@ button.dropdown-item{width:100%;border:0;background:none;font-family:inherit;fon
 /* Select : la maquette garde la flèche native ; ici Boosted retire l'apparence
    native et la couche ODS efface son image de fond. On rétablit l'indicateur Boosted. */
 .form-select{background-image:var(--bs-form-select-bg-img);background-repeat:no-repeat;background-position:right 10px center;background-size:14px 16px;padding-right:30px}
+
+/* Menu hors du flux (portail) : mêmes dimensions que le Dropdown de la maquette,
+   au-dessus des conteneurs à défilement et des panneaux. */
+.dropdown-menu.ts-menu-floating{position:fixed;z-index:1060;min-width:200px;overflow:hidden}
