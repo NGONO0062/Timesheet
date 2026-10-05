@@ -35,7 +35,9 @@ Application interne Orange Cameroun : projets, temps de travail, fiche de prése
 - Contrôles : `npm run check` (TypeScript, ESLint, contrôle de style, tests unitaires).
 - Tests unitaires : `npm test`. Tests de bout en bout et axe-core : `npm run test:e2e`.
 - Contrôle de style seul (§4.2) : `npm run lint:styles`.
-- Base : `npm run db:migrate`, `npm run db:seed` (seed au jalon 1).
+- Base : `npm run db:migrate`, `npm run db:seed`. Repartir de zéro : `npm run db:reset` (le journal d'audit refuse les suppressions, la base est recréée).
+- Tests d'intégration (base du seed) : `npm run test:int`.
+- Comptes de démonstration : mot de passe `SEED_PASSWORD` de `.env` ; aicha.ndongo, samuel.etoga, brigitte.mbarga, paul.tchouta, rose.ekambi @exemple.com. `DEMO_PROFILES="true"` affiche les profils sur l'écran de connexion.
 
 ## Repères
 
@@ -44,6 +46,7 @@ Application interne Orange Cameroun : projets, temps de travail, fiche de prése
 - Règles métier pures dans `lib/` (testées par Vitest). Prisma seulement dans `lib/data/` (règle ESLint).
 - Textes d'interface dans `lib/i18n/fr.ts`. Formats (virgule, espace insécable, dates) dans `lib/format.ts`.
 - Prisma 6 tant que Node < 22.12 (voir `docs/questions-ouvertes.md`).
+- Authentification : `auth.ts` (Auth.js, JWT). Utilisateur connecté : `getViewer()` / `requirePermission()` dans `lib/data/viewer.ts`. Navigation : `lib/navigation.ts`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

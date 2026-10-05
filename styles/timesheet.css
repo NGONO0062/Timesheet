@@ -25,9 +25,10 @@ ul,ol{margin-top:0;margin-bottom:0}
 .btn{--bs-btn-letter-spacing:normal}
 /* Puces de liste noires, pas orange de marque. */
 li::marker{color:inherit}
-/* Utilitaires Boosted en !important : ramenés aux tokens. */
-.text-secondary{color:#595959!important}
-.text-danger{color:#cd3c14!important}
+/* Utilitaires Boosted en !important : ramenés aux tokens. Sélecteur « :root » pour que
+   le compilateur CSS ne fusionne pas ces règles avec celles, sans !important, de la section 1. */
+:root .text-secondary{color:#595959!important}
+:root .text-danger{color:#cd3c14!important}
 
 /* Boutons : désactivé opaque, pas d'ombre. */
 .btn{position:static;z-index:auto;box-shadow:none}
@@ -47,6 +48,8 @@ dt{font-weight:400}
 dd{margin-bottom:0;margin-left:0}
 /* Message d'erreur : la pastille .mark-danger remplace l'icône Boosted. */
 .invalid-feedback::before{display:none}
+/* Marqueur requis : Boosted le place en absolu, ce qui supprime l'espace avant l'astérisque. */
+.is-required::after{position:static;margin-left:0}
 .input-group>:not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback){margin-left:0}
 .input-group>.form-control:focus{z-index:auto}
 
@@ -98,6 +101,7 @@ dd{margin-bottom:0;margin-left:0}
 /* Alert : la maquette n'a pas de marge basse. */
 .alert{margin-bottom:0}
 .alert::before{display:none}
+.alert-heading~p{line-height:inherit}
 
 /* Card */
 .card{min-width:0}
@@ -630,3 +634,40 @@ button.dropdown-item{width:100%;border:0;background:none;font-family:inherit;fon
 /* Menu hors du flux (portail) : mêmes dimensions que le Dropdown de la maquette,
    au-dessus des conteneurs à défilement et des panneaux. */
 .dropdown-menu.ts-menu-floating{position:fixed;z-index:1060;min-width:200px;overflow:hidden}
+
+/* Structure (PROMPT.md §6) : barre latérale au-dessus de 1024 px, barre haute
+   et Offcanvas en dessous. */
+.ts-topbar{display:none}
+.sidenav button.nav-link{width:100%;border:0;background:none;font-family:inherit;font-size:16px;line-height:18px;text-align:left;cursor:pointer}
+.sidenav form{margin:0}
+.ts-nav-panel{width:280px;padding:20px 10px;gap:20px;border-right:2px solid #000}
+.ts-nav-panel>.modal-header{padding:0 10px;color:#ffffff}
+.ts-nav-panel>.modal-header .btn{border-color:#ffffff}
+.ts-nav-panel .sidenav-group:last-child{margin-top:auto}
+.page-body>main{padding:30px 0 60px}
+@media (max-width:1023.98px){
+  .page>.sidenav{display:none}
+  .page{flex-direction:column}
+  .ts-topbar{display:block}
+}
+@media (max-width:479.98px){
+  .page-body .container{width:312px}
+  .page-body>main{padding:30px 0}
+}
+
+/* Connexion sur mobile (01-Connexion-mobile) : bandeau noir en tête, sans les
+   trois étapes ; le formulaire passe d'abord. */
+@media (max-width:767.98px){
+  .ts-login{flex-direction:column;flex-wrap:nowrap}
+  .ts-login-brand{flex:none;gap:10px;padding:30px max(20px,calc((100% - 312px) / 2))}
+  .ts-login-brand .ts-login-wordmark{font-size:30px;line-height:32px;letter-spacing:-.8px}
+  .ts-login-brand .ts-login-tagline{font-size:16px;line-height:18px;letter-spacing:normal;font-weight:400}
+  .ts-login-steps,.ts-login-note{display:none}
+  .ts-login-main{flex:1 0 auto;padding:30px max(20px,calc((100vw - 312px) / 2)) 0}
+  /* Pied de page : bandeau noir pleine largeur, comme le Footer ODS. */
+  .ts-login-foot{align-self:stretch;justify-content:flex-start;gap:10px 20px;margin:0 calc(-1 * max(20px,calc((100vw - 312px) / 2)));padding:20px max(20px,calc((100vw - 312px) / 2));background:#000;color:#fff}
+  .ts-login-foot a{color:#fff}
+  .ts-login-foot a:hover{color:#f16e00}
+  /* Cible tactile de 50 px (§13). */
+  .ts-login-forgot{min-height:50px;display:flex;align-items:center}
+}
