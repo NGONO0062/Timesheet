@@ -11,7 +11,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const ROOT = process.cwd();
+// Racine analysée : le dossier courant, ou le chemin passé en argument (tests).
+const ROOT = path.resolve(process.argv[2] ?? process.cwd());
 const SCAN_DIRS = ["styles", "app", "components", "lib"];
 const SKIP_DIRS = new Set(["node_modules", ".next", "design"]);
 

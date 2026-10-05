@@ -556,6 +556,17 @@ button.dropdown-item{width:100%;border:0;background:none;font-family:inherit;fon
 .ts-board-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .ts-board-card{display:flex;flex-direction:column;gap:10px;padding:10px;border:2px solid #000;border-radius:6px;background:#fff}
 .ts-board-empty{padding:20px 10px;border:2px dashed #999;border-radius:6px;color:#595959;font-size:14px;line-height:16px;text-align:center}
+/* Page de connexion (hors ODS) : volet de marque noir, formulaire centré */
+.ts-login{display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh;background:#fff}
+.ts-login-brand{flex:1 1 400px;display:flex;flex-direction:column;justify-content:space-between;gap:60px;padding:60px;background:#000;color:#fff}
+.ts-login-main{flex:2 1 480px;display:flex;flex-direction:column;align-items:center;gap:30px;padding:60px 20px 20px}
+.ts-login-form{display:flex;flex-direction:column;gap:30px;width:min(400px,100%);margin:auto 0}
+.ts-login-steps{display:flex;flex-direction:column;gap:20px}
+.ts-login-steps li{display:flex;align-items:flex-start;gap:20px}
+.ts-login-num{display:flex;align-items:center;justify-content:center;flex:none;width:30px;height:30px;border:2px solid #fff;border-radius:4px;font-weight:700}
+.ts-login-foot{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 30px;font-size:14px;line-height:16px}
+.input-group>.form-control-lg{border-radius:8px 0 0 8px}
+.input-group>.btn-lg{border-radius:0 8px 8px 0}
 
 /* =====================================================================
    2. Application
