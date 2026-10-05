@@ -3,7 +3,7 @@
 // Un vrai <table> : Tab passe à la cellule suivante, les flèches déplacent dans la grille.
 import { useId, type KeyboardEvent } from "react";
 import { FieldError } from "@/components/ods/Form";
-import { Icon } from "@/components/ods/Icon";
+import { Icon, Mark } from "@/components/ods/Icon";
 import { cx } from "@/lib/cx";
 import { capitalize, formatDayMonth, formatHours, formatHoursOf, formatNumber, formatWeekdayDay } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
@@ -36,6 +36,8 @@ type Props = {
   onRemove?: (rowId: string) => void;
   /** Identifiant posé sur la première cellule signalée (lien « Aller à la cellule signalée »). */
   flaggedAnchor?: string;
+  /** Lecture seule, côté manager : chaque cellule devient un bouton qui la signale. */
+  onToggleFlag?: (rowId: string, day: number) => void;
 };
 
 const value = (raw: string | undefined, step: number) => {
@@ -43,7 +45,7 @@ const value = (raw: string | undefined, step: number) => {
   return p.kind === "ok" ? p.value : 0;
 };
 
-export function TimeGrid({ caption, days, expected, rows, step, readOnly, futureDays, onChange, onRemove, flaggedAnchor }: Props) {
+export function TimeGrid({ caption, days, expected, rows, step, readOnly, futureDays, onChange, onRemove, flaggedAnchor, onToggleFlag }: Props) {
   const id = useId();
   const numbers = rows.map((r) => days.map((_, j) => value(r.values[j], step)));
   const totals = dayTotals(numbers, days.length);
@@ -122,8 +124,36 @@ export function TimeGrid({ caption, days, expected, rows, step, readOnly, future
                 <small>{row.locked && !readOnly ? t(dict.grid.entryClosed, { activity: row.activity }) : row.activity}</small>
               </th>
               {days.map((d, j) => {
+                if (readOnly && onToggleFlag) {
+                  const on = row.flagged?.[j] ?? false;
+                  return (
+                    <td key={j}>
+                      <button
+                        className="ts-flag-toggle"
+                        type="button"
+                        aria-pressed={on}
+                        aria-label={t(dict.validation.flagCell, { project: row.project, day: formatWeekdayDay(d), hours: formatHours(numbers[r]![j]!) })}
+                        onClick={() => onToggleFlag(row.id, j)}
+                      >
+                        {on && <Mark tone="danger" />}
+                        {formatNumber(numbers[r]![j]!)}
+                      </button>
+                    </td>
+                  );
+                }
                 if (readOnly || row.locked) {
-                  return <td key={j}>{formatNumber(numbers[r]![j]!)}</td>;
+                  return (
+                    <td key={j}>
+                      {row.flagged?.[j] ? (
+                        <span className="ts-flag">
+                          <Mark tone="danger" />
+                          {formatNumber(numbers[r]![j]!)}
+                        </span>
+                      ) : (
+                        formatNumber(numbers[r]![j]!)
+                      )}
+                    </td>
+                  );
                 }
                 const flagged = row.flagged?.[j] ?? false;
                 const over = overDays[j]! && numbers[r]![j]! > 0;

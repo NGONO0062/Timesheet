@@ -3,7 +3,8 @@
 // serveur, par la couche de données, à chaque requête.
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC = ["/connexion", "/mot-de-passe-oublie", "/api/auth", "/design"];
+// /api/taches : tâches planifiées, protégées par leur propre secret (TASKS_SECRET).
+const PUBLIC = ["/connexion", "/mot-de-passe-oublie", "/api/auth", "/api/taches", "/design"];
 const SESSION_COOKIES = ["authjs.session-token", "__Secure-authjs.session-token"];
 
 export function proxy(request: NextRequest) {

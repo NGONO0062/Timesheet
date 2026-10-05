@@ -1,7 +1,7 @@
 import "server-only";
 // Fiches de temps (PROMPT.md §9.1 et §9.2). Chaque fonction reçoit le contexte de
 // division et ne lit que les fiches de l'utilisateur connecté, dans sa division.
-import type { Prisma } from "@prisma/client";
+import type { DivisionSettings, Prisma } from "@prisma/client";
 import { canAddLine } from "@/lib/projects/rules";
 import { PROJECT_STATUS_ORDER, type ProjectStatus } from "@/lib/status";
 import { addDays, compareWeeks, isoWeekOf, mondayOf, shiftWeek, todayInDivision, workingDaysOf, type IsoWeek, type Weekday } from "@/lib/iso-week";
@@ -9,7 +9,7 @@ import { lineKey, planDraft, type DraftError, type DraftLineInput, type Existing
 import { dayTotals, expectedPerDay, submitCheck, weekDeadline, type StoredStatus } from "@/lib/timesheet/rules";
 import { isEditable, nextStatus } from "@/lib/timesheet/transitions";
 import { appendAudit } from "./audit";
-import { assertPermission, prisma, type DivisionScope } from "./db";
+import { assertPermission, assertScope, prisma, type DivisionScope } from "./db";
 
 export type EntrySettings = {
   hoursPerDay: number;
@@ -22,13 +22,18 @@ export type EntrySettings = {
   holidays: Date[];
 };
 
-/** Règles de saisie de la division : jamais écrites en dur (PROMPT.md §9.2). */
+/** Règles de saisie de la division : jamais écrites en dur (PROMPT.md §9.2). Lisibles par tout membre de la division. */
 export async function getEntrySettings(scope: DivisionScope): Promise<EntrySettings> {
-  assertPermission(scope, "ENTER_TIME");
+  assertScope(scope);
   const [s, holidays] = await Promise.all([
     prisma.divisionSettings.findUnique({ where: { divisionId: scope.divisionId } }),
     prisma.holiday.findMany({ where: { divisionId: scope.divisionId }, select: { date: true } }),
   ]);
+  return toEntrySettings(s, holidays.map((h) => h.date));
+}
+
+/** Réglages stockés vers règles de saisie ; valeurs par défaut du §8 si la division n'a rien réglé. */
+export function toEntrySettings(s: DivisionSettings | null, holidays: Date[]): EntrySettings {
   return {
     hoursPerDay: s ? Number(s.hoursPerDay) : 8,
     step: s ? Number(s.step) : 0.5,
@@ -37,7 +42,7 @@ export async function getEntrySettings(scope: DivisionScope): Promise<EntrySetti
     deadlineTime: s?.deadlineTime ?? "18:00",
     allowFutureWeeks: s?.allowFutureWeeks ?? false,
     lockAfterValidation: s?.lockAfterValidation ?? true,
-    holidays: holidays.map((h) => h.date),
+    holidays,
   };
 }
 
@@ -338,9 +343,14 @@ export async function saveDraft(scope: DivisionScope, input: DraftInput, now: Da
     // Rien saisi et pas encore de fiche : on ne crée rien.
     if (!sheet && plan.lines.length === 0 && !comment) return;
 
-    const id = sheet
-      ? (await tx.timesheet.update({ where: { id: sheet.id }, data: { comment, updatedAt: now } })).id
-      : (await tx.timesheet.create({ data: { divisionId: scope.divisionId, userId: scope.userId, isoYear: input.week.year, isoWeek: input.week.week, comment, updatedAt: now } })).id;
+    let id: string;
+    if (sheet) {
+      id = (await tx.timesheet.update({ where: { id: sheet.id }, data: { comment, updatedAt: now } })).id;
+    } else {
+      id = (await tx.timesheet.create({ data: { divisionId: scope.divisionId, userId: scope.userId, isoYear: input.week.year, isoWeek: input.week.week, comment, updatedAt: now } })).id;
+      // « Brouillon créé » dans l'historique de la fiche (écran 08).
+      await tx.timesheetEvent.create({ data: { timesheetId: id, type: "CREATED", actorId: scope.userId, at: now } });
+    }
 
     await tx.timesheetLine.deleteMany({ where: { timesheetId: id } });
     for (const line of plan.lines) {

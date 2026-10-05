@@ -48,7 +48,10 @@ Application interne Orange Cameroun : projets, temps de travail, fiche de prése
 - Prisma 6 tant que Node < 22.12 (voir `docs/questions-ouvertes.md`).
 - Horloge : `now()` de `lib/clock.ts`, jamais `new Date()` pour une règle métier. `TIMESHEET_NOW` (démonstration) part du jeudi 19 mars 2026, semaine 12.
 - Saisie : règles pures dans `lib/timesheet/` (`rules`, `draft`, `dashboard`), données dans `lib/data/timesheets.ts`, actions dans `app/actions/timesheet.ts`.
-- Tests de bout en bout qui écrivent : comptes remis à zéro par `prisma/e2e-fixtures.ts` (préparation globale de Playwright).
+- Tests de bout en bout qui écrivent : « Division de test » (comptes `*.e2e@exemple.com`), remise à zéro par `prisma/e2e-fixtures.ts` (préparation globale de Playwright). CX Expertise n'est jamais modifiée par les tests.
+- Validation : `lib/data/validation.ts` (portée manager / owner, décisions, relances), actions dans `app/actions/validation.ts`. E-mails : `lib/mail/` (Mailpit en développement, http://localhost:8025).
+- Relance des validateurs : `POST /api/taches/relances` avec `Authorization: Bearer $TASKS_SECRET`, chaque jour ouvré.
+- Écran avec `loading.tsx` : permission et existence vérifiées dans un `layout.tsx` du segment (sinon statut 200 au lieu de 404).
 - Authentification : `auth.ts` (Auth.js, JWT). Utilisateur connecté : `getViewer()` / `requirePermission()` dans `lib/data/viewer.ts`. Navigation : `lib/navigation.ts`.
 
 <!-- BEGIN:nextjs-agent-rules -->

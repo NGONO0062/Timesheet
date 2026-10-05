@@ -4,12 +4,12 @@ import { axe, login } from "./helpers";
 // Jalon 2 : tableau de bord (écran 2), saisie (écran 3), confirmation (écran 4),
 // fiche rejetée (écran 5). Horloge de démonstration : jeudi 19 mars 2026 (TIMESHEET_NOW).
 // Aïcha Ndongo et Kevin Fotso sont lus sans être modifiés ; les parcours qui écrivent
-// passent par des comptes remis à zéro avant chaque exécution (prisma/e2e-fixtures.ts).
+// passent par la division de test, remise à zéro avant chaque exécution (prisma/e2e-fixtures.ts).
 const AICHA = "aicha.ndongo@exemple.com";
 const KEVIN = "kevin.fotso@exemple.com";
-const LAURE = "laure.bikoi@exemple.com";
-const IBRAHIM = "ibrahim.njoya@exemple.com";
-const SANDRINE = "sandrine.mvondo@exemple.com";
+const LAURE = "saisie.e2e@exemple.com";
+const IBRAHIM = "rejet.e2e@exemple.com";
+const SANDRINE = "mobile.e2e@exemple.com";
 
 const isMobile = (page: Page) => (page.viewportSize()?.width ?? 0) < 768;
 
@@ -172,7 +172,7 @@ test.describe("saisie hebdomadaire (écran 3)", () => {
     const dialog = page.getByRole("dialog", { name: "Soumettre la semaine 12 ?" });
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText("16–20 mars 2026");
-    await expect(dialog).toContainText("Samuel Etoga, manager");
+    await expect(dialog).toContainText("Martin Valideur, manager");
     await expect(dialog.getByRole("row", { name: /Refonte parcours souscription · Tests utilisateurs/ })).toContainText(/25\sh/);
     await expect(dialog).toContainText(/40\sh sur 40\sh/);
     expect(await axe(page)).toEqual([]);
@@ -250,7 +250,7 @@ test.describe("fiche rejetée (écran 5)", () => {
     test.skip(isMobile(page), "Parcours desktop");
     await signIn(page, IBRAHIM);
     // Le tableau de bord signale la fiche à corriger.
-    await expect(page.getByText("Semaine 12 rejetée par Samuel Etoga")).toBeVisible();
+    await expect(page.getByText("Semaine 12 rejetée par Martin Valideur")).toBeVisible();
     await page.getByRole("link", { name: "Corriger la semaine 12" }).click();
     await expect(page.locator("main[aria-busy]")).toHaveCount(0);
 

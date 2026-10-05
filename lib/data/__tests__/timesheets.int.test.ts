@@ -6,8 +6,8 @@ import {
   TimesheetRuleError,
 } from "../timesheets";
 
-// Fiches de temps sur la base du seed. Yannick Essomba n'apparaît ni dans les
-// maquettes ni dans les tests de bout en bout : ses fiches sont remises à zéro.
+// Fiches de temps sur la base du seed. Un compte temporaire de CX Expertise (rattaché
+// à Samuel Etoga, membre de « Veille et formation ») est créé puis supprimé.
 const RUN = Date.now().toString(36);
 const NOW = new Date("2026-03-19T09:00:00Z"); // jeudi de la semaine 12
 const W12 = { year: 2026, week: 12 };
@@ -27,9 +27,20 @@ const staffScope = (divisionId: string, userId: string): DivisionScope => ({
 
 beforeAll(async () => {
   divisionA = (await prisma.division.findUniqueOrThrow({ where: { slug: "cx-expertise" } })).id;
-  const y = await prisma.user.findUniqueOrThrow({ where: { email: "yannick.essomba@exemple.com" } });
+  const samuel = await prisma.user.findUniqueOrThrow({ where: { email: "samuel.etoga@exemple.com" } });
+  const veille = await prisma.project.findUniqueOrThrow({ where: { divisionId_code: { divisionId: divisionA, code: "CX-2026-00" } } });
+  const y = await prisma.user.create({
+    data: {
+      divisionId: divisionA,
+      email: `integration-${RUN}@exemple.com`,
+      firstName: "Test",
+      lastName: "Intégration",
+      role: "STAFF",
+      managerId: samuel.id,
+      memberships: { create: [{ projectId: veille.id }] },
+    },
+  });
   yannick = staffScope(divisionA, y.id);
-  await prisma.timesheet.deleteMany({ where: { userId: y.id } });
 
   // Division B : un utilisateur, un projet en cours ouvert à tous ses membres.
   divisionB = (await prisma.division.create({ data: { name: `Division de test ${RUN}`, slug: `test-ts-${RUN}`, direction: "TEST", status: "ACTIVE" } })).id;
@@ -57,6 +68,8 @@ afterAll(async () => {
   await prisma.user.deleteMany({ where: { divisionId: divisionB } });
   await prisma.division.delete({ where: { id: divisionB } });
   await prisma.timesheet.deleteMany({ where: { userId: yannick.userId } });
+  await prisma.projectMember.deleteMany({ where: { userId: yannick.userId } });
+  await prisma.user.delete({ where: { id: yannick.userId } });
   await prisma.$disconnect();
 });
 
@@ -106,17 +119,17 @@ describe("enregistrement et soumission", () => {
     expect(sheet).toMatchObject({ stored: "DRAFT", comment: "Semaine de formation" });
     expect(sheet.lines[0]!.hours).toEqual([8, 8, 0, null, null]);
 
-    await expect(submitWeek(yannick, { week: W12, comment: "", lines: [line([8, 8, 0, null, null])] }, NOW, "Yannick Essomba")).rejects.toThrow(
+    await expect(submitWeek(yannick, { week: W12, comment: "", lines: [line([8, 8, 0, null, null])] }, NOW, "Test Intégration")).rejects.toThrow(
       new TimesheetRuleError("incomplete"),
     );
     await expect(saveDraft(yannick, { week: W12, comment: "", lines: [line([8, 8, 8, 8, 8.3])] }, NOW)).rejects.toThrow(new TimesheetRuleError("invalidHours"));
 
-    await submitWeek(yannick, { week: W12, comment: "", lines: [line([8, 8, 8, 8, 8])] }, NOW, "Yannick Essomba");
+    await submitWeek(yannick, { week: W12, comment: "", lines: [line([8, 8, 8, 8, 8])] }, NOW, "Test Intégration");
     const submitted = await prisma.timesheet.findFirstOrThrow({ where: { userId: yannick.userId, isoYear: 2026, isoWeek: 12 }, include: { events: true } });
     expect(submitted).toMatchObject({ status: "SUBMITTED", submissionCount: 1 });
-    expect(submitted.events.map((e) => e.type)).toEqual(["SUBMITTED"]);
+    expect(submitted.events.map((e) => e.type).sort()).toEqual(["CREATED", "SUBMITTED"]);
     const audit = await prisma.auditLog.findFirst({ where: { action: "TIMESHEET_SUBMITTED", actorId: yannick.userId }, orderBy: { at: "desc" } });
-    expect(audit).toMatchObject({ divisionId: divisionA, objectLabel: "Semaine 12 de 2026 · Yannick Essomba", result: "SUCCESS" });
+    expect(audit).toMatchObject({ divisionId: divisionA, objectLabel: "Semaine 12 de 2026 · Test Intégration", result: "SUCCESS" });
 
     // Soumise : plus modifiable.
     await expect(saveDraft(yannick, { week: W12, comment: "", lines: [line([8, 8, 8, 8, 8])] }, NOW)).rejects.toThrow(new TimesheetRuleError("notEditable"));

@@ -713,3 +713,13 @@ button.dropdown-item{width:100%;border:0;background:none;font-family:inherit;fon
 }
 .dropdown.ts-block{display:block}
 .table-responsive>.ts-grid+*{margin-top:20px}
+/* Signalement d'une cellule par le manager (détail d'une fiche, §9.3) : bouton à bascule. */
+.ts-flag-toggle{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:60px;min-height:40px;padding:0 10px;border:2px solid #000;border-radius:6px;background:#fff;color:#000;font-family:inherit;font-size:16px;line-height:18px;font-weight:700;cursor:pointer}
+.ts-flag-toggle:hover{background:#000;color:#fff}
+.ts-flag-toggle[aria-pressed="true"]{border-color:#cd3c14}
+.ts-flag-toggle[aria-pressed="true"]:hover{border-color:#000}
+.ts-grid .ts-flag{min-height:30px}
+/* File de validation (planche 07) */
+.ts-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px}
+.ts-filter{flex:1 1 240px;max-width:380px}
+.ts-bulkbar{flex-flow:row wrap;align-items:center;justify-content:space-between;gap:10px 20px;padding:10px 20px;border-radius:6px 6px 0 0}

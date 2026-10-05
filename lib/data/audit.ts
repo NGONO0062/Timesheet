@@ -9,7 +9,10 @@ export type AuditAction =
   | "LOGIN_FAILURE"
   | "LOGOUT"
   | "PROJECT_STATUS_CHANGED"
-  | "TIMESHEET_SUBMITTED";
+  | "TIMESHEET_SUBMITTED"
+  | "TIMESHEET_VALIDATED"
+  | "TIMESHEET_REJECTED"
+  | "VALIDATION_REMINDER_SENT";
 
 export type AuditEntry = {
   actorId?: string | null;

@@ -1,90 +1,158 @@
-// Données des tests de bout en bout qui modifient la base (saisie, soumission).
-// Elles visent trois comptes du seed qui n'apparaissent dans aucune maquette :
-// les comptes de référence (Aïcha Ndongo, Kevin Fotso…) restent intacts.
+// Données des tests de bout en bout qui modifient la base (saisie, soumission,
+// validation). Elles vivent dans une division de test à part : les données de
+// démonstration de CX Expertise, qui reproduisent les maquettes, ne sont jamais
+// modifiées. Comptes fictifs, mot de passe SEED_PASSWORD.
 import prismaClient from "@prisma/client";
+import { argon2id } from "hash-wasm";
 
-export const E2E_USERS = {
+export const E2E_DIVISION = "e2e-tests";
+
+export const E2E = {
+  manager: { email: "manager.e2e@exemple.com", firstName: "Martin", lastName: "Valideur" },
   /** Semaine 12 vide : ajout de lignes, sauvegarde, soumission (desktop). */
-  empty: "laure.bikoi@exemple.com",
+  empty: { email: "saisie.e2e@exemple.com", firstName: "Léa", lastName: "Saisie" },
   /** Semaine 12 rejetée, une cellule signalée : correction et nouvelle soumission. */
-  rejected: "ibrahim.njoya@exemple.com",
+  rejected: { email: "rejet.e2e@exemple.com", firstName: "Rémi", lastName: "Rejet" },
   /** Semaine 12 en brouillon avec une ligne verrouillée : saisie mobile. */
-  mobile: "sandrine.mvondo@exemple.com",
+  mobile: { email: "mobile.e2e@exemple.com", firstName: "Nina", lastName: "Mobile" },
+  /** Semaine 12 soumise : validation groupée. */
+  alice: { email: "alice.e2e@exemple.com", firstName: "Alice", lastName: "Essai" },
+  /** Semaine 12 soumise : rejet groupé. */
+  bruno: { email: "bruno.e2e@exemple.com", firstName: "Bruno", lastName: "Essai" },
+  /** Semaine 12 soumise : rejet depuis le détail, avec une cellule signalée. */
+  chloe: { email: "chloe.e2e@exemple.com", firstName: "Chloé", lastName: "Essai" },
+  /** Semaine 11 soumise : validation depuis le détail. */
+  david: { email: "david.e2e@exemple.com", firstName: "David", lastName: "Essai" },
 } as const;
 
 const plusDays = (d: Date, n: number) => new Date(d.getTime() + n * 86_400_000);
-const MONDAY_W12 = new Date("2026-03-16T00:00:00Z");
+const MONDAY = { 11: new Date("2026-03-09T00:00:00Z"), 12: new Date("2026-03-16T00:00:00Z") } as const;
+
+async function hash(password: string): Promise<string> {
+  const salt = new Uint8Array(16);
+  crypto.getRandomValues(salt);
+  return argon2id({ password, salt, parallelism: 1, iterations: 2, memorySize: 19_456, hashLength: 32, outputType: "encoded" });
+}
 
 export async function resetE2eFixtures(): Promise<void> {
   const prisma = new prismaClient.PrismaClient();
   try {
-    const users = await prisma.user.findMany({ where: { email: { in: Object.values(E2E_USERS) } } });
-    const byEmail = (email: string) => {
-      const u = users.find((x) => x.email === email);
-      if (!u?.divisionId) throw new Error(`Compte de test absent du seed : ${email}`);
-      return { id: u.id, divisionId: u.divisionId, managerId: u.managerId };
-    };
-    // Les lignes, entrées et événements suivent (suppression en cascade).
-    await prisma.timesheet.deleteMany({ where: { userId: { in: users.map((u) => u.id) } } });
+    // Division, comptes et projets : créés une fois.
+    const division =
+      (await prisma.division.findUnique({ where: { slug: E2E_DIVISION } })) ??
+      (await prisma.division.create({
+        data: { name: "Division de test", slug: E2E_DIVISION, direction: "TEST", status: "ACTIVE", onboardingStep: 5, settings: { create: {} } },
+      }));
+    const passwordHash = await hash(process.env.SEED_PASSWORD ?? "Demo-TimeSheet-2026");
+    const upsert = async (p: { email: string; firstName: string; lastName: string }, role: "MANAGER" | "STAFF", managerId: string | null) =>
+      prisma.user.upsert({
+        where: { email: p.email },
+        update: { passwordHash, active: true, managerId, notificationPrefs: {} },
+        create: { divisionId: division.id, email: p.email, firstName: p.firstName, lastName: p.lastName, role, managerId, passwordHash },
+      });
+    const manager = await upsert(E2E.manager, "MANAGER", null);
+    const keys = ["empty", "rejected", "mobile", "alice", "bruno", "chloe", "david"] as const;
+    const staff = {} as Record<(typeof keys)[number], { id: string }>;
+    for (const k of keys) staff[k] = await upsert(E2E[k], "STAFF", manager.id);
 
-    const activity = async (divisionId: string, code: string, name: string) => {
-      const a = await prisma.activity.findFirst({ where: { name, project: { divisionId, code } } });
-      if (!a) throw new Error(`Activité absente du seed : ${code} / ${name}`);
-      return a;
-    };
-    const entries = (hours: Array<number | null>, flaggedDay?: number) =>
-      hours.flatMap((h, i) => (h === null ? [] : [{ date: plusDays(MONDAY_W12, i), hours: h, flagged: i === flaggedDay }]));
-
-    // Ibrahim Njoya : semaine 12 soumise mercredi, rejetée jeudi matin, jeudi signalé
-    // (avant l'horloge de démonstration, pour que la nouvelle soumission vienne après).
-    const ibrahim = byEmail(E2E_USERS.rejected);
-    const refonte = await activity(ibrahim.divisionId, "CX-2026-01", "Tests utilisateurs");
-    const veille = await activity(ibrahim.divisionId, "CX-2026-00", "Formation");
-    const rejected = await prisma.timesheet.create({
-      data: {
-        divisionId: ibrahim.divisionId,
-        userId: ibrahim.id,
-        isoYear: 2026,
-        isoWeek: 12,
-        status: "REJECTED",
-        submittedAt: new Date("2026-03-18T15:00:00Z"),
-        submissionCount: 1,
-        decidedById: ibrahim.managerId,
-        decidedAt: new Date("2026-03-19T07:00:00Z"),
-        rejectionReason: "Jeudi 19 mars : 7 h sur Refonte parcours souscription, à vérifier.",
-        lines: {
-          create: [
-            { projectId: refonte.projectId, activityId: refonte.id, position: 0, entries: { create: entries([6, 6, 6, 7, 6], 3) } },
-            { projectId: veille.projectId, activityId: veille.id, position: 1, entries: { create: entries([2, 2, 2, 1, 2]) } },
-          ],
+    const project = async (code: string, name: string, status: "IN_PROGRESS" | "DONE", end: string) => {
+      const existing = await prisma.project.findUnique({ where: { divisionId_code: { divisionId: division.id, code } }, include: { activities: true } });
+      if (existing) return existing;
+      return prisma.project.create({
+        include: { activities: true },
+        data: {
+          divisionId: division.id,
+          code,
+          name,
+          status,
+          startDate: new Date("2026-01-01T00:00:00Z"),
+          endDate: new Date(`${end}T00:00:00Z`),
+          activities: { create: [{ name: code === "CX-2026-00" ? "Formation" : "Tests utilisateurs" }] },
+          members: { create: Object.values(staff).map((u) => ({ userId: u.id })) },
         },
-      },
-    });
-    await prisma.timesheetEvent.createMany({
-      data: [
-        { timesheetId: rejected.id, type: "SUBMITTED", actorId: ibrahim.id, at: new Date("2026-03-18T15:00:00Z") },
-        { timesheetId: rejected.id, type: "REJECTED", actorId: ibrahim.managerId!, at: new Date("2026-03-19T07:00:00Z") },
+      });
+    };
+    const veille = await project("CX-2026-00", "Veille et formation", "IN_PROGRESS", "2026-12-31");
+    const refonte = await project("CX-2026-01", "Refonte parcours souscription", "IN_PROGRESS", "2026-06-26");
+    const usage = await project("CX-2026-04", "Tests d'usage appli mobile", "DONE", "2026-02-27");
+    const line = (p: typeof veille) => ({ projectId: p.id, activityId: p.activities[0]!.id });
+
+    // Fiches : remises à leur état de départ à chaque exécution (lignes, entrées et événements suivent).
+    await prisma.timesheet.deleteMany({ where: { divisionId: division.id } });
+
+    const entries = (week: 11 | 12, hours: Array<number | null>, flaggedDay?: number) =>
+      hours.flatMap((h, i) => (h === null ? [] : [{ date: plusDays(MONDAY[week], i), hours: h, flagged: i === flaggedDay }]));
+    const sheet = async (
+      userId: string,
+      week: 11 | 12,
+      status: "DRAFT" | "SUBMITTED" | "REJECTED",
+      lines: Array<{ projectId: string; activityId: string; hours: Array<number | null>; flaggedDay?: number }>,
+      events: Array<{ type: string; actorId: string; at: string; note?: string }> = [],
+      extra: { submittedAt?: string; decidedAt?: string; reason?: string } = {},
+    ) => {
+      const ts = await prisma.timesheet.create({
+        data: {
+          divisionId: division.id,
+          userId,
+          isoYear: 2026,
+          isoWeek: week,
+          status,
+          submittedAt: extra.submittedAt ? new Date(extra.submittedAt) : null,
+          submissionCount: extra.submittedAt ? 1 : 0,
+          decidedById: extra.decidedAt ? manager.id : null,
+          decidedAt: extra.decidedAt ? new Date(extra.decidedAt) : null,
+          rejectionReason: extra.reason ?? null,
+          lines: {
+            create: lines.map((l, position) => ({
+              projectId: l.projectId,
+              activityId: l.activityId,
+              position,
+              entries: { create: entries(week, l.hours, l.flaggedDay) },
+            })),
+          },
+        },
+      });
+      if (events.length) {
+        await prisma.timesheetEvent.createMany({ data: events.map((e) => ({ timesheetId: ts.id, type: e.type, actorId: e.actorId, at: new Date(e.at), note: e.note ?? null })) });
+      }
+    };
+
+    // Rémi Rejet : semaine 12 soumise mercredi, rejetée jeudi matin (avant l'horloge de démonstration).
+    const reason = "Jeudi 19 mars : 7 h sur Refonte parcours souscription, à vérifier.";
+    await sheet(
+      staff.rejected.id,
+      12,
+      "REJECTED",
+      [
+        { ...line(refonte), hours: [6, 6, 6, 7, 6], flaggedDay: 3 },
+        { ...line(veille), hours: [2, 2, 2, 1, 2] },
       ],
-    });
+      [
+        { type: "SUBMITTED", actorId: staff.rejected.id, at: "2026-03-18T15:00:00Z" },
+        { type: "REJECTED", actorId: manager.id, at: "2026-03-19T07:00:00Z", note: reason },
+      ],
+      { submittedAt: "2026-03-18T15:00:00Z", decidedAt: "2026-03-19T07:00:00Z", reason },
+    );
 
-    // Sandrine Mvondo : brouillon avec une ligne d'un projet terminé (lecture seule).
-    const sandrine = byEmail(E2E_USERS.mobile);
-    const usage = await activity(sandrine.divisionId, "CX-2026-04", "Tests utilisateurs");
-    const formation = await activity(sandrine.divisionId, "CX-2026-00", "Formation");
-    await prisma.timesheet.create({
-      data: {
-        divisionId: sandrine.divisionId,
-        userId: sandrine.id,
-        isoYear: 2026,
-        isoWeek: 12,
-        lines: {
-          create: [
-            { projectId: usage.projectId, activityId: usage.id, position: 0, entries: { create: entries([2, null, null, null, null]) } },
-            { projectId: formation.projectId, activityId: formation.id, position: 1, entries: { create: entries([6, 8, 8, null, null]) } },
-          ],
-        },
-      },
-    });
+    // Nina Mobile : brouillon avec une ligne d'un projet terminé (lecture seule).
+    await sheet(staff.mobile.id, 12, "DRAFT", [
+      { ...line(usage), hours: [2, null, null, null, null] },
+      { ...line(veille), hours: [6, 8, 8, null, null] },
+    ]);
+
+    // Fiches soumises, à valider ou rejeter.
+    const full = (h: number) => [
+      { ...line(refonte), hours: [h, h, h, h, h] },
+      { ...line(veille), hours: [8 - h, 8 - h, 8 - h, 8 - h, 8 - h] },
+    ];
+    for (const [user, week, h, at] of [
+      [staff.alice, 12, 6, "2026-03-18T16:00:00Z"],
+      [staff.bruno, 12, 5, "2026-03-18T16:10:00Z"],
+      [staff.chloe, 12, 4, "2026-03-18T16:20:00Z"],
+      [staff.david, 11, 7, "2026-03-13T16:30:00Z"],
+    ] as const) {
+      await sheet(user.id, week, "SUBMITTED", full(h), [{ type: "SUBMITTED", actorId: user.id, at }], { submittedAt: at });
+    }
   } finally {
     await prisma.$disconnect();
   }

@@ -68,19 +68,15 @@ const PROJECTS: ProjectSeed[] = [
 async function main() {
   const existing = await prisma.division.findUnique({ where: { slug: "cx-expertise" } });
   if (existing) {
-    // Base du jalon 1 : on ajoute seulement les fiches de temps, sans rien effacer.
-    if ((await prisma.timesheet.count({ where: { divisionId: existing.id } })) > 0) {
-      console.log("Données de démonstration déjà présentes. Pour repartir de zéro : npm run db:reset.");
-      return;
-    }
+    // Base déjà créée : on ajoute seulement les fiches qui manquent, sans rien effacer.
     const users = await prisma.user.findMany({ where: { divisionId: existing.id }, select: { id: true, firstName: true, lastName: true } });
     const projects = await prisma.project.findMany({ where: { divisionId: existing.id }, include: { activities: true } });
-    await seedTimesheets(
+    const added = await seedTimesheets(
       existing.id,
       new Map(users.map((u) => [`${u.firstName} ${u.lastName}`, u.id])),
       new Map(projects.map((p) => [p.code, p])),
     );
-    console.log("Fiches de temps de démonstration ajoutées (semaines 2 à 12 de 2026).");
+    console.log(added > 0 ? `${added} fiche(s) de temps de démonstration ajoutée(s).` : "Données de démonstration déjà à jour. Pour repartir de zéro : npm run db:reset.");
     return;
   }
   const passwordHash = await hash(password!);
@@ -205,18 +201,29 @@ async function seedTimesheets(
   divisionId: string,
   ids: Map<string, string>,
   projects: Map<string, { id: string; activities: { id: string; name: string }[] }>,
-) {
+): Promise<number> {
   const samuel = ids.get("Samuel Etoga")!;
+  let added = 0;
 
   async function sheet(
     user: string,
     week: number,
     status: "DRAFT" | "SUBMITTED" | "REJECTED" | "VALIDATED",
     lines: Line[],
-    extra: { submittedAt?: string; decidedAt?: string; reason?: string; flagged?: [number, number][]; comment?: string } = {},
+    extra: {
+      submittedAt?: string;
+      decidedAt?: string;
+      reason?: string;
+      flagged?: [number, number][];
+      comment?: string;
+      /** Soumission précédente, rejetée : la fiche arrive en « 2e soumission ». */
+      previous?: { submittedAt: string; rejectedAt: string; reason: string };
+    } = {},
   ) {
     const monday = mondayOf(2026, week);
     const userId = ids.get(user)!;
+    if (await prisma.timesheet.findUnique({ where: { userId_isoYear_isoWeek: { userId, isoYear: 2026, isoWeek: week } } })) return;
+    added++;
     const ts = await prisma.timesheet.create({
       data: {
         divisionId,
@@ -226,7 +233,7 @@ async function seedTimesheets(
         status,
         comment: extra.comment ?? null,
         submittedAt: extra.submittedAt ? douala(extra.submittedAt) : null,
-        submissionCount: extra.submittedAt ? 1 : 0,
+        submissionCount: extra.submittedAt ? (extra.previous ? 2 : 1) : 0,
         decidedById: extra.decidedAt ? samuel : null,
         decidedAt: extra.decidedAt ? douala(extra.decidedAt) : null,
         rejectionReason: extra.reason ?? null,
@@ -246,6 +253,17 @@ async function seedTimesheets(
               .flatMap((h, day) => (h === null ? [] : [{ date: plusDays(monday, day), hours: h, flagged: Boolean(extra.flagged?.some(([l, d]) => l === i && d === day)) }])),
           },
         },
+      });
+    }
+    // Historique : « Brouillon créé » le lundi à 09:05, puis les soumissions et décisions.
+    const mondayIso = monday.toISOString().slice(0, 10);
+    await prisma.timesheetEvent.create({ data: { timesheetId: ts.id, type: "CREATED", actorId: userId, at: douala(`${mondayIso} 09:05`) } });
+    if (extra.previous) {
+      await prisma.timesheetEvent.createMany({
+        data: [
+          { timesheetId: ts.id, type: "SUBMITTED", actorId: userId, at: douala(extra.previous.submittedAt) },
+          { timesheetId: ts.id, type: "REJECTED", actorId: samuel, at: douala(extra.previous.rejectedAt), note: extra.previous.reason },
+        ],
       });
     }
     if (extra.submittedAt) await prisma.timesheetEvent.create({ data: { timesheetId: ts.id, type: "SUBMITTED", actorId: userId, at: douala(extra.submittedAt) } });
@@ -307,10 +325,51 @@ async function seedTimesheets(
     },
   );
 
-  // Fiche de présence de février 2026 d'Aïcha Ndongo : générée, à signer (écran 06).
-  await prisma.attendanceSheet.create({
-    data: { divisionId, userId: ids.get("Aïcha Ndongo")!, year: 2026, month: 2, status: "GENERATED", generatedAt: douala("2026-03-09 08:00") },
+  // File de validation de Samuel Etoga (écran 07) : semaines 2 à 11 validées,
+  // semaine 12 soumise ; Ibrahim Njoya en 2e soumission pour la semaine 11.
+  const usual = (main: Line[0], activity: string): Line[] => [
+    [main, activity, [6, 6, 6, 6, 6]],
+    ["CX-2026-00", "Formation", [2, 2, 2, 2, 2]],
+  ];
+  const team: Array<[name: string, lines: Line[], lastValidated: number]> = [
+    ["Laure Bikoï", usual("CX-2026-01", "Tests utilisateurs"), 11],
+    ["Ibrahim Njoya", usual("CX-2026-01", "Tests utilisateurs"), 10],
+    ["Sandrine Mvondo", usual("CX-2026-02", "Analyse"), 11],
+    ["Yannick Essomba", usual("CX-2026-02", "Analyse"), 11],
+  ];
+  for (const [name, lines, last] of team) {
+    for (let week = 2; week <= last; week++) await sheet(name, week, "VALIDATED", lines, validated(week));
+  }
+  await sheet("Laure Bikoï", 12, "SUBMITTED", [["CX-2026-01", "Tests utilisateurs", [5, 5, 5, 5, 5]], ["CX-2026-03", "Atelier", [3, 3, 3, 3, 3]]], { submittedAt: "2026-03-20 17:30" });
+  await sheet(
+    "Sandrine Mvondo",
+    12,
+    "SUBMITTED",
+    [["CX-2026-02", "Analyse", [3, 3, 3, 3, 3]], ["CX-2026-03", "Atelier", [3, 3, 3, 3, 3]], ["CX-2026-00", "Formation", [2, 2, 2, 2, 2]]],
+    { submittedAt: "2026-03-20 15:10" },
+  );
+  await sheet("Yannick Essomba", 12, "SUBMITTED", usual("CX-2026-02", "Analyse"), { submittedAt: "2026-03-20 17:48" });
+  await sheet("Ibrahim Njoya", 11, "SUBMITTED", usual("CX-2026-01", "Tests utilisateurs"), {
+    submittedAt: "2026-03-19 08:50",
+    comment: "Heures du mercredi réparties entre les tests et la formation, comme demandé.",
+    previous: { submittedAt: "2026-03-13 17:05", rejectedAt: "2026-03-16 10:20", reason: "Mercredi 11 mars : la formation manque. Merci de répartir les heures." },
   });
+
+  // Fiche de présence de février 2026 d'Aïcha Ndongo : générée, à signer (écran 06).
+  const aicha = ids.get("Aïcha Ndongo")!;
+  if (!(await prisma.attendanceSheet.findUnique({ where: { userId_year_month: { userId: aicha, year: 2026, month: 2 } } }))) {
+    await prisma.attendanceSheet.create({
+      data: { divisionId, userId: aicha, year: 2026, month: 2, status: "GENERATED", generatedAt: douala("2026-03-09 08:00") },
+    });
+  }
+
+  // Fiches créées avant l'événement « Brouillon créé » : on le rattrape (lundi, 09:05).
+  const withoutCreated = await prisma.timesheet.findMany({ where: { divisionId, events: { none: { type: "CREATED" } } } });
+  for (const ts of withoutCreated) {
+    const mondayIso = mondayOf(ts.isoYear, ts.isoWeek).toISOString().slice(0, 10);
+    await prisma.timesheetEvent.create({ data: { timesheetId: ts.id, type: "CREATED", actorId: ts.userId, at: douala(`${mondayIso} 09:05`) } });
+  }
+  return added;
 }
 
 main()

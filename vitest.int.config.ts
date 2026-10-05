@@ -1,3 +1,4 @@
+import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 import path from "node:path";
 
@@ -16,5 +17,7 @@ export default defineConfig({
     environment: "node",
     fileParallelism: false,
     testTimeout: 30_000,
+    // .env complet (SMTP vers Mailpit, horloge…), comme l'application.
+    env: loadEnv("", import.meta.dirname, ""),
   },
 });
