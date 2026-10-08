@@ -10,7 +10,8 @@ import { addDays, compareWeeks, mondayOf, shiftWeek, type IsoWeek } from "@/lib/
 import type { DisplayStatus } from "@/lib/timesheet/rules";
 import { StatusBadge } from "./StatusBadge";
 
-export type RecentWeek = { week: IsoWeek; status: DisplayStatus };
+/** Semaine récente du menu ; sans statut sur les vues qui ne portent pas sur une fiche (vue division). */
+export type RecentWeek = { week: IsoWeek; status?: DisplayStatus };
 
 type Props = {
   week: IsoWeek;
@@ -23,6 +24,8 @@ type Props = {
   /** Contrôles de 50 px, libellé sur deux lignes (mobile 375). */
   large?: boolean;
   defaultOpen?: boolean;
+  /** Raison écrite sur la flèche « suivante » désactivée, si elle ne porte pas sur la saisie. */
+  nextDisabledLabel?: string;
 };
 
 const rangeOf = (w: IsoWeek, withYear = true) => {
@@ -30,7 +33,7 @@ const rangeOf = (w: IsoWeek, withYear = true) => {
   return formatRange(monday, addDays(monday, 4), withYear);
 };
 
-export function WeekSelector({ week, current, onNavigate, allowFutureWeeks, recent, olderHref, large, defaultOpen }: Props) {
+export function WeekSelector({ week, current, onNavigate, allowFutureWeeks, recent, olderHref, large, defaultOpen, nextDisabledLabel }: Props) {
   const prev = shiftWeek(week, -1);
   const next = shiftWeek(week, 1);
   const isCurrent = compareWeeks(week, current) === 0;
@@ -57,7 +60,7 @@ export function WeekSelector({ week, current, onNavigate, allowFutureWeeks, rece
       content: (
         <>
           <span>{t(dict.week.labelWithRange, { week: r.week.week, range: rangeOf(r.week, false) })}</span>
-          <StatusBadge kind="timesheet" value={r.status} />
+          {r.status && <StatusBadge kind="timesheet" value={r.status} />}
         </>
       ),
       current: compareWeeks(r.week, week) === 0,
@@ -100,7 +103,7 @@ export function WeekSelector({ week, current, onNavigate, allowFutureWeeks, rece
           className="btn btn-icon"
           type="button"
           disabled={nextBlocked}
-          aria-label={nextBlocked ? dict.week.nextDisabled : t(dict.week.next, { week: next.week })}
+          aria-label={nextBlocked ? (nextDisabledLabel ?? dict.week.nextDisabled) : t(dict.week.next, { week: next.week })}
           onClick={() => onNavigate(next)}
         >
           <Icon name="right" />

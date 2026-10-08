@@ -70,12 +70,10 @@ async function main() {
   if (existing) {
     // Base déjà créée : on ajoute seulement les fiches qui manquent, sans rien effacer.
     const users = await prisma.user.findMany({ where: { divisionId: existing.id }, select: { id: true, firstName: true, lastName: true } });
+    const userIds = new Map(users.map((u) => [`${u.firstName} ${u.lastName}`, u.id]));
+    await completeProjects(existing.id, userIds);
     const projects = await prisma.project.findMany({ where: { divisionId: existing.id }, include: { activities: true } });
-    const added = await seedTimesheets(
-      existing.id,
-      new Map(users.map((u) => [`${u.firstName} ${u.lastName}`, u.id])),
-      new Map(projects.map((p) => [p.code, p])),
-    );
+    const added = await seedTimesheets(existing.id, userIds, new Map(projects.map((p) => [p.code, p])));
     console.log(added > 0 ? `${added} fiche(s) de temps de démonstration ajoutée(s).` : "Données de démonstration déjà à jour. Pour repartir de zéro : npm run db:reset.");
     return;
   }
@@ -170,7 +168,9 @@ async function main() {
     },
   });
 
-  await seedTimesheets(division.id, ids, projects);
+  await completeProjects(division.id, ids);
+  const allProjects = await prisma.project.findMany({ where: { divisionId: division.id }, include: { activities: true } });
+  await seedTimesheets(division.id, ids, new Map(allProjects.map((p) => [p.code, p])));
 
   // Admin plateforme : sans division.
   await prisma.user.create({
@@ -218,12 +218,15 @@ async function seedTimesheets(
       comment?: string;
       /** Soumission précédente, rejetée : la fiche arrive en « 2e soumission ». */
       previous?: { submittedAt: string; rejectedAt: string; reason: string };
+      /** Validateur ; Samuel Etoga par défaut. */
+      decider?: string;
     } = {},
   ) {
     const monday = mondayOf(2026, week);
     const userId = ids.get(user)!;
     if (await prisma.timesheet.findUnique({ where: { userId_isoYear_isoWeek: { userId, isoYear: 2026, isoWeek: week } } })) return;
     added++;
+    const decider = extra.decider ? ids.get(extra.decider)! : samuel;
     const ts = await prisma.timesheet.create({
       data: {
         divisionId,
@@ -234,7 +237,7 @@ async function seedTimesheets(
         comment: extra.comment ?? null,
         submittedAt: extra.submittedAt ? douala(extra.submittedAt) : null,
         submissionCount: extra.submittedAt ? (extra.previous ? 2 : 1) : 0,
-        decidedById: extra.decidedAt ? samuel : null,
+        decidedById: extra.decidedAt ? decider : null,
         decidedAt: extra.decidedAt ? douala(extra.decidedAt) : null,
         rejectionReason: extra.reason ?? null,
       },
@@ -262,14 +265,14 @@ async function seedTimesheets(
       await prisma.timesheetEvent.createMany({
         data: [
           { timesheetId: ts.id, type: "SUBMITTED", actorId: userId, at: douala(extra.previous.submittedAt) },
-          { timesheetId: ts.id, type: "REJECTED", actorId: samuel, at: douala(extra.previous.rejectedAt), note: extra.previous.reason },
+          { timesheetId: ts.id, type: "REJECTED", actorId: decider, at: douala(extra.previous.rejectedAt), note: extra.previous.reason },
         ],
       });
     }
     if (extra.submittedAt) await prisma.timesheetEvent.create({ data: { timesheetId: ts.id, type: "SUBMITTED", actorId: userId, at: douala(extra.submittedAt) } });
     if (extra.decidedAt) {
       await prisma.timesheetEvent.create({
-        data: { timesheetId: ts.id, type: status === "REJECTED" ? "REJECTED" : "VALIDATED", actorId: samuel, at: douala(extra.decidedAt), note: extra.reason ?? null },
+        data: { timesheetId: ts.id, type: status === "REJECTED" ? "REJECTED" : "VALIDATED", actorId: decider, at: douala(extra.decidedAt), note: extra.reason ?? null },
       });
     }
   }
@@ -355,6 +358,31 @@ async function seedTimesheets(
     previous: { submittedAt: "2026-03-13 17:05", rejectedAt: "2026-03-16 10:20", reason: "Mercredi 11 mars : la formation manque. Merci de répartir les heures." },
   });
 
+  // Équipes Études et Data CX (vue consolidée, écran 11) : semaines 2 à 10 validées.
+  // Études : semaine 11 validée, semaine 12 validée pour quatre personnes, Nadège Fouda
+  // en brouillon (36 h). Data CX : semaine 11 en attente depuis le 13 mars (validation
+  // en retard), semaine 12 soumise par trois personnes, rien pour Vanessa Ndzana.
+  const studies = ["Christelle Nana", "Boris Mbida", "Estelle Owona", "Franck Ateba", "Nadège Fouda"];
+  const data = ["Arnaud Biyong", "Carine Messi", "Thierry Eyenga", "Vanessa Ndzana"];
+  const studyLines: Line[] = [["CX-2026-07", "Enquête", [4, 4, 4, 4, 4]], ["CX-2026-07", "Analyse", [4, 4, 4, 4, 4]]];
+  const dataLines: Line[] = [["CX-2026-08", "Données", [5, 5, 5, 5, 5]], ["CX-2026-08", "Visualisation", [3, 3, 3, 3, 3]]];
+  const byTeam = (who: string, week: number) => ({ ...validated(week), decider: studies.includes(who) ? "Hélène Nkoa" : "Olivier Manga" });
+  for (const who of studies) {
+    for (let week = 2; week <= 11; week++) await sheet(who, week, "VALIDATED", studyLines, byTeam(who, week));
+  }
+  for (const who of studies.slice(0, 4)) {
+    await sheet(who, 12, "VALIDATED", studyLines, { submittedAt: "2026-03-18 17:00", decidedAt: "2026-03-19 08:30", decider: "Hélène Nkoa" });
+  }
+  await sheet("Nadège Fouda", 12, "DRAFT", [["CX-2026-07", "Enquête", [4, 4, 4, 4, null]], ["CX-2026-07", "Analyse", [4, 4, 4, 4, null]]]);
+  for (const who of data) {
+    for (let week = 2; week <= 10; week++) await sheet(who, week, "VALIDATED", dataLines, byTeam(who, week));
+  }
+  await sheet("Vanessa Ndzana", 11, "VALIDATED", dataLines, byTeam("Vanessa Ndzana", 11));
+  for (const who of data.slice(0, 3)) {
+    await sheet(who, 11, "SUBMITTED", dataLines, { submittedAt: "2026-03-13 17:20" });
+    await sheet(who, 12, "SUBMITTED", dataLines, { submittedAt: "2026-03-19 08:10" });
+  }
+
   // Fiche de présence de février 2026 d'Aïcha Ndongo : générée, à signer (écran 06).
   const aicha = ids.get("Aïcha Ndongo")!;
   if (!(await prisma.attendanceSheet.findUnique({ where: { userId_year_month: { userId: aicha, year: 2026, month: 2 } } }))) {
@@ -370,6 +398,48 @@ async function seedTimesheets(
     await prisma.timesheetEvent.create({ data: { timesheetId: ts.id, type: "CREATED", actorId: ts.userId, at: douala(`${mondayIso} 09:05`) } });
   }
   return added;
+}
+
+/**
+ * Responsables des projets et projets des équipes Études et Data CX. Idempotent :
+ * complète une base existante sans rien modifier d'autre.
+ */
+async function completeProjects(divisionId: string, ids: Map<string, string>) {
+  const samuel = ids.get("Samuel Etoga")!;
+  await prisma.project.updateMany({
+    where: { divisionId, managerId: null, isSystem: false, code: { in: PROJECTS.map((p) => p.code) } },
+    data: { managerId: samuel },
+  });
+  const teamProjects: Array<ProjectSeed & { manager: string }> = [
+    {
+      code: "CX-2026-07", name: "Études de satisfaction clients", start: "2026-01-05", end: "2026-06-30", budget: 1000, status: "IN_PROGRESS",
+      activities: ["Enquête", "Analyse"], members: ["Christelle Nana", "Boris Mbida", "Estelle Owona", "Franck Ateba", "Nadège Fouda"], manager: "Hélène Nkoa",
+    },
+    {
+      code: "CX-2026-08", name: "Tableaux de bord CX", start: "2026-01-05", end: "2026-12-18", budget: 1400, status: "IN_PROGRESS",
+      activities: ["Données", "Visualisation"], members: ["Arnaud Biyong", "Carine Messi", "Thierry Eyenga", "Vanessa Ndzana"], manager: "Olivier Manga",
+    },
+  ];
+  for (const p of teamProjects) {
+    if (await prisma.project.findUnique({ where: { divisionId_code: { divisionId, code: p.code } } })) continue;
+    const manager = ids.get(p.manager)!;
+    await prisma.project.create({
+      data: {
+        divisionId,
+        code: p.code,
+        name: p.name,
+        startDate: d(p.start),
+        endDate: p.end ? d(p.end) : null,
+        budgetHours: p.budget,
+        status: p.status,
+        statusChangedAt: d("2026-01-05"),
+        statusChangedById: manager,
+        managerId: manager,
+        activities: { create: p.activities.map((name) => ({ name })) },
+        members: { create: p.members.map((m) => ({ userId: ids.get(m)! })) },
+      },
+    });
+  }
 }
 
 main()

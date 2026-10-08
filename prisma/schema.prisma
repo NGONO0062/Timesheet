@@ -190,6 +190,7 @@ model User {
   attendanceSheets AttendanceSheet[]
   signatures       Signature[]
   projectChanges   Project[]         @relation("ProjectStatusChanger")
+  managedProjects  Project[]         @relation("ProjectManager")
 
   @@index([divisionId])
   @@index([managerId])
@@ -221,6 +222,8 @@ model Project {
   statusChangedBy   User?         @relation("ProjectStatusChanger", fields: [statusChangedById], references: [id])
   archivedAt        DateTime?
   isSystem          Boolean       @default(false) // activité système « Absence » (PROMPT.md §20)
+  managerId         String? // responsable : le manager qui pilote le projet
+  manager           User?         @relation("ProjectManager", fields: [managerId], references: [id])
 
   activities Activity[]
   members    ProjectMember[]

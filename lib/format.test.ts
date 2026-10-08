@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatDateAt, formatDateTime, formatDayList, formatFromTo, formatHours, formatHoursOf, formatLongDate, formatLongDateAt, formatNumber,
-  formatPercent, formatRange, formatTime, NBSP, zonedDay,
+  formatFrDate, formatPercent, formatRange, formatTime, NBSP, parseFrDate, zonedDay,
 } from "./format";
 import { utcDate } from "./iso-week";
 
@@ -40,6 +40,13 @@ describe("formats", () => {
     expect(formatLongDateAt(new Date("2026-03-23T08:15:00Z"))).toBe("lundi 23 mars 2026 à 09:15");
     // 23 h 30 UTC un dimanche : déjà lundi à Douala.
     expect(zonedDay(new Date("2026-03-22T23:30:00Z"))).toEqual(utcDate(2026, 3, 23));
+  });
+
+  it("lit et écrit les dates jj/mm/aaaa", () => {
+    expect(parseFrDate("06/04/2026")).toEqual(utcDate(2026, 4, 6));
+    expect(parseFrDate(" 6/4/2026 ")).toEqual(utcDate(2026, 4, 6));
+    for (const bad of ["31/02/2026", "2026-04-06", "6/4/26", ""]) expect(parseFrDate(bad), bad).toBeNull();
+    expect(formatFrDate(utcDate(2026, 4, 6))).toBe("06/04/2026");
   });
 
   it("groupe les jours par mois", () => {

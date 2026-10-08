@@ -4,8 +4,7 @@ import { dict } from "../i18n";
 import { utcDate } from "../iso-week";
 import { DEFAULT_MATRIX, effectivePermissions, isLocked } from "../permissions";
 import {
-  acceptsTimeEntry, budgetUsage, canAddLine, canRecordHours, compareProjects, endDatePassed, entryNotice, statusChangedMessage,
-} from "./rules";
+  acceptsTimeEntry, budgetUsage, canAddLine, canRecordHours, compareProjects, endDatePassed, entryNotice, statusChangedMessage, checkProjectInput, consumedText, nextProjectCode, projectPeriodLabel, projectSummary } from "./rules";
 
 const WEEK12 = { weekStart: utcDate(2026, 3, 16), weekEnd: utcDate(2026, 3, 20) };
 const REFONTE = { startDate: utcDate(2026, 1, 5), endDate: utcDate(2026, 6, 30) };
@@ -103,5 +102,35 @@ describe("permissions", () => {
   it("reprend la matrice de la planche 12", () => {
     expect(DEFAULT_MATRIX.STAFF).toEqual(["ENTER_TIME"]);
     expect(DEFAULT_MATRIX.OWNER).not.toContain("ENTER_TIME");
+  });
+});
+
+describe("écran Projets (jalon 4)", () => {
+  const d = (y: number, m: number, day: number) => new Date(Date.UTC(y, m - 1, day));
+
+  it("écrit la période, les heures consommées et le résumé comme la maquette", () => {
+    expect(projectPeriodLabel(d(2026, 1, 5), d(2026, 6, 26))).toBe("5 janv. – 26 juin 2026");
+    expect(projectPeriodLabel(d(2026, 1, 1), d(2026, 12, 31))).toBe("Toute l'année 2026");
+    expect(projectPeriodLabel(d(2026, 1, 5), null)).toBe("Depuis le 5 janvier 2026");
+    expect(consumedText(612, 960)).toBe(`612 / 960${NBSP}h · 64${NBSP}%`);
+    expect(consumedText(410, 400)).toBe(`410 / 400${NBSP}h · 103${NBSP}%`);
+    expect(consumedText(148, null)).toBe(`148${NBSP}h · sans budget`);
+    expect(projectSummary(7, 4)).toBe("7 projets · 4 en cours");
+  });
+
+  it("attribue le code suivant de l'année", () => {
+    expect(nextProjectCode("CX", 2026, ["CX-2026-00", "CX-2026-06", "CX-2025-09", "ABSENCE"])).toBe("CX-2026-07");
+    expect(nextProjectCode("CX", 2027, ["CX-2026-06"])).toBe("CX-2027-01");
+  });
+
+  it("contrôle le panneau de création", () => {
+    const base = { name: "Audit parcours réclamation", start: "06/04/2026", end: "26/06/2026", status: "NOT_STARTED" as const, budget: "320", activities: ["Analyse", " Atelier ", "Analyse"], memberIds: ["a", "a"] };
+    const ok = checkProjectInput(base);
+    expect(ok.ok && ok.value).toMatchObject({ budgetHours: 320, activities: ["Analyse", "Atelier"], memberIds: ["a"], endDate: d(2026, 6, 26) });
+    expect(checkProjectInput({ ...base, budget: "" }).ok).toBe(true);
+    const bad = checkProjectInput({ ...base, name: " ", start: "31/02/2026", end: "01/01/2026", budget: "3,5", activities: [] });
+    expect(bad.ok ? null : Object.keys(bad.errors).sort()).toEqual(["activities", "budget", "name", "start"]);
+    const endBefore = checkProjectInput({ ...base, end: "01/04/2026" });
+    expect(endBefore.ok ? null : endBefore.errors.end).toBe("Saisissez une date de fin au format jj/mm/aaaa, après la date de début.");
   });
 });

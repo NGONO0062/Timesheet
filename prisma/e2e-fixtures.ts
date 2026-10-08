@@ -57,7 +57,14 @@ export async function resetE2eFixtures(): Promise<void> {
 
     const project = async (code: string, name: string, status: "IN_PROGRESS" | "DONE", end: string) => {
       const existing = await prisma.project.findUnique({ where: { divisionId_code: { divisionId: division.id, code } }, include: { activities: true } });
-      if (existing) return existing;
+      // Nom, statut et archivage modifiés par les tests de l'écran Projets : remis à l'état de départ.
+      if (existing) {
+        return prisma.project.update({
+          where: { id: existing.id },
+          include: { activities: true },
+          data: { name, status, archivedAt: null },
+        });
+      }
       return prisma.project.create({
         include: { activities: true },
         data: {
@@ -79,6 +86,8 @@ export async function resetE2eFixtures(): Promise<void> {
 
     // Fiches : remises à leur état de départ à chaque exécution (lignes, entrées et événements suivent).
     await prisma.timesheet.deleteMany({ where: { divisionId: division.id } });
+    // Projets créés par les tests de l'écran Projets (activités et membres suivent).
+    await prisma.project.deleteMany({ where: { divisionId: division.id, code: { notIn: ["CX-2026-00", "CX-2026-01", "CX-2026-04"] } } });
 
     const entries = (week: 11 | 12, hours: Array<number | null>, flaggedDay?: number) =>
       hours.flatMap((h, i) => (h === null ? [] : [{ date: plusDays(MONDAY[week], i), hours: h, flagged: i === flaggedDay }]));

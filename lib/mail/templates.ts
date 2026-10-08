@@ -51,3 +51,25 @@ export function reminderMail(input: SheetRef & { to: string; firstName: string; 
     input.url,
   );
 }
+
+/** Relance d'un manager depuis la vue consolidée : fiches de son équipe en attente. */
+export function managerReminderMail(input: { to: string; firstName: string; team: string; count: number; days: number; url: string }): Mail {
+  return compose(
+    input.to,
+    t(dict.mail.managerReminderSubject, { team: input.team }),
+    input.firstName,
+    [t(input.count > 1 ? dict.mail.managerReminderBodyMany : dict.mail.managerReminderBodyOne, { n: input.count, team: input.team, days: input.days })],
+    input.url,
+  );
+}
+
+/** Rappel de saisie : la semaine n'est pas soumise à l'échéance. */
+export function fillReminderMail(input: SheetRef & { to: string; firstName: string; deadline: string }): Mail {
+  return compose(
+    input.to,
+    t(dict.mail.fillReminderSubject, { week: input.week }),
+    input.firstName,
+    [t(dict.mail.fillReminderBody, { week: input.week, range: input.range, deadline: input.deadline })],
+    input.url,
+  );
+}

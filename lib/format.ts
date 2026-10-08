@@ -169,3 +169,18 @@ export function formatDayList(days: Date[]): string {
   });
   return joinList(items);
 }
+
+/** « 06/04/2026 » → date (minuit UTC) ; null si la date n'existe pas. */
+export function parseFrDate(raw: string): Date | null {
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(raw.trim());
+  if (!m) return null;
+  const [day, month, year] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day ? d : null;
+}
+
+/** Date (minuit UTC) → « 06/04/2026 ». */
+export function formatFrDate(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}`;
+}

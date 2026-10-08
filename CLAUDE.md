@@ -51,6 +51,7 @@ Application interne Orange Cameroun : projets, temps de travail, fiche de prése
 - Tests de bout en bout qui écrivent : « Division de test » (comptes `*.e2e@exemple.com`), remise à zéro par `prisma/e2e-fixtures.ts` (préparation globale de Playwright). CX Expertise n'est jamais modifiée par les tests.
 - Validation : `lib/data/validation.ts` (portée manager / owner, décisions, relances), actions dans `app/actions/validation.ts`. E-mails : `lib/mail/` (Mailpit en développement, http://localhost:8025).
 - Relance des validateurs : `POST /api/taches/relances` avec `Authorization: Bearer $TASKS_SECRET`, chaque jour ouvré.
+- Pilotage : règles pures dans `lib/projects/`, `lib/reporting/`, `lib/division/` ; données dans `lib/data/projects.ts`, `reporting.ts`, `division.ts` ; exports dans `lib/export/` (CSV et Excel purs, PDF par Chromium via `playwright-core`), route `/reporting/export`.
 - Écran avec `loading.tsx` : permission et existence vérifiées dans un `layout.tsx` du segment (sinon statut 200 au lieu de 404).
 - Authentification : `auth.ts` (Auth.js, JWT). Utilisateur connecté : `getViewer()` / `requirePermission()` dans `lib/data/viewer.ts`. Navigation : `lib/navigation.ts`.
 
