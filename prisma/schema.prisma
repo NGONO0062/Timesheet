@@ -188,6 +188,7 @@ model User {
   decidedSheets    Timesheet[]       @relation("TimesheetDecider")
   timesheetEvents  TimesheetEvent[]
   attendanceSheets AttendanceSheet[]
+  passwordTokens   PasswordToken[]
   signatures       Signature[]
   projectChanges   Project[]         @relation("ProjectStatusChanger")
   managedProjects  Project[]         @relation("ProjectManager")
@@ -370,4 +371,24 @@ model AuditLog {
   @@index([divisionId, at])
   @@index([action, at])
   @@index([action, objectLabel, at])
+}
+
+// Liens à usage unique (PROMPT.md §19) : invitation (première connexion) et mot de passe
+// oublié. Seule l'empreinte SHA-256 du jeton est stockée ; le jeton n'existe que dans l'e-mail.
+enum TokenKind {
+  INVITATION
+  RESET
+}
+
+model PasswordToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      TokenKind
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, kind])
 }

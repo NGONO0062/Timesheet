@@ -55,7 +55,11 @@ export function WeekEntry({ view }: { view: EntryView }) {
   const days = view.days.map((d) => new Date(d));
   const { step, editable } = view;
 
-  const [rows, setRows] = useState<Row[]>(() => view.lines.map(toRow));
+  // Semaine vide et préférence active : les lignes de la semaine précédente, sans les heures.
+  // Rien n'est enregistré tant que la saisie ne commence pas.
+  const [rows, setRows] = useState<Row[]>(() =>
+    view.autoCopy ? view.previous.map((c) => toRow({ ...c, locked: false, hours: days.map(() => null), flagged: days.map(() => false) })) : view.lines.map(toRow),
+  );
   const [comment, setComment] = useState(view.comment);
   const [save, setSave] = useState<Save>(() =>
     view.rejected ? { state: "info", message: e.reopened } : view.savedTime ? { state: "saved", time: view.savedTime } : { state: "idle" },

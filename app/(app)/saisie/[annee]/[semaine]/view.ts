@@ -36,6 +36,8 @@ export type EntryView = {
   comment: string;
   eligible: EligibleLine[];
   previous: EligibleLine[];
+  /** Semaine vide et préférence « reprendre les lignes » : la grille s'ouvre avec ces lignes. */
+  autoCopy: boolean;
   previousWeek: number;
   validator: { name: string; role: string } | null;
   /** Texte de l'indicateur de sauvegarde au chargement. */

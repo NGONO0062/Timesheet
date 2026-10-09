@@ -59,7 +59,7 @@ const sizeClass = (size: FieldSize | undefined) => (size === "sm" ? "form-contro
 type InputProps = FieldFrame & Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & { size?: FieldSize };
 
 /** Input ODS avec son label, son aide et son erreur. */
-export function TextField({ label, required, hint, error, hideLabel, size, className, id, ...rest }: InputProps) {
+export function TextField({ label, required, hint, error, hideLabel, size, className, id, "aria-describedby": extra, ...rest }: InputProps) {
   const ids = useFieldIds(id);
   return (
     <Frame frame={{ label, required, hint, error, hideLabel }} ids={ids}>
@@ -68,7 +68,7 @@ export function TextField({ label, required, hint, error, hideLabel, size, class
         className={cx("form-control", sizeClass(size), error ? "is-invalid" : null, className)}
         aria-required={required || undefined}
         aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(hint, error, ids, rest["aria-describedby"])}
+        aria-describedby={describedBy(hint, error, ids, extra)}
         {...rest}
       />
     </Frame>
@@ -178,17 +178,21 @@ type SwitchProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "role"> 
   /** Nom accessible de l'interrupteur (le texte visible est son état). */
   label: string;
   checked: boolean;
+  /** État écrit à côté, selon la maquette : [actif, désactivé]. Par défaut : Actif / Désactivé. */
+  states?: readonly [string, string];
+  /** Texte de l'option écrit à côté, à la place de l'état (planches 12 et 14). */
+  text?: ReactNode;
 };
 
-/** Switch ODS. Son état est écrit à côté : Actif / Désactivé. */
-export function Switch({ label, checked, id, className, ...rest }: SwitchProps) {
+/** Switch ODS. Son état est écrit à côté (Actif / Désactivé), ou le texte de l'option. */
+export function Switch({ label, checked, states = [dict.form.active, dict.form.inactive], text, id, className, ...rest }: SwitchProps) {
   const auto = useId();
   const inputId = id ?? auto;
   return (
     <span className={cx("form-check form-switch", className)}>
       <input className="form-check-input" type="checkbox" role="switch" id={inputId} checked={checked} aria-label={label} {...rest} />
       <label htmlFor={inputId} aria-hidden="true">
-        {checked ? dict.form.active : dict.form.inactive}
+        {text ?? (checked ? states[0] : states[1])}
       </label>
     </span>
   );

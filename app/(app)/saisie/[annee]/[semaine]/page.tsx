@@ -100,6 +100,7 @@ export default async function Page({ params, searchParams }: Props) {
     comment: sheet.comment,
     eligible,
     previous,
+    autoCopy: profile.copyPreviousWeek && editable && sheet.stored === null && sheet.lines.length === 0 && previous.length > 0,
     previousWeek: shiftWeek(week, -1).week,
     validator: validator ? { name: validator.name, role: roleLabel(validator.role).toLowerCase() } : null,
     savedTime: sheet.stored === "DRAFT" && sheet.updatedAt ? formatTime(sheet.updatedAt) : null,

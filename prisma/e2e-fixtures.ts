@@ -27,6 +27,24 @@ export const E2E = {
   intern: { email: "stagiaire.e2e@exemple.com", firstName: "Inès", lastName: "Stage" },
 } as const;
 
+/**
+ * Administration et Paramètres (jalon 6) : une seconde division de test, pour que le
+ * changement des règles de saisie ou des permissions ne gêne pas les autres tests,
+ * qui tournent en parallèle dans la première.
+ */
+export const E2E_ADMIN_DIVISION = "e2e-administration";
+
+export const E2E_ADMIN = {
+  admin: { email: "admin.e2e@exemple.com", firstName: "Adèle", lastName: "Admin", role: "DIVISION_ADMIN" },
+  manager: { email: "chef.e2e@exemple.com", firstName: "Hugo", lastName: "Chef", role: "MANAGER" },
+  /** Saisie de la semaine 12 : vérifie que les règles changées par l'admin s'appliquent. */
+  rules: { email: "regle.e2e@exemple.com", firstName: "Rita", lastName: "Règle", role: "STAFF" },
+  /** Changement de rôle et désactivation depuis la liste. */
+  target: { email: "cible.e2e@exemple.com", firstName: "Théo", lastName: "Cible", role: "STAFF" },
+  /** Écran Paramètres : horaires, notifications, mot de passe, préférences. */
+  settings: { email: "reglages.e2e@exemple.com", firstName: "Sacha", lastName: "Réglages", role: "STAFF" },
+} as const;
+
 /** Adresse RH de la division de test : l'e-mail de la fiche de présence arrive dans Mailpit. */
 export const E2E_HR_EMAIL = "rh.e2e@exemple.com";
 
@@ -197,7 +215,65 @@ export async function resetE2eFixtures(): Promise<void> {
     await prisma.attendanceSheet.create({
       data: { divisionId: division.id, userId: staff.intern.id, year: 2026, month: 2, status: "GENERATED", generatedAt: new Date("2026-03-09T07:00:00Z") },
     });
+
+    await resetAdminDivision(prisma, passwordHash);
   } finally {
     await prisma.$disconnect();
   }
+}
+
+/** Division d'administration : réglages par défaut, comptes fixes, ni invités ni fiches. */
+async function resetAdminDivision(prisma: InstanceType<typeof prismaClient.PrismaClient>, passwordHash: string): Promise<void> {
+  const division =
+    (await prisma.division.findUnique({ where: { slug: E2E_ADMIN_DIVISION } })) ??
+    (await prisma.division.create({ data: { name: "Division d'administration de test", slug: E2E_ADMIN_DIVISION, direction: "TEST", status: "ACTIVE", onboardingStep: 5 } }));
+  // Règles, workflow et permissions : valeurs par défaut (PROMPT.md §8), adresse RH renseignée.
+  await prisma.divisionSettings.deleteMany({ where: { divisionId: division.id } });
+  await prisma.divisionSettings.create({ data: { divisionId: division.id, hrEmail: E2E_HR_EMAIL } });
+  await prisma.rolePermission.deleteMany({ where: { divisionId: division.id } });
+  await prisma.timesheet.deleteMany({ where: { divisionId: division.id } });
+  // Comptes invités par les tests : retirés (leurs liens suivent).
+  const emails = Object.values(E2E_ADMIN).map((u) => u.email);
+  await prisma.user.updateMany({ where: { divisionId: division.id }, data: { managerId: null, teamId: null } });
+  await prisma.team.deleteMany({ where: { divisionId: division.id } });
+  await prisma.projectMember.deleteMany({ where: { project: { divisionId: division.id } } });
+  await prisma.user.deleteMany({ where: { divisionId: division.id, email: { notIn: emails } } });
+
+  const ids = {} as Record<keyof typeof E2E_ADMIN, string>;
+  for (const [key, u] of Object.entries(E2E_ADMIN) as Array<[keyof typeof E2E_ADMIN, (typeof E2E_ADMIN)[keyof typeof E2E_ADMIN]]>) {
+    const data = {
+      firstName: u.firstName,
+      lastName: u.lastName,
+      role: u.role,
+      passwordHash,
+      active: true,
+      notificationPrefs: {},
+      usualArrival: "08:00",
+      usualDeparture: "17:00",
+      locale: "fr",
+      defaultSignatureMode: "DRAWN" as const,
+      copyPreviousWeek: false,
+    };
+    const user = await prisma.user.upsert({ where: { email: u.email }, update: { ...data, divisionId: division.id }, create: { ...data, email: u.email, divisionId: division.id } });
+    ids[key] = user.id;
+    await prisma.passwordToken.deleteMany({ where: { userId: user.id } });
+  }
+  const team = await prisma.team.create({ data: { divisionId: division.id, name: "Équipe test", managerId: ids.manager } });
+  await prisma.user.updateMany({ where: { id: { in: [ids.rules, ids.target, ids.settings] } }, data: { managerId: ids.manager, teamId: team.id } });
+
+  const code = "ADM-2026-01";
+  const project =
+    (await prisma.project.findUnique({ where: { divisionId_code: { divisionId: division.id, code } } })) ??
+    (await prisma.project.create({
+      data: {
+        divisionId: division.id,
+        code,
+        name: "Projet d'administration",
+        status: "IN_PROGRESS",
+        startDate: new Date("2026-01-01T00:00:00Z"),
+        endDate: new Date("2026-12-31T00:00:00Z"),
+        activities: { create: [{ name: "Analyse" }] },
+      },
+    }));
+  await prisma.projectMember.createMany({ data: [ids.rules, ids.target, ids.settings].map((userId) => ({ projectId: project.id, userId })) });
 }

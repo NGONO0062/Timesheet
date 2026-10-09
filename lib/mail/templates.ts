@@ -14,8 +14,8 @@ export type Mail = {
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** Assemble un e-mail : salutation, paragraphes, lien, signature. */
-function compose(to: string, subject: string, firstName: string, paragraphs: string[], url: string): Mail {
-  const lines = [t(dict.mail.hello, { name: firstName }), ...paragraphs, t(dict.mail.open, { url }), dict.mail.signature];
+function compose(to: string, subject: string, firstName: string, paragraphs: string[], url: string, link: string = dict.mail.open): Mail {
+  const lines = [t(dict.mail.hello, { name: firstName }), ...paragraphs, t(link, { url }), dict.mail.signature];
   const text = lines.join("\n\n");
   const html = [
     '<div style="font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.4;color:#000000">',
@@ -28,6 +28,23 @@ function compose(to: string, subject: string, firstName: string, paragraphs: str
 }
 
 type SheetRef = { week: number; range: string; url: string };
+
+/** Invitation (PROMPT.md §19) : premier mot de passe, lien valable 7 jours. */
+export function invitationMail(input: { to: string; firstName: string; division: string; inviter: string; url: string }): Mail {
+  return compose(
+    input.to,
+    t(dict.mail.invitationSubject, { division: input.division }),
+    input.firstName,
+    [t(dict.mail.invitationBody, { inviter: input.inviter, division: input.division })],
+    input.url,
+    dict.mail.invitationLink,
+  );
+}
+
+/** Mot de passe oublié : lien valable une heure. */
+export function resetMail(input: { to: string; firstName: string; url: string }): Mail {
+  return compose(input.to, dict.mail.resetSubject, input.firstName, [dict.mail.resetBody], input.url, dict.mail.resetLink);
+}
 
 export function validatedMail(input: SheetRef & { to: string; firstName: string; validator: string; hours: string }): Mail {
   return compose(

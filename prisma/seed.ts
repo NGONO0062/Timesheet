@@ -131,6 +131,8 @@ async function main() {
       endDate: d("2026-06-26"),
     },
   });
+  // Ses paramètres, comme sur la planche 14 : pas d'e-mail à la validation, reprise des lignes.
+  await prisma.user.update({ where: { id: ids.get("Aïcha Ndongo")! }, data: { notificationPrefs: { validated: false }, copyPreviousWeek: true } });
 
   const samuel = ids.get("Samuel Etoga")!;
   const projects = new Map<string, { id: string; activities: { id: string; name: string }[] }>();

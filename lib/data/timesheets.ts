@@ -83,6 +83,7 @@ export async function getProfile(scope: DivisionScope) {
     select: {
       firstName: true,
       createdAt: true,
+      copyPreviousWeek: true,
       internship: { select: { startDate: true } },
       division: { select: { name: true } },
     },
@@ -92,6 +93,8 @@ export async function getProfile(scope: DivisionScope) {
     firstName: me.firstName,
     divisionName: me.division?.name ?? "",
     isIntern: Boolean(me.internship),
+    /** Préférence (Paramètres) : reprendre les lignes de la semaine précédente à l'ouverture d'une semaine vide. */
+    copyPreviousWeek: me.copyPreviousWeek,
     /** Première semaine due : début de stage, sinon création du compte. */
     since: me.internship?.startDate ?? me.createdAt,
   };

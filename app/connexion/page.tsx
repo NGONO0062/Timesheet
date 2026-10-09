@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Alert } from "@/components/ods/Display";
 import { Wordmark } from "@/components/ods/Navigation";
 import { loginAsDemo } from "@/app/actions/auth";
 import { getViewer } from "@/lib/data/viewer";
@@ -14,9 +15,13 @@ export const metadata: Metadata = { title: "Connexion" };
 const t = dict.login;
 
 // Écran 1 (PROMPT.md §6) : la seule page sans navigation, en deux volets.
-export default async function ConnexionPage() {
+type Props = { searchParams: Promise<{ "mot-de-passe"?: string }> };
+
+export default async function ConnexionPage({ searchParams }: Props) {
   const viewer = await getViewer();
   if (viewer) redirect(homeFor(viewer));
+  // Retour d'une invitation ou d'une réinitialisation : le mot de passe vient d'être choisi.
+  const passwordSet = (await searchParams)["mot-de-passe"] === "enregistre";
 
   return (
     <div className="ts-login">
@@ -47,6 +52,11 @@ export default async function ConnexionPage() {
             <h1 id="titre-connexion">{t.title}</h1>
             <p className="text-secondary">{t.intro}</p>
           </div>
+          {passwordSet && (
+            <Alert tone="success" role="status">
+              <p>{dict.account.passwordSet}</p>
+            </Alert>
+          )}
           <LoginForm />
           <div style={{ display: "flex", flexDirection: "column", gap: 5, paddingTop: 20, borderTop: "2px solid #999999" }}>
             <h2 className="h6">{t.firstTitle}</h2>

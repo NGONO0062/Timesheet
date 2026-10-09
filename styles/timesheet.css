@@ -738,3 +738,23 @@ button.dropdown-item{width:100%;border:0;background:none;font-family:inherit;fon
 .ts-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:20px}
 .ts-kpis-4{grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))}
 .ts-filter-sm{flex:1 1 200px;max-width:280px}
+/* Administration et Paramètres (planches 12 et 14) */
+.ts-anchors{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 30px}
+.ts-anchors>p{font-size:14px;line-height:16px;color:#595959}
+.ts-anchors a{font-weight:700}
+.ts-cards-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:20px}
+.ts-facts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 20px;margin:0}
+.ts-facts dt{color:#595959;font-weight:400}
+.ts-facts dd{margin:0;font-weight:700;overflow-wrap:anywhere}
+.ts-form-row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:20px}
+.ts-form-row>*{flex:0 1 160px}
+.ts-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:20px 30px;align-items:start}
+.ts-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px}
+.ts-row-actions{display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px}
+.ts-row-actions>.ts-push{margin-left:auto}
+.ts-weekdays{display:grid;grid-template-columns:repeat(4,max-content);gap:10px 20px}
+.ts-circuit .list-group-item{min-height:60px}
+.ts-matrix td,.ts-matrix thead th:not(:first-child){text-align:center}
+.ts-matrix td .form-check{justify-content:center}
+.ts-user-email{display:block;font-size:14px;line-height:16px;font-weight:400;color:#595959}
+@media (max-width:767.98px){.ts-weekdays{grid-template-columns:repeat(3,max-content)}}
