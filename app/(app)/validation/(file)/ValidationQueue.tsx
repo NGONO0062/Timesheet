@@ -16,6 +16,7 @@ import { dict, t } from "@/lib/i18n";
 import type { StoredStatus } from "@/lib/timesheet/rules";
 import { plural, QUEUE_TABS, type QueueTab } from "@/lib/validation/queue";
 import { ValidationTabs } from "../ValidationTabs";
+import { TableScroll } from "@/components/ods/TableScroll";
 
 const v = dict.validation;
 
@@ -212,7 +213,7 @@ export function ValidationQueue({ view }: { view: QueueView }) {
               </div>
             </div>
           )}
-          <div className="table-responsive">
+          <TableScroll>
             <table className="table">
               <caption className="visually-hidden">{v.captions[view.tab]}</caption>
               <thead>
@@ -269,7 +270,7 @@ export function ValidationQueue({ view }: { view: QueueView }) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableScroll>
           <p className="small text-secondary" style={{ paddingTop: 10 }}>
             {plural(view.rows.length, v.footOne[view.tab], v.footMany[view.tab])}
           </p>

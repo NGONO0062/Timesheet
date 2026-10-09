@@ -28,7 +28,7 @@ test("divisions et journal d'audit de la planche 13", async ({ page }) => {
   await expect(cx).toContainText("Pilote");
   await expect(cx).toContainText("cx-expertise");
   await expect(cx).toContainText("Paul Tchouta");
-  await expect(cx).toContainText("21");
+  await expect(cx).toContainText(/(^|\D)2\d(\D|$)/); // 21 au seed, plus les comptes invités en démonstration
   await expect(cx).toContainText("Active");
   await expect(cx).toContainText("5 janv. 2026");
   const onboarding = divisions.getByRole("row", { name: /Expérience boutiques/ });

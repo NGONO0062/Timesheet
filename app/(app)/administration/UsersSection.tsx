@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/ts/States";
 import type { UserErrors } from "@/lib/admin/rules";
 import { dict, t } from "@/lib/i18n";
 import type { DivisionRole } from "@/lib/permissions";
+import { TableScroll } from "@/components/ods/TableScroll";
 
 const a = dict.admin;
 
@@ -233,7 +234,7 @@ export function UsersSection({ view }: { view: UsersView }) {
         </EmptyState>
       ) : (
         <>
-          <div className="table-responsive">
+          <TableScroll>
             <table className="table">
               <caption className="visually-hidden">{a.usersCaption}</caption>
               <thead>
@@ -280,7 +281,7 @@ export function UsersSection({ view }: { view: UsersView }) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableScroll>
           <div className="ts-head">
             <p className="small">{t(a.usersRange, { from: view.from, to: view.to, total: view.total })}</p>
             <Pagination page={view.page} pageCount={view.count} href={href} label={a.usersPagination} />

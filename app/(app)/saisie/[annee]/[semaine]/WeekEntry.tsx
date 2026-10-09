@@ -24,6 +24,7 @@ import { entryHref } from "@/lib/routes";
 import { lineKey } from "@/lib/timesheet/draft";
 import { dayStatus, dayTotals, parseHours, submitCheck, sum, type DayStatus } from "@/lib/timesheet/rules";
 import type { EntryLine, EntryView } from "./view";
+import { TableScroll } from "@/components/ods/TableScroll";
 
 const e = dict.entry;
 const AUTOSAVE_DELAY_MS = 1000;
@@ -329,7 +330,7 @@ export function WeekEntry({ view }: { view: EntryView }) {
             {editable && rows.length > 0 && (
               <p className="small text-secondary">{t(e.rule, { hours: formatHours(view.hoursPerDay), step: formatHours(step) })}</p>
             )}
-            <div className="table-responsive">
+            <TableScroll>
               <TimeGrid
                 caption={caption}
                 days={days}
@@ -341,7 +342,7 @@ export function WeekEntry({ view }: { view: EntryView }) {
                 onRemove={removeLine}
                 flaggedAnchor={FLAG_ANCHOR}
               />
-            </div>
+            </TableScroll>
             {removed && (
               <Alert tone="success" role="status" action={<button className="btn btn-link" type="button" onClick={undoRemove}>{dict.form.undo}</button>}>
                 <p>{t(e.lineRemoved, { line: `${removed.row.project} · ${removed.row.activity}` })}</p>

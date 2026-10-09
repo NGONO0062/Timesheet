@@ -17,6 +17,7 @@ import {
   type ProjectFieldErrors, type ProjectInput,
 } from "@/lib/projects/rules";
 import { PROJECT_STATUS_ORDER, statusLook, type ProjectStatus } from "@/lib/status";
+import { TableScroll } from "@/components/ods/TableScroll";
 
 const p = dict.project;
 
@@ -144,7 +145,7 @@ export function ProjectsScreen(props: {
       )}
     </div>
   ) : (
-    <div className="table-responsive">
+    <TableScroll>
       <table className="table">
         <caption className="visually-hidden">
           {props.filter === "ALL" ? p.captionAll : t(p.captionStatus, { status: statusLook("project", props.filter).label })}
@@ -178,7 +179,7 @@ export function ProjectsScreen(props: {
           ))}
         </tbody>
       </table>
-    </div>
+    </TableScroll>
   );
 
   const board = (

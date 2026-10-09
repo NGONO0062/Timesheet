@@ -98,6 +98,17 @@ export function fillReminderMail(input: SheetRef & { to: string; firstName: stri
   );
 }
 
+/** Rappel du vendredi à 12:00 (écran 14) : semaine incomplète, avant l'échéance. */
+export function fillUpcomingMail(input: SheetRef & { to: string; firstName: string; done: string; expected: string; deadline: string }): Mail {
+  return compose(
+    input.to,
+    t(dict.mail.fillUpcomingSubject, { week: input.week, deadline: input.deadline }),
+    input.firstName,
+    [t(dict.mail.fillUpcomingBody, { week: input.week, range: input.range, done: input.done, expected: input.expected, deadline: input.deadline })],
+    input.url,
+  );
+}
+
 /** Fiche de présence générée : le stagiaire est invité à la signer. */
 export function attendanceToSignMail(input: { to: string; firstName: string; month: string; url: string }): Mail {
   return compose(input.to, t(dict.mail.attendanceToSignSubject, { month: input.month }), input.firstName, [t(dict.mail.attendanceToSignBody, { month: input.month })], input.url);

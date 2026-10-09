@@ -53,7 +53,9 @@ export function Modal({ open, onClose, title, children, footer, inline, titleCla
       </div>
     </div>
   );
-  return inline ? node : createPortal(node, document.body);
+  if (inline) return node;
+  // Rendu serveur (panneau ouvert depuis l'adresse) : le portail est posé à l'hydratation.
+  return typeof document === "undefined" ? null : createPortal(node, document.body);
 }
 
 type OffcanvasProps = {
@@ -116,5 +118,7 @@ export function Offcanvas({ open, onClose, title, children, footer, closeLabel =
       )}
     </>
   );
-  return inline ? node : createPortal(node, document.body);
+  if (inline) return node;
+  // Rendu serveur (panneau ouvert depuis l'adresse) : le portail est posé à l'hydratation.
+  return typeof document === "undefined" ? null : createPortal(node, document.body);
 }

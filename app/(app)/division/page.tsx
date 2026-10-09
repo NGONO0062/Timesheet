@@ -16,6 +16,7 @@ import { compareWeeks, shiftWeek } from "@/lib/iso-week";
 import { parseWeek } from "@/lib/routes";
 import { sum } from "@/lib/timesheet/rules";
 import { BlockError, DivisionWeekNav, RemindButton } from "./DivisionClient";
+import { TableScroll } from "@/components/ods/TableScroll";
 
 export const metadata: Metadata = { title: dict.division.screenTitle };
 
@@ -114,7 +115,7 @@ export default async function Page({ searchParams }: Props) {
         <section className="card" aria-labelledby="titre-equipes" style={{ flex: "3 1 480px", minWidth: 0 }}>
           <h2 className="h4" id="titre-equipes">{t(d.teamsTitle, { week: week.week })}</h2>
           {table ? (
-            <div className="table-responsive">
+            <TableScroll>
               <table className="table">
                 <caption className="visually-hidden">{d.teamsCaption}</caption>
                 <thead>
@@ -158,7 +159,7 @@ export default async function Page({ searchParams }: Props) {
                   </tr>
                 </tfoot>
               </table>
-            </div>
+            </TableScroll>
           ) : (
             <BlockError />
           )}
@@ -189,7 +190,7 @@ export default async function Page({ searchParams }: Props) {
         ) : drifts.length === 0 ? (
           <EmptyState title={d.noDrift} headingLevel={3}>{d.noDriftText}</EmptyState>
         ) : (
-          <div className="table-responsive">
+          <TableScroll>
             <table className="table">
               <caption className="visually-hidden">{d.driftsCaption}</caption>
               <thead>
@@ -224,7 +225,7 @@ export default async function Page({ searchParams }: Props) {
                 })}
               </tbody>
             </table>
-          </div>
+          </TableScroll>
         )}
       </section>
     </main>

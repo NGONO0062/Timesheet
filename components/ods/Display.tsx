@@ -4,6 +4,7 @@ import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { dict } from "@/lib/i18n";
 import { Icon, Mark } from "./Icon";
+import { TableScroll } from "./TableScroll";
 
 export type Tone = "success" | "danger" | "warning" | "info";
 
@@ -127,7 +128,7 @@ export function Table({ caption, hideCaption = true, responsive = true, children
       {children}
     </table>
   );
-  return responsive ? <div className="table-responsive">{table}</div> : table;
+  return responsive ? <TableScroll label={caption}>{table}</TableScroll> : table;
 }
 
 /** Progress ODS. La valeur est toujours écrite à côté par l'écran (2,2:1 sur la piste). */

@@ -44,12 +44,13 @@ test("CX Expertise : utilisateurs, recherche, pagination, permissions, accessibi
 
   const users = page.getByRole("table", { name: "Utilisateurs de la division, avec leur rôle, leur manager et l'état de leur compte" });
   await expect(users.getByRole("row")).toHaveCount(6);
-  await expect(page.getByText("Utilisateurs 1 à 5 sur 21")).toBeVisible();
+  await expect(page.getByText(/^Utilisateurs 1 à 5 sur \d+$/)).toBeVisible();
   // Son propre compte : ni rôle ni compte modifiables.
   await expect(page.getByLabel("Rôle de Paul Tchouta")).toBeDisabled();
   await expect(page.getByRole("switch", { name: "Compte de Paul Tchouta" })).toBeDisabled();
+  // 21 comptes au seed, cinq par page ; la démonstration peut en avoir ajouté.
   await page.getByRole("navigation", { name: "Pages des utilisateurs" }).getByRole("link", { name: "Page 5" }).click();
-  await expect(page.getByText("Utilisateurs 21 à 21 sur 21")).toBeVisible();
+  await expect(page.getByText(/^Utilisateurs 21 à \d+ sur \d+$/)).toBeVisible();
 
   await page.getByLabel("Rechercher un utilisateur").fill("ndongo");
   await page.getByRole("button", { name: "Rechercher" }).click();
@@ -62,7 +63,7 @@ test("CX Expertise : utilisateurs, recherche, pagination, permissions, accessibi
   await page.getByRole("button", { name: "Rechercher" }).click();
   await expect(page.getByRole("heading", { name: "Aucun utilisateur ne correspond à cette recherche." })).toBeVisible();
   await page.getByRole("link", { name: "Voir tous les utilisateurs" }).click();
-  await expect(page.getByText("Utilisateurs 1 à 5 sur 21")).toBeVisible();
+  await expect(page.getByText(/^Utilisateurs 1 à 5 sur \d+$/)).toBeVisible();
 
   // Matrice du §7 : la permission de l'admin de division est verrouillée.
   const matrix = page.getByRole("table", { name: "Permissions accordées à chaque rôle de la division" });

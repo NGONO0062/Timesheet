@@ -599,6 +599,8 @@ export const fr = {
     managerReminderBodyOne: "{n} fiche de l'équipe {team} attend votre décision depuis plus de {days} jours ouvrés.",
     managerReminderBodyMany: "{n} fiches de l'équipe {team} attendent votre décision depuis plus de {days} jours ouvrés.",
     fillReminderSubject: "Semaine {week} à saisir",
+    fillUpcomingSubject: "Semaine {week} incomplète : échéance {deadline}",
+    fillUpcomingBody: "Votre fiche de la semaine {week} ({range}) compte {done} sur {expected}. Pensez à la compléter et à la soumettre avant l'échéance, {deadline}.",
     fillReminderBody: "Votre fiche de la semaine {week} ({range}) n'est pas soumise, l'échéance était le {deadline}. Merci de la compléter et de la soumettre dès que possible.",
     hello: "Bonjour {name},",
     open: "Ouvrir la fiche : {url}",

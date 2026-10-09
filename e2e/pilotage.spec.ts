@@ -159,7 +159,8 @@ test("reporting : indicateurs, axes et périmètre dans l'adresse, exports CSV, 
 test("vue division : indicateurs, équipes, tendance, dérives, semaine précédente", async ({ page }) => {
   test.setTimeout(90_000); // parcours long : trois connexions (owner, manager, owner)
   await open(page, OWNER, "/division", "Division CX Expertise");
-  await expect(page.getByText("3 équipes · 15 collaborateurs")).toBeVisible();
+  // 15 collaborateurs au seed ; la démonstration peut en avoir ajouté.
+  await expect(page.getByText(/^3 équipes · 1[5-9] collaborateurs$/)).toBeVisible();
   const kpis = page.getByRole("list", { name: "Indicateurs de la semaine 12" });
   for (const label of ["Taux de remplissage", "Fiches soumises", "Fiches validées", "Dérives à traiter"]) await expect(kpis).toContainText(label);
   const teams = page.getByRole("table", { name: "Remplissage, soumission et validation par équipe" });

@@ -4,6 +4,7 @@
 // feuille vient du gabarit unique (lib/attendance/html.ts), entièrement échappé.
 import { useState } from "react";
 import { Icon } from "@/components/ods/Icon";
+import { TableScroll } from "@/components/ods/TableScroll";
 import { dict, t } from "@/lib/i18n";
 
 const a = dict.attendance;
@@ -28,9 +29,9 @@ export function SheetViewer({ fileName, html, pdfHref }: { fileName: string; htm
           <button className="btn btn-sm" type="button" onClick={() => window.print()}>{a.print}</button>
         </div>
       </div>
-      <div className="ts-viewer-stage">
+      <TableScroll className="ts-viewer-stage" label={a.preview}>
         <div className="ts-print-sheet" style={{ width: "100%", maxWidth: 940, zoom: zoom / 100 }} dangerouslySetInnerHTML={{ __html: html }} />
-      </div>
+      </TableScroll>
     </div>
   );
 }

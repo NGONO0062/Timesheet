@@ -6,6 +6,7 @@ import { dict, t } from "@/lib/i18n";
 import { reportQuery, weekChoices, weekKey } from "@/lib/reporting/view";
 import { loadReport } from "./load";
 import { ExportMenu, ReportFilters } from "./ReportFilters";
+import { TableScroll } from "@/components/ods/TableScroll";
 
 export const metadata: Metadata = { title: dict.reporting.title };
 
@@ -77,7 +78,7 @@ export default async function Page({ searchParams }: Props) {
 
           <section aria-labelledby="titre-detail" className="ts-section">
             <h2 className="h3" id="titre-detail">{r.detailTitle[axis]}</h2>
-            <div className="table-responsive">
+            <TableScroll>
               <table className="table">
                 <caption className="visually-hidden">{t(r.detailCaption[axis], { period: view.periodLower })}</caption>
                 <thead>
@@ -117,7 +118,7 @@ export default async function Page({ searchParams }: Props) {
                   </tr>
                 </tfoot>
               </table>
-            </div>
+            </TableScroll>
           </section>
         </>
       )}

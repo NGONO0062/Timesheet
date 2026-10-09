@@ -24,7 +24,8 @@
     "db:seed": "prisma db seed",
     "check": "npm run typecheck && npm run lint && npm run test",
     "db:reset": "prisma migrate reset --force",
-    "test:int": "vitest run --config vitest.int.config.ts"
+    "test:int": "vitest run --config vitest.int.config.ts",
+    "plateforme:admin": "node --experimental-strip-types prisma/creer-admin-plateforme.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

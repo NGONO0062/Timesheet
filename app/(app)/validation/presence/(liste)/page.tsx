@@ -10,7 +10,8 @@ import { requirePermission, scopeOf } from "@/lib/data/viewer";
 import { formatDayMonth, formatTime, zonedDay } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
 import { supervisorAttendanceHref } from "@/lib/routes";
-import { ValidationTabs } from "../ValidationTabs";
+import { ValidationTabs } from "../../ValidationTabs";
+import { TableScroll } from "@/components/ods/TableScroll";
 
 export const metadata: Metadata = { title: dict.attendance.supervisorListTitle };
 
@@ -42,7 +43,7 @@ export default async function Page({ searchParams }: Props) {
         {rows.length === 0 ? (
           <EmptyState title={a.supervisorEmptyTitle}>{a.supervisorEmptyText}</EmptyState>
         ) : (
-          <div className="table-responsive">
+          <TableScroll>
             <table className="table">
               <caption className="visually-hidden">{a.supervisorCaption}</caption>
               <thead>
@@ -74,7 +75,7 @@ export default async function Page({ searchParams }: Props) {
                 })}
               </tbody>
             </table>
-          </div>
+          </TableScroll>
         )}
       </section>
     </main>

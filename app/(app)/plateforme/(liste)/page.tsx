@@ -11,8 +11,9 @@ import { getDivisionDetail, getOnboarding, listDivisions } from "@/lib/data/plat
 import { requirePlatformAdmin } from "@/lib/data/viewer";
 import { formatShortDate, zonedDay } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
-import { AuditLog } from "./AuditLog";
-import { loadAudit } from "./load";
+import { AuditLog } from "../AuditLog";
+import { loadAudit } from "../load";
+import { TableScroll } from "@/components/ods/TableScroll";
 
 export const metadata: Metadata = { title: dict.platform.title };
 
@@ -59,7 +60,7 @@ export default async function Page({ searchParams }: Props) {
       {divisions.length === 0 ? (
         <EmptyState title={p.empty}>{p.emptyHint}</EmptyState>
       ) : (
-        <div className="table-responsive">
+        <TableScroll>
           <table className="table">
             <caption className="visually-hidden">{p.caption}</caption>
             <thead>
@@ -100,7 +101,7 @@ export default async function Page({ searchParams }: Props) {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       )}
 
       <AuditLog path="/plateforme" {...audit} />

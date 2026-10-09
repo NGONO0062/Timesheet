@@ -12,6 +12,7 @@ import { cx } from "@/lib/cx";
 import { formatNumber } from "@/lib/format";
 import { dict } from "@/lib/i18n";
 import { plural } from "@/lib/validation/queue";
+import { TableScroll } from "@/components/ods/TableScroll";
 
 const v = dict.validation;
 
@@ -87,7 +88,7 @@ export function ReviewPanel({ sheet }: { sheet: ReviewSheet }) {
       <section aria-labelledby="titre-grille" className="ts-section">
         <h2 className="h3" id="titre-grille">{v.hoursTitle}</h2>
         {rejecting && <p className="small">{v.flagHelp}</p>}
-        <div className="table-responsive">
+        <TableScroll>
           <TimeGrid
             caption={sheet.caption}
             days={days}
@@ -103,7 +104,7 @@ export function ReviewPanel({ sheet }: { sheet: ReviewSheet }) {
             }))}
             onToggleFlag={rejecting ? toggleFlag : undefined}
           />
-        </div>
+        </TableScroll>
       </section>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>

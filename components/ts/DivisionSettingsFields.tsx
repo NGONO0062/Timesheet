@@ -11,6 +11,7 @@ import { formatNumber } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
 import { DIVISION_ROLES, isLocked, PERMISSIONS, type DivisionRole, type Permission } from "@/lib/permissions";
 import { roleLabel } from "@/lib/viewer";
+import { TableScroll } from "@/components/ods/TableScroll";
 
 const a = dict.admin;
 
@@ -28,7 +29,7 @@ export function toggleMatrix(m: Matrix, role: DivisionRole, permission: Permissi
 export function MatrixTable({ matrix, onChange }: { matrix: Matrix; onChange: (next: Matrix) => void }) {
   return (
     <>
-      <div className="table-responsive">
+      <TableScroll>
         <table className="table ts-matrix">
           <caption className="visually-hidden">{a.permissionsCaption}</caption>
           <thead>
@@ -61,7 +62,7 @@ export function MatrixTable({ matrix, onChange }: { matrix: Matrix; onChange: (n
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       <p className="small text-secondary" id="permission-verrouillee">{a.lockedNote}</p>
     </>
   );

@@ -12,6 +12,7 @@ import { formatDateTime } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
 import { roleLabel } from "@/lib/viewer";
 import { AuditExport } from "./AuditExport";
+import { TableScroll } from "@/components/ods/TableScroll";
 
 const au = dict.audit;
 
@@ -87,7 +88,7 @@ export function AuditLog({ path, filters, errors, result, divisions, headingLeve
         <EmptyState title={au.empty}>{au.emptyHint}</EmptyState>
       ) : (
         <>
-          <div className="table-responsive">
+          <TableScroll>
             <table className="table">
               <caption className="visually-hidden">{au.caption}</caption>
               <thead>
@@ -116,7 +117,7 @@ export function AuditLog({ path, filters, errors, result, divisions, headingLeve
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableScroll>
           <div className="ts-head">
             <p className="small">{t(au.range, { from: result.from, to: result.to, total: result.total })}</p>
             <Pagination page={result.page} pageCount={result.count} href={href} label={au.pagination} />

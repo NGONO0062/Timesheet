@@ -232,7 +232,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 
 .container{width:min(1200px,100% - 40px);margin-inline:auto}
 .container-xs{width:312px;margin-inline:auto}
-.table-responsive{overflow-x:auto}
+/* Positionné : les textes masqués visuellement (position absolue) restent dans la zone qui défile. */
+.table-responsive{position:relative;overflow-x:auto}
 .page-body .container{width:min(1200px,100% - 60px)}
 
 /* ---------- Icônes géométriques (les icônes Solaris sont à brancher) ---------- */
@@ -763,3 +764,18 @@ button.dropdown-item{width:100%;border:0;background:none;font-family:inherit;fon
 .ts-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,370px);gap:30px;align-items:start}
 @media (max-width:1023.98px){.ts-split{grid-template-columns:minmax(0,1fr)}}
 .ts-form-grid-4{grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:20px}
+/* Finitions mobiles (jalon 8, vues à 375 px). Sélecteur de semaine : le libellé prend la
+   largeur disponible au lieu de ses 320 px. */
+@media (max-width:575.98px){
+  .ts-week-nav{flex:1 1 100%;min-width:0}
+  .ts-week-nav>.dropdown{flex:1;min-width:0}
+  .ts-week-label{min-width:0;width:100%}
+}
+/* Stepped process : sur mobile, seule l'étape en cours ; « Étape n sur N » est écrit dessous. */
+@media (max-width:767.98px){
+  .stepped-process li:not(.is-current){display:none}
+  .stepped-process li.is-current{clip-path:none;padding-left:20px}
+}
+/* Fiche A4 : la feuille garde sa mise en page et défile dans la visionneuse. */
+.ts-viewer-stage{overflow-x:auto}
+@media (max-width:767.98px){.ts-viewer-stage{justify-content:flex-start;padding:10px}.ts-sheet{min-width:760px}}
