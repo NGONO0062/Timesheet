@@ -328,6 +328,8 @@ model AttendanceSheet {
   pdfSha256   String?
   sentAt      DateTime?
   sentTo      String?
+  // Renvoi au stagiaire par le superviseur : sa signature est annulée (PROMPT.md §9.8).
+  rejectionReason String?
 
   signatures Signature[]
 
@@ -348,6 +350,8 @@ model Signature {
   documentSha256    String
   ip                String?
   userAgent         String?
+  // Une signature n'est jamais supprimée : annulée si le superviseur renvoie la fiche.
+  cancelledAt       DateTime?
 }
 
 // En ajout seul : aucune route ne modifie ni ne supprime une ligne.

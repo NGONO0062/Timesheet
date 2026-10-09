@@ -15,6 +15,8 @@ export type Viewer = {
   permissions: Permission[];
   /** Stagiaire : a une fiche de présence RH (PROMPT.md §20). */
   isIntern: boolean;
+  /** Mode proposé d'abord sur la zone de signature (Paramètres, §9.11). */
+  defaultSignatureMode: "DRAWN" | "PASSWORD";
 };
 
 const ROLE_LABELS: Record<Role, string> = {

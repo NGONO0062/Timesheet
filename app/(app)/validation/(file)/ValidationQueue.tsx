@@ -15,6 +15,7 @@ import { cx } from "@/lib/cx";
 import { dict, t } from "@/lib/i18n";
 import type { StoredStatus } from "@/lib/timesheet/rules";
 import { plural, QUEUE_TABS, type QueueTab } from "@/lib/validation/queue";
+import { ValidationTabs } from "../ValidationTabs";
 
 const v = dict.validation;
 
@@ -27,6 +28,8 @@ export type QueueView = {
   tab: QueueTab;
   counts: Record<QueueTab, number>;
   notice: string | null;
+  /** Fiches de présence à contre-signer ; null si le validateur n'a aucun stagiaire. */
+  presenceCount: number | null;
   rows: Array<{
     id: string;
     name: string;
@@ -121,6 +124,7 @@ export function ValidationQueue({ view }: { view: QueueView }) {
         <h1>{v.title}</h1>
         <span className={cx("badge", view.counts.SUBMITTED > 0 && "bg-info")}>{t(v.pendingCount, { n: view.counts.SUBMITTED })}</span>
       </div>
+      {view.presenceCount !== null && <ValidationTabs current="timesheets" presenceCount={view.presenceCount} />}
 
       <form aria-label={v.filters} className="ts-filters" onSubmit={(e) => e.preventDefault()}>
         <div className="ts-filter">

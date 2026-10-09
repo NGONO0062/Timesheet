@@ -58,7 +58,7 @@ test("projets : création avec erreurs, statut avec « Annuler », archivage", a
   await page.getByRole("button", { name: "Nouveau projet" }).click();
   const panel = page.getByRole("dialog", { name: "Nouveau projet" });
   await expect(panel).toBeVisible();
-  await expect(panel.getByRole("group", { name: "Membres affectés (0 sur 7)" })).toBeVisible();
+  await expect(panel.getByRole("group", { name: "Membres affectés (0 sur 8)" })).toBeVisible();
   await panel.getByRole("button", { name: "Créer le projet" }).click();
   await expect(panel.getByText("Saisissez le nom du projet.")).toBeVisible();
   await expect(panel.getByLabel("Nom du projet")).toBeFocused();
@@ -77,7 +77,7 @@ test("projets : création avec erreurs, statut avec « Annuler », archivage", a
   await panel.getByRole("button", { name: "Ajouter" }).click();
   await expect(panel.getByRole("button", { name: "Retirer l'activité Analyse" })).toBeVisible();
   await panel.getByLabel("Alice Essai").check();
-  await expect(panel.getByRole("group", { name: "Membres affectés (1 sur 7)" })).toBeVisible();
+  await expect(panel.getByRole("group", { name: "Membres affectés (1 sur 8)" })).toBeVisible();
   await panel.getByRole("button", { name: "Créer le projet" }).click();
   await expect(panel).toBeHidden();
   await expect(page.getByRole("status").filter({ hasText: "Projet « Projet de test e2e » créé avec le statut « En cours »." })).toBeVisible();

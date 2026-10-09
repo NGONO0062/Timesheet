@@ -14,7 +14,7 @@ function shared(): Promise<Browser> {
 }
 
 /** Imprime un document HTML autonome (styles en ligne, aucun script, aucune ressource distante). */
-export async function htmlToPdf(html: string, options: { landscape?: boolean } = {}): Promise<Uint8Array> {
+export async function htmlToPdf(html: string, options: { landscape?: boolean; fullBleed?: boolean } = {}): Promise<Uint8Array> {
   const context = await (await shared()).newContext({ javaScriptEnabled: false, offline: true });
   try {
     const page = await context.newPage();
@@ -23,7 +23,9 @@ export async function htmlToPdf(html: string, options: { landscape?: boolean } =
       format: "A4",
       landscape: options.landscape ?? false,
       printBackground: true,
-      margin: { top: "20mm", right: "15mm", bottom: "20mm", left: "15mm" },
+      // Pleine page : le gabarit fixe lui-même ses marges (fiche de présence).
+      margin: options.fullBleed ? { top: "0", right: "0", bottom: "0", left: "0" } : { top: "20mm", right: "15mm", bottom: "20mm", left: "15mm" },
+      preferCSSPageSize: options.fullBleed ?? false,
     });
     return new Uint8Array(pdf);
   } finally {

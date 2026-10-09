@@ -23,7 +23,12 @@ export const E2E = {
   chloe: { email: "chloe.e2e@exemple.com", firstName: "Chloé", lastName: "Essai" },
   /** Semaine 11 soumise : validation depuis le détail. */
   david: { email: "david.e2e@exemple.com", firstName: "David", lastName: "Essai" },
+  /** Stagiaire : février 2026 validé, fiche de présence à signer (circuit complet). */
+  intern: { email: "stagiaire.e2e@exemple.com", firstName: "Inès", lastName: "Stage" },
 } as const;
+
+/** Adresse RH de la division de test : l'e-mail de la fiche de présence arrive dans Mailpit. */
+export const E2E_HR_EMAIL = "rh.e2e@exemple.com";
 
 const plusDays = (d: Date, n: number) => new Date(d.getTime() + n * 86_400_000);
 const MONDAY = { 11: new Date("2026-03-09T00:00:00Z"), 12: new Date("2026-03-16T00:00:00Z") } as const;
@@ -51,7 +56,7 @@ export async function resetE2eFixtures(): Promise<void> {
         create: { divisionId: division.id, email: p.email, firstName: p.firstName, lastName: p.lastName, role, managerId, passwordHash },
       });
     const manager = await upsert(E2E.manager, "MANAGER", null);
-    const keys = ["empty", "rejected", "mobile", "alice", "bruno", "chloe", "david"] as const;
+    const keys = ["empty", "rejected", "mobile", "alice", "bruno", "chloe", "david", "intern"] as const;
     const staff = {} as Record<(typeof keys)[number], { id: string }>;
     for (const k of keys) staff[k] = await upsert(E2E[k], "STAFF", manager.id);
 
@@ -162,6 +167,36 @@ export async function resetE2eFixtures(): Promise<void> {
     ] as const) {
       await sheet(user.id, week, "SUBMITTED", full(h), [{ type: "SUBMITTED", actorId: user.id, at }], { submittedAt: at });
     }
+
+    // Inès Stage : stagiaire de Martin Valideur. Février 2026 (semaines 6 à 9) validé,
+    // fiche de présence générée et à signer ; l'adresse RH de la division est renseignée.
+    await prisma.divisionSettings.update({ where: { divisionId: division.id }, data: { hrEmail: E2E_HR_EMAIL, hrAutoSend: true } });
+    const internship = { kind: "ACADEMIC" as const, direction: "DEC", department: "CX", service: "Division de test", startDate: new Date("2026-02-02T00:00:00Z"), endDate: new Date("2026-07-31T00:00:00Z") };
+    await prisma.internship.upsert({ where: { userId: staff.intern.id }, update: internship, create: { userId: staff.intern.id, ...internship } });
+    await prisma.user.update({ where: { id: staff.intern.id }, data: { usualArrival: "08:30", usualDeparture: "17:30", defaultSignatureMode: "DRAWN" } });
+    await prisma.attendanceSheet.deleteMany({ where: { divisionId: division.id } });
+    for (const week of [6, 7, 8, 9]) {
+      const monday = new Date(Date.UTC(2025, 11, 29 + (week - 1) * 7));
+      await prisma.timesheet.create({
+        data: {
+          divisionId: division.id,
+          userId: staff.intern.id,
+          isoYear: 2026,
+          isoWeek: week,
+          status: "VALIDATED",
+          submittedAt: plusDays(monday, 4),
+          submissionCount: 1,
+          decidedById: manager.id,
+          decidedAt: plusDays(monday, 7),
+          lines: {
+            create: [{ ...line(veille), position: 0, entries: { create: [0, 1, 2, 3, 4].map((i) => ({ date: plusDays(monday, i), hours: 8 })) } }],
+          },
+        },
+      });
+    }
+    await prisma.attendanceSheet.create({
+      data: { divisionId: division.id, userId: staff.intern.id, year: 2026, month: 2, status: "GENERATED", generatedAt: new Date("2026-03-09T07:00:00Z") },
+    });
   } finally {
     await prisma.$disconnect();
   }

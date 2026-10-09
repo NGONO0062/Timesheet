@@ -531,6 +531,8 @@ textarea.form-control{height:auto;min-height:100px;padding:10px;resize:vertical}
 .ts-sheet-field{display:inline-flex;align-items:center;min-height:20px;padding:0 5px;border:2px solid #000;font-weight:700}
 .ts-sheet-foot{display:flex;justify-content:space-between;gap:20px;margin-top:auto;padding-top:5px;border-top:2px solid #000}
 .ts-todo{border:2px dashed #595959;padding:10px;color:#595959}
+/* Impression de la fiche (bouton « Imprimer ») : la feuille seule, A4 paysage, sans zoom */
+@media print{@page{size:A4 landscape;margin:10mm}body *{visibility:hidden}.ts-print-sheet,.ts-print-sheet *{visibility:visible}.ts-print-sheet{position:absolute;left:0;top:0;max-width:none!important;zoom:1!important}.ts-print-sheet .ts-sheet{max-width:none;border:0}}
 
 /* Étiquettes de statut de projet (hors ODS) : une forme et un libellé par statut */
 .badge.ts-st-todo{background:#ddd;color:#000}

@@ -1,14 +1,28 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { UpcomingScreen } from "@/components/ts/UpcomingScreen";
-import { requirePermission } from "@/lib/data/viewer";
-import { homeFor } from "@/lib/navigation";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { EmptyState } from "@/components/ts/States";
+import { listMySheets } from "@/lib/data/attendance";
+import { requirePermission, scopeOf } from "@/lib/data/viewer";
+import { dict } from "@/lib/i18n";
+import { attendanceHref } from "@/lib/routes";
 
-export const metadata: Metadata = { title: "Ma fiche de présence" };
+export const metadata: Metadata = { title: dict.attendance.title };
 
-// Fiche de présence RH : stagiaires seulement (PROMPT.md §20).
+const a = dict.attendance;
+
+// Lien de navigation « Fiche de présence » : la fiche à signer d'abord, sinon la plus récente.
 export default async function Page() {
   const viewer = await requirePermission("ENTER_TIME");
-  if (!viewer.isIntern) notFound();
-  return <UpcomingScreen title="Ma fiche de présence" milestone={5} home={homeFor(viewer)} />;
+  const sheets = await listMySheets(scopeOf(viewer));
+  const target = sheets.find((s) => s.status === "GENERATED") ?? sheets[0];
+  if (target) redirect(attendanceHref(target.year, target.month));
+  return (
+    <main className="container ts-stack">
+      <h1>{a.title}</h1>
+      <EmptyState headingLevel={2} title={a.emptyTitle} actions={<Link className="btn" href="/saisie">{a.emptyAction}</Link>}>
+        {a.emptyText}
+      </EmptyState>
+    </main>
+  );
 }

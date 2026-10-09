@@ -55,6 +55,7 @@ export async function loadViewer(userId: string): Promise<Viewer | null> {
     divisionName: user.division?.name ?? null,
     permissions: [...effectivePermissions(user.role, overrides)],
     isIntern: Boolean(user.internship),
+    defaultSignatureMode: user.defaultSignatureMode,
   };
 }
 

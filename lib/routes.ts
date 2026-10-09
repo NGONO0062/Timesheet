@@ -10,3 +10,5 @@ export function parseWeek(year: string | undefined, week: string | undefined): I
   const w = { year: Number(year), week: Number(week) };
   return isValidIsoWeek(w) ? w : null;
 }
+export const supervisorAttendanceHref = (id: string) => `/validation/presence/${id}`;
+export const attendancePdfHref = (id: string) => `/api/fiches-presence/${id}/pdf`;

@@ -12,6 +12,7 @@ import { sum, type StoredStatus } from "@/lib/timesheet/rules";
 import { nextStatus } from "@/lib/timesheet/transitions";
 import { reminderDue } from "@/lib/timesheet/workdays";
 import type { QueueTab } from "@/lib/validation/queue";
+import { generateAttendanceIfReady } from "./attendance";
 import { appendAudit } from "./audit";
 import { AccessDenied, assertPermission, prisma, type DivisionScope } from "./db";
 import { getEntrySettings, toEntrySettings, weekFrame } from "./timesheets";
@@ -235,6 +236,9 @@ export async function decide(scope: DivisionScope, ids: string[], decision: Deci
       objectLabel: `Semaine ${week.week} de ${week.year} · ${name}`,
       result: "SUCCESS",
     });
+
+    // Mois entièrement validé : la fiche de présence du stagiaire est générée (§9.7).
+    if (next === "VALIDATED") await generateAttendanceIfReady(scope.divisionId, sheet.userId, week, now);
 
     const ref = { week: week.week, range: formatRange(frame.days[0]!, frame.days.at(-1)!), url: appUrl(entryHref(week)) };
     if (next === "VALIDATED" && wantsNotification(sheet.user.notificationPrefs, "validated")) {

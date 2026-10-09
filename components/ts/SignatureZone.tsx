@@ -1,7 +1,7 @@
 "use client";
 // Zone de signature électronique (.ts-sign, .ts-trace, planche C3, PROMPT.md §9.8).
 // Deux modes : tracé (souris, doigt, stylet) et mot de passe, toujours proposé.
-import { useRef, useState, type PointerEvent } from "react";
+import { useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { Checkbox } from "@/components/ods/Form";
 import { FieldError } from "@/components/ods/Form";
 import { Pills } from "@/components/ods/Disclosure";
@@ -27,12 +27,21 @@ type Props = {
   signed?: SignedState;
   /** Mot de passe : vérifié de nouveau côté serveur. Renvoie un message d'erreur ou null. */
   onSign?: (input: { method: SignatureMethod; drawing?: string; password?: string }) => Promise<string | null>;
+  /**
+   * « sheet » : mise en page de l'écran 06. Certification en tête, consigne sous le cadre,
+   * traçabilité affichée à côté par la page (qui suit le mode par `onModeChange`).
+   */
+  variant?: "standalone" | "sheet";
+  onModeChange?: (mode: SignatureMethod) => void;
+  /** Champs propres à l'écran, placés avant les boutons (observation du superviseur). */
+  extra?: ReactNode;
 };
 
 const W = 300;
 const H = 100;
 
-export function SignatureZone({ signerName, signerRole, defaultMode = "DRAWN", requireCertify, signed, onSign }: Props) {
+export function SignatureZone({ signerName, signerRole, defaultMode = "DRAWN", requireCertify, signed, onSign, variant = "standalone", onModeChange, extra }: Props) {
+  const sheet = variant === "sheet";
   const [mode, setMode] = useState<SignatureMethod>(defaultMode);
   const [path, setPath] = useState("");
   const [password, setPassword] = useState("");
@@ -58,15 +67,17 @@ export function SignatureZone({ signerName, signerRole, defaultMode = "DRAWN", r
             </svg>
           </div>
         )}
-        <Trace
-          rows={[
-            [dict.sign.signer, signer],
-            [dict.sign.date, formatDate(toDay(signed.signedAt))],
-            [dict.sign.time, `${formatTime(signed.signedAt, true)} (UTC+1)`],
-            [dict.sign.method, methodLabel(signed.method)],
-            ...(signed.sha256 ? [[dict.sign.fingerprint, signed.sha256] as [string, string]] : []),
-          ]}
-        />
+        {!sheet && (
+          <Trace
+            rows={[
+              [dict.sign.signer, signer],
+              [dict.sign.date, formatDate(toDay(signed.signedAt))],
+              [dict.sign.time, `${formatTime(signed.signedAt, true)} (UTC+1)`],
+              [dict.sign.method, methodLabel(signed.method)],
+              ...(signed.sha256 ? [[dict.sign.fingerprint, signed.sha256] as [string, string]] : []),
+            ]}
+          />
+        )}
         <p className="small text-secondary">{dict.sign.locked}</p>
       </div>
     );
@@ -104,16 +115,18 @@ export function SignatureZone({ signerName, signerRole, defaultMode = "DRAWN", r
 
   return (
     <div className="ts-sign">
+      {sheet && requireCertify && <Checkbox label={dict.sign.certify} checked={certified} onChange={(e) => setCertified(e.target.checked)} />}
       <Pills
         label={dict.sign.mode}
         value={mode}
         onChange={(m) => {
           setMode(m);
           setError(null);
+          onModeChange?.(m);
         }}
         options={[
           { value: "DRAWN", label: dict.sign.draw },
-          { value: "PASSWORD", label: dict.sign.password },
+          { value: "PASSWORD", label: sheet ? dict.attendance.passwordMode : dict.sign.password },
         ]}
       />
       {mode === "DRAWN" ? (
@@ -165,15 +178,20 @@ export function SignatureZone({ signerName, signerRole, defaultMode = "DRAWN", r
           </div>
         </div>
       )}
-      <Trace
-        rows={[
-          [dict.sign.signer, signer],
-          [dict.sign.date, dict.sign.atSigning],
-          [dict.sign.time, dict.sign.atSigning],
-          [dict.sign.method, methodLabel(mode)],
-        ]}
-      />
-      {requireCertify && <Checkbox label={dict.sign.certify} checked={certified} onChange={(e) => setCertified(e.target.checked)} />}
+      {sheet ? (
+        <p className="small text-secondary">{dict.attendance.signHint}</p>
+      ) : (
+        <Trace
+          rows={[
+            [dict.sign.signer, signer],
+            [dict.sign.date, dict.sign.atSigning],
+            [dict.sign.time, dict.sign.atSigning],
+            [dict.sign.method, methodLabel(mode)],
+          ]}
+        />
+      )}
+      {!sheet && requireCertify && <Checkbox label={dict.sign.certify} checked={certified} onChange={(e) => setCertified(e.target.checked)} />}
+      {extra}
       {error && <FieldError id="signature-erreur">{error}</FieldError>}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end", gap: 10 }}>
         {missing && <p className="small" style={{ marginRight: "auto" }}>{missing}</p>}
@@ -183,7 +201,7 @@ export function SignatureZone({ signerName, signerRole, defaultMode = "DRAWN", r
           </button>
         )}
         <button className="btn btn-primary" type="button" disabled={Boolean(missing) || busy} onClick={submit}>
-          {dict.sign.submit}
+          {sheet ? dict.attendance.submit : dict.sign.submit}
         </button>
       </div>
     </div>

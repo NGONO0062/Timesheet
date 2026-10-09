@@ -1,6 +1,7 @@
 // Écran 7 : file de validation (PROMPT.md §9.3, planche 07-File-validation).
 import type { Metadata } from "next";
 import { now } from "@/lib/clock";
+import { countSheetsToCountersign } from "@/lib/data/attendance";
 import { currentWeek } from "@/lib/data/timesheets";
 import { listQueue, listReviewablePeople } from "@/lib/data/validation";
 import { requirePermission, scopeOf } from "@/lib/data/viewer";
@@ -23,7 +24,10 @@ export default async function Page({ searchParams }: Props) {
   const people = await listReviewablePeople(scope);
   const person = people.find((p) => p.id === sp.personne) ?? null;
   const tab = parseTab(sp.statut);
-  const { rows, counts } = await listQueue(scope, { personId: person?.id ?? null, weeks: period.weeks }, tab);
+  const [{ rows, counts }, presenceCount] = await Promise.all([
+    listQueue(scope, { personId: person?.id ?? null, weeks: period.weeks }, tab),
+    countSheetsToCountersign(scope),
+  ]);
 
   const view: QueueView = {
     people,
@@ -34,6 +38,7 @@ export default async function Page({ searchParams }: Props) {
     tab,
     counts,
     notice: sp.fait === "validee" ? dict.validation.doneValidated : sp.fait === "rejetee" ? dict.validation.doneRejected : null,
+    presenceCount,
     rows: rows.map((r) => {
       const monday = mondayOf(r.week);
       return {
