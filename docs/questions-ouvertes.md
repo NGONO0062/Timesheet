@@ -2,20 +2,38 @@
 
 Chaque point avance avec sa valeur par défaut, isolée derrière un réglage ou une constante. Statut : **ouvert** tant que personne n'a tranché.
 
+## Décisions du 9 octobre 2026
+
+Les points restés ouverts ont été tranchés (délégation du porteur du projet). Principe : garder ce qui respecte les règles du projet (`CLAUDE.md`) ; ne jamais laisser à l'écran une option qui ne fait rien.
+
+| Point | Décision |
+|---|---|
+| §20 | Toutes les valeurs par défaut du brief sont adoptées (tableau ci-dessous). |
+| 26 | « En attente de validation » (planche C4) partout, un seul vocabulaire. |
+| 37 | « Sans équipe » et « Aucune fiche en attente » adoptés. |
+| 43 | Cases ODS telles quelles, libellé en gras, comme partout. |
+| 51 | Un seul bouton primaire par écran, comme le veut la règle du projet. |
+| 52 | « Validation par l'owner (N+2) » et « Jours et demi-journées » sont désactivés à l'écran, avec leur raison écrite (« Pas encore disponible… ») ; la couche de données les refuse. Validation en une étape (N+1) et saisie en heures. À rouvrir comme évolution. |
+| 53 | Interface en français seulement : « English » apparaît désactivé, avec « La version anglaise n'est pas encore disponible. » |
+| 54 | 12 caractères au moins, dont une lettre et un chiffre, jusqu'à réception de la politique d'Orange Cameroun (`PASSWORD_MIN`, `lib/admin/rules.ts`). |
+| 62 | Navigation de l'admin de division conforme à la matrice du §7 (quatre liens). |
+| 65 | Étiquettes « Active », « Onboarding · étape n sur 5 », « Suspendue », « Réussi », « Échec » adoptées dans `<StatusBadge>`. |
+| Autres | Les choix décrits dans les points ci-dessous sont adoptés tels quels. |
+
 ## Points du brief (PROMPT.md §20)
 
 | Sujet | Valeur par défaut | Où dans le code | Statut |
 |---|---|---|---|
-| Arrivée et Départ sur la fiche RH | Horaires habituels du stagiaire (`User.usualArrival`, `User.usualDeparture`) | `prisma/schema.prisma` | ouvert |
-| Adresse e-mail des RH | Champ obligatoire des réglages de la division, vide dans le seed | `DivisionSettings.hrEmail` | ouvert |
-| « Version : 1.0 » et « Mise à jour le : 15/06/2023 » | Constantes de configuration (jalon 5) | à venir | ouvert |
-| Envoi aux RH | Automatique après la signature du superviseur, désactivable | `DivisionSettings.hrAutoSend` | ouvert |
-| Absences, congés, jours fériés | Activité système « Absence » par division ; jours fériés attendus à 0 h | `Project.isSystem`, `Holiday`, `expectedPerDay()` | ouvert |
-| Semaine à cheval sur deux mois | Figure sur les deux fiches, chacune ne remplit que les jours de son mois | jalon 5 | ouvert |
-| Staff non stagiaire | Pas de fiche de présence ; lien masqué | jalon 1 | ouvert |
-| Authentification | E-mail et mot de passe ; SSO Orange plus tard | jalon 1 | ouvert |
-| « Manager » et « superviseur » | Même personne (N+1) ; « Superviseur » seulement sur la fiche RH | — | ouvert |
-| Hébergement | Conteneur Docker, PostgreSQL géré à part | `Dockerfile`, `docker-compose.yml` | ouvert |
+| Arrivée et Départ sur la fiche RH | Horaires habituels du stagiaire (`User.usualArrival`, `User.usualDeparture`) | `prisma/schema.prisma` | décidé |
+| Adresse e-mail des RH | Champ obligatoire des réglages de la division, vide dans le seed | `DivisionSettings.hrEmail` | décidé |
+| « Version : 1.0 » et « Mise à jour le : 15/06/2023 » | Constantes de configuration, à corriger si le modèle papier change | `lib/attendance/config.ts` | décidé |
+| Envoi aux RH | Automatique après la signature du superviseur, désactivable | `DivisionSettings.hrAutoSend` | décidé |
+| Absences, congés, jours fériés | Activité système « Absence » par division ; jours fériés attendus à 0 h | `Project.isSystem`, `Holiday`, `expectedPerDay()` | décidé |
+| Semaine à cheval sur deux mois | Figure sur les deux fiches, chacune ne remplit que les jours de son mois | jalon 5 | décidé |
+| Staff non stagiaire | Pas de fiche de présence ; lien masqué | jalon 1 | décidé |
+| Authentification | E-mail et mot de passe ; SSO Orange plus tard | jalon 1 | décidé |
+| « Manager » et « superviseur » | Même personne (N+1) ; « Superviseur » seulement sur la fiche RH | — | décidé |
+| Hébergement | Conteneur Docker, PostgreSQL géré à part | `Dockerfile`, `docker-compose.yml` | décidé |
 
 ## Relevés pendant le jalon 0
 
@@ -62,7 +80,7 @@ Chaque point avance avec sa valeur par défaut, isolée derrière un réglage ou
 
 ## Jalon 3 : validation
 
-26. **« En attente » dans la file.** La maquette 07 écrit « En attente » dans la colonne Statut ; la planche C4 n'admet que « En attente de validation » pour une fiche soumise. Le code suit C4 (un seul vocabulaire, §5.3). À confirmer.
+26. **« En attente » dans la file.** La maquette 07 écrit « En attente » dans la colonne Statut ; la planche C4 n'admet que « En attente de validation » pour une fiche soumise. Le code suit C4 (un seul vocabulaire, §5.3). **Décidé.**
 27. **Données de démonstration de la file.** La maquette 07 montre six fiches en attente, dont celles d'Aïcha Ndongo et de Kevin Fotso ; les maquettes 02 à 05 montrent ces mêmes semaines en brouillon et rejetée. Le seed garde les écrans 02 à 05 et met quatre fiches en attente (Laure Bikoï, Sandrine Mvondo, Yannick Essomba en semaine 12, Ibrahim Njoya en 2e soumission pour la semaine 11). Les comptes « Validées (16) » correspondent à la maquette. Les heures de soumission du vendredi 20 mars tombent après l'horloge de démonstration (jeudi 19 mars, 09:42).
 28. **Signalement de cellules (§19, non maquetté).** Quand le manager choisit « Rejeter la fiche », chaque cellule de la grille devient un bouton à bascule « Signaler la cellule … » ; une cellule signalée prend une bordure rouge et une croix. Le formulaire écrit le nombre de cellules signalées. Chez le collaborateur, la cellule est en erreur, le jour porte « À corriger » (écran 05). Capture à valider.
 29. **Décision par défaut.** Le détail s'ouvre sur « Valider la fiche » (bouton primaire) ; la maquette montre « Rejeter » coché pour illustrer le motif. Le motif vide n'est pas bloqué par un bouton désactivé : le clic affiche « Saisissez le motif du rejet. » sous le champ, avec le focus (§5.5).
@@ -76,13 +94,13 @@ Chaque point avance avec sa valeur par défaut, isolée derrière un réglage ou
 
 ## Jalon 4 : projets, reporting, vue consolidée
 
-37. **Libellés de la vue consolidée absents de la maquette 11.** Une personne sans équipe est comptée dans une ligne « Sans équipe » du tableau par équipe. Quand toutes les fiches soumises sont validées, l'indicateur « Fiches validées » écrit « Aucune fiche en attente » (repris de la maquette 07). À confirmer.
+37. **Libellés de la vue consolidée absents de la maquette 11.** Une personne sans équipe est comptée dans une ligne « Sans équipe » du tableau par équipe. Quand toutes les fiches soumises sont validées, l'indicateur « Fiches validées » écrit « Aucune fiche en attente » (repris de la maquette 07). **Décidé.**
 38. **Chiffres de démonstration des écrans 9 à 11.** La mise en page suit les maquettes, mais les heures du seed ne reproduisent pas leurs totaux : par exemple « Veille et formation » 585 h consommées au lieu de 148 h (écran 9), 624 h saisies au lieu de 640 h du 2 au 20 mars (écran 10), 8 dérives au lieu de 4 (écran 11). Le seed génère l'historique depuis janvier pour toute la division ; les maquettes ne sont pas cohérentes entre elles sur ces totaux. À arbitrer : ajuster le seed écran par écran, ou garder des données cohérentes entre les écrans.
 39. **Projets archivés.** L'interrupteur « Afficher les projets archivés » (§9.4) n'est pas sur la maquette 09 : il est placé sous les filtres. Un projet archivé porte « Archivé » après son code. L'archivage se défait par « Annuler » dans le message, sans confirmation.
 40. **Flèche « semaine suivante » de la vue division.** La maquette 11 la montre active sur la semaine courante ; elle est désactivée, avec la raison dans le nom du bouton, car aucune semaine future n'est consultable (même règle que le point 16).
 41. **Exports.** CSV (UTF-8, point-virgule, virgule décimale), Excel et PDF reprennent les filtres de l'écran (axe, période, périmètre) ; le nom du fichier est `Reporting_2026-S10_2026-S12`. Le PDF est imprimé par Chromium côté serveur (`playwright-core`), mécanisme repris pour la fiche de présence au jalon 5 : l'hébergement doit fournir Chromium (`npx playwright install chromium`).
 42. **Tests de bout en bout du jalon 4.** Les écritures sur les projets (création, statut, archivage) passent par la division de test ; la remise à zéro supprime les projets créés par les tests et rend leur statut aux projets fixes. Les relances de la vue division ne sont pas déclenchées par les tests, pour ne pas écrire dans CX Expertise.
-43. **Cases des membres (09-Projets-creation).** La maquette met les noms des membres en graisse normale ; le composant ODS `Checkbox` garde le gras de Boosted (`label`), comme partout ailleurs dans l'application. Laissé tel quel (composants ODS tels quels) : à confirmer.
+43. **Cases des membres (09-Projets-creation).** La maquette met les noms des membres en graisse normale ; le composant ODS `Checkbox` garde le gras de Boosted (`label`), comme partout ailleurs dans l'application. Laissé tel quel (composants ODS tels quels). **Décidé.**
 
 ## Jalon 5 : fiche de présence
 
@@ -96,10 +114,10 @@ Chaque point avance avec sa valeur par défaut, isolée derrière un réglage ou
 
 ## Jalon 6 : administration de division et Paramètres
 
-51. **Un seul bouton primaire (planches 12 et 14).** Les maquettes montrent un bouton orange par bloc (quatre sur l'écran 12, trois sur l'écran 14), ce que la règle « un seul bouton primaire par écran » (§5.2) interdit. Appliqué : « Inviter un utilisateur » est le seul primaire de l'écran 12 ; sur l'écran 14, les boutons d'enregistrement sont des boutons par défaut. À confirmer.
-52. **Réglages enregistrés mais pas encore appliqués.** « Validation par l'owner (N+2) » (étape 3 du circuit) et l'unité « Jours et demi-journées » sont enregistrés et journalisés ; la validation reste à une étape (N+1) et la saisie en heures. Brancher ces deux réglages touche les jalons 2 et 3 : à décider.
-53. **Langue de l'interface.** « English » est enregistré dans le profil ; l'interface reste en français (règle du projet), faute de traduction.
-54. **Politique de mot de passe.** La maquette écrit « [Règles de mot de passe de la politique de sécurité Orange Cameroun] ». Règle provisoire : 12 caractères au moins, dont une lettre et un chiffre (`PASSWORD_MIN`, `lib/admin/rules.ts`), pour l'invitation, la réinitialisation et le changement. La politique officielle est à fournir.
+51. **Un seul bouton primaire (planches 12 et 14).** Les maquettes montrent un bouton orange par bloc (quatre sur l'écran 12, trois sur l'écran 14), ce que la règle « un seul bouton primaire par écran » (§5.2) interdit. Appliqué : « Inviter un utilisateur » est le seul primaire de l'écran 12 ; sur l'écran 14, les boutons d'enregistrement sont des boutons par défaut. **Décidé.**
+52. **Réglages enregistrés mais pas encore appliqués.** « Validation par l'owner (N+2) » (étape 3 du circuit) et l'unité « Jours et demi-journées » sont enregistrés et journalisés ; la validation reste à une étape (N+1) et la saisie en heures. Brancher ces deux réglages touche les jalons 2 et 3. **Décidé :** les deux options sont désactivées à l'écran, avec leur raison écrite, et refusées par la couche de données, jusqu'à leur développement.
+53. **Langue de l'interface.** « English » est enregistré dans le profil ; l'interface reste en français (règle du projet), faute de traduction. **Décidé :** « English » est affiché désactivé, avec sa raison.
+54. **Politique de mot de passe.** La maquette écrit « [Règles de mot de passe de la politique de sécurité Orange Cameroun] ». Règle provisoire : 12 caractères au moins, dont une lettre et un chiffre (`PASSWORD_MIN`, `lib/admin/rules.ts`), pour l'invitation, la réinitialisation et le changement. **Décidé :** règle conservée jusqu'à réception de la politique officielle.
 55. **Écran 14 selon le profil.** Horaires habituels et carte « Stage » : stagiaires seulement (ils ne servent qu'à la fiche de présence) ; le bloc s'intitule alors « Profil et stage », sinon « Profil ». Notifications : saisie, validation et rejet pour qui saisit ; signature pour le stagiaire et pour qui valide. « Signaler une erreur » ouvre un e-mail aux administrateurs actifs de la division.
 56. **Liste des utilisateurs.** Comptes actifs d'abord, puis par rôle (admin division, owner, managers, staff) et par nom ; la maquette commence par Brigitte Mbarga et montre un compte désactivé en page 1, à titre d'illustration. Cinq par page.
 57. **Invitation et modification (non maquettées, §19).** Modale : prénom, nom, adresse (non modifiable ensuite), rôle, manager. Le compte est créé sans mot de passe ; l'e-mail contient un lien valable 7 jours (seule son empreinte SHA-256 est stockée). Ligne marquée « Invitation envoyée » jusqu'au premier mot de passe ; « Renvoyer l'invitation » dans la modale. Choisir un manager rattache la personne à l'équipe qu'il anime.
@@ -107,13 +125,13 @@ Chaque point avance avec sa valeur par défaut, isolée derrière un réglage ou
 59. **Mot de passe oublié (non maquetté).** Même réponse que l'adresse existe ou non ; lien valable une heure, une demande toutes les deux minutes au plus par compte. Après le choix du mot de passe, retour à la connexion avec « Mot de passe enregistré. Vous pouvez vous connecter. ».
 60. **Adresse des RH.** La maquette affiche « [adresse e-mail des RH] » dans le champ : c'est une valeur à renseigner, pas un texte d'aide ; le champ est vide tant que l'administrateur ne l'a pas saisi (§20).
 61. **Interrupteurs.** L'état écrit à côté suit chaque planche : « Activé / Désactivé » (notifications), « Activée / Désactivée » (étape N+2), « Automatique / Manuel » (envoi aux RH, « Manuel » non maquetté). Les interrupteurs « Délégation au N+2… », « Autoriser la saisie des semaines futures », « Verrouiller la fiche après validation » et « Reprendre les lignes… » portent leur libellé à la place de l'état, comme sur les planches.
-62. **Navigation de l'admin de division.** La planche 12 ne montre que « Administration » et « Reporting » ; la matrice par défaut (§7) lui donne aussi la gestion des projets et la vue consolidée, donc quatre liens. Laissé conforme à la matrice : à confirmer.
+62. **Navigation de l'admin de division.** La planche 12 ne montre que « Administration » et « Reporting » ; la matrice par défaut (§7) lui donne aussi la gestion des projets et la vue consolidée, donc quatre liens. Laissé conforme à la matrice. **Décidé.**
 63. **Tests.** Les tests de bout en bout du jalon écrivent dans une seconde division, « Division d'administration de test », pour que les règles et permissions changées ne gênent pas les autres tests qui tournent en parallèle. Les tests d'intégration réutilisent une division fixe (« integration-administration ») : le journal d'audit, en ajout seul, empêche de la supprimer.
 64. **Reprise des lignes de la semaine précédente.** La préférence est désormais appliquée : une semaine vide s'ouvre avec les lignes de la semaine précédente, sans les heures ; rien n'est enregistré tant que la saisie ne commence pas.
 
 ## Jalon 7 : administration plateforme, onboarding, journal d'audit
 
-65. **Étiquettes hors de la planche C4.** La planche 13 montre l'état d'une division (« Active », « Onboarding · étape 2 sur 5 ») et le résultat d'un événement (« Réussi », « Échec ») ; ces libellés sont repris de la planche 13 dans le composant unique `<StatusBadge>` (`kind="division"` et `kind="audit"`). « Suspendue » (division suspendue, non maquetté) porte le glyphe d'avertissement. À confirmer.
+65. **Étiquettes hors de la planche C4.** La planche 13 montre l'état d'une division (« Active », « Onboarding · étape 2 sur 5 ») et le résultat d'un événement (« Réussi », « Échec ») ; ces libellés sont repris de la planche 13 dans le composant unique `<StatusBadge>` (`kind="division"` et `kind="audit"`). « Suspendue » (division suspendue, non maquetté) porte le glyphe d'avertissement. **Décidé.**
 66. **Journal sur deux horloges.** La date d'un événement suit l'horloge de l'application (`TIMESHEET_NOW` en démonstration), pour que le journal et les fiches parlent de la même semaine. Les fenêtres de limitation (5 échecs de connexion ou de signature en 15 minutes) se comptent en heure réelle d'enregistrement (`recordedAt`) : l'horloge de démonstration repart à chaque démarrage du serveur et ferait compter de vieux échecs. Corrige aussi la limitation de la signature par mot de passe (jalon 5), qui mélangeait les deux horloges.
 67. **Objets du journal.** Comme sur la planche 13 : « Semaine 12 » pour une soumission (l'acteur est dans sa colonne), « Semaine 12 · Prénom Nom » pour une validation ou un rejet, l'adresse saisie pour une connexion ; un échec de connexion a toujours pour acteur « Compte non identifié » (l'identité n'est pas prouvée). Une modification de règle écrit ce qui a changé (« Seuil d'alerte de remplissage : 80 % »).
 68. **Journal : présentation.** Vingt événements par page (la planche en montre six, sur 214) ; pagination abrégée « 1 2 3 … 36 ». Période par défaut : du lundi au vendredi de la semaine en cours (16/03/2026 – 20/03/2026 en démonstration). Familles du filtre « Type d'action » : connexions, soumissions, validations, rejets, relances, signatures, envois aux RH, règles et permissions, utilisateurs, projets, divisions. Export CSV, Excel et PDF avec les filtres de l'écran (10 000 lignes au plus).

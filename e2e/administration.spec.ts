@@ -72,7 +72,11 @@ test("CX Expertise : utilisateurs, recherche, pagination, permissions, accessibi
   const locked = matrix.getByRole("checkbox", { name: "Gérer les utilisateurs, workflows et règles : Admin division" });
   await expect(locked).toBeChecked();
   await expect(locked).toBeDisabled();
+  // Pas encore branchés (questions ouvertes, point 52) : désactivés, raison écrite.
   await expect(page.getByRole("switch", { name: "Validation par l'owner (N+2)" })).not.toBeChecked();
+  await expect(page.getByRole("switch", { name: "Validation par l'owner (N+2)" })).toBeDisabled();
+  await expect(page.getByText("Pas encore disponible : les fiches sont validées en une étape, par le manager (N+1).")).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Jours et demi-journées" })).toBeDisabled();
   await expect(page.getByText("Désactivée", { exact: true })).toBeVisible();
   await expect(page.getByText("Automatique", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Pas de saisie")).toHaveValue("0.5");

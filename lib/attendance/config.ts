@@ -1,5 +1,6 @@
 // Modèle papier de la fiche de présence (PROMPT.md §9.7, §20). « Version » et
-// « Mise à jour le » ont été lus sur un scan peu lisible : constantes à confirmer.
+// « Mise à jour le » ont été lus sur un scan peu lisible : valeurs adoptées, à corriger
+// ici seulement si le modèle papier d'Orange Cameroun change.
 export const SHEET_TEMPLATE = {
   title: "FICHE DE PRESENCE STAGIAIRE",
   reference: "OCM/PS-01/SE/049",

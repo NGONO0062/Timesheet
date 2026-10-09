@@ -89,7 +89,8 @@ export async function setNotification(scope: SelfScope, kind: NotificationKind, 
 export type Preferences = { locale: "fr" | "en"; defaultSignatureMode: "DRAWN" | "PASSWORD"; copyPreviousWeek: boolean };
 
 export async function savePreferences(scope: SelfScope, p: Preferences) {
-  await prisma.user.update({ where: { id: scope.userId }, data: { locale: p.locale, defaultSignatureMode: p.defaultSignatureMode, copyPreviousWeek: p.copyPreviousWeek } });
+  // Interface en français seulement (questions ouvertes, point 53) : l'anglais n'est pas encore proposé.
+  await prisma.user.update({ where: { id: scope.userId }, data: { locale: "fr", defaultSignatureMode: p.defaultSignatureMode, copyPreviousWeek: p.copyPreviousWeek } });
 }
 
 /** Changement de mot de passe : l'actuel est vérifié, chaque tentative est journalisée. */

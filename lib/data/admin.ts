@@ -259,7 +259,8 @@ export async function readSettings(divisionId: string) {
 }
 
 export async function writeWorkflow(divisionId: string, w: WorkflowInput, by: Writer) {
-  const data = { ownerValidation: w.ownerValidation, hrAutoSend: w.hrAutoSend, hrEmail: w.hrEmail.trim().toLowerCase(), reminderAfterWorkingDays: w.reminderAfterWorkingDays, delegateToOwner: w.delegateToOwner };
+  // Validation par l'owner (N+2) pas encore branchée (questions ouvertes, point 52) : toujours désactivée.
+  const data = { ownerValidation: false, hrAutoSend: w.hrAutoSend, hrEmail: w.hrEmail.trim().toLowerCase(), reminderAfterWorkingDays: w.reminderAfterWorkingDays, delegateToOwner: w.delegateToOwner };
   await prisma.divisionSettings.upsert({ where: { divisionId }, update: data, create: { divisionId, ...data } });
   await auditDivision(divisionId, by, "WORKFLOW_CHANGED", dict.admin.workflowTitle, data);
 }
@@ -268,7 +269,8 @@ export async function writeWorkflow(divisionId: string, w: WorkflowInput, by: Wr
 export async function writeRules(divisionId: string, r: RulesInput, by: Writer) {
   const before = (await readSettings(divisionId)).rules;
   const data = {
-    unit: r.unit,
+    // Saisie en jours pas encore branchée (point 52) : l'unité reste l'heure.
+    unit: "HOURS" as const,
     workingDays: r.workingDays as Weekday[],
     hoursPerDay: parseNumber(r.hoursPerDay)!,
     step: r.step,

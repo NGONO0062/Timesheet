@@ -72,11 +72,14 @@ export function MatrixTable({ matrix, onChange }: { matrix: Matrix; onChange: (n
 // Workflow
 // ---------------------------------------------------------------------------
 
-function Step({ n, children, end }: { n: number; children: ReactNode; end: ReactNode }) {
+function Step({ n, children, end, note }: { n: number; children: ReactNode; end: ReactNode; note?: { id: string; text: string } }) {
   return (
     <ListGroupItem>
-      <span>
-        {n}. {children}
+      <span style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <span>
+          {n}. {children}
+        </span>
+        {note && <span className="form-text" id={note.id} style={{ marginTop: 0 }}>{note.text}</span>}
       </span>
       {end}
     </ListGroupItem>
@@ -95,7 +98,12 @@ export function WorkflowFields({ value: w, errors, onChange }: { value: Workflow
         <Step n={2} end={<Badge dark>{a.mandatory}</Badge>}>
           <strong>{c[1].strong}</strong> {c[1].text}
         </Step>
-        <Step n={3} end={<Switch label={a.ownerStepLabel} checked={w.ownerValidation} states={[a.stepOn, a.stepOff]} onChange={(e) => onChange({ ownerValidation: e.target.checked })} />}>
+        {/* Pas encore branché (docs/questions-ouvertes.md, point 52) : désactivé, raison écrite dessous. */}
+        <Step
+          n={3}
+          note={{ id: "etape-n2-indisponible", text: a.ownerStepUnavailable }}
+          end={<Switch label={a.ownerStepLabel} checked={false} disabled aria-describedby="etape-n2-indisponible" states={[a.stepOn, a.stepOff]} onChange={() => undefined} />}
+        >
           <strong>{c[2].strong}</strong> {c[2].text}
         </Step>
         <Step n={4} end={<Switch label={a.hrSendLabel} checked={w.hrAutoSend} states={[a.sendAuto, a.sendManual]} onChange={(e) => onChange({ hrAutoSend: e.target.checked })} />}>
@@ -140,7 +148,8 @@ export function RulesFields({ value: r, errors, onChange }: { value: RulesInput;
     <div className="ts-form-grid">
       <RadioGroup legend={a.unit}>
         <Radio name="unite" label={a.unitHours} checked={r.unit === "HOURS"} onChange={() => onChange({ unit: "HOURS" })} />
-        <Radio name="unite" label={a.unitDays} checked={r.unit === "DAYS"} onChange={() => onChange({ unit: "DAYS" })} />
+        {/* Pas encore branché (point 52) : désactivé, raison écrite dessous. */}
+        <Radio name="unite" label={a.unitDays} hint={a.unitDaysUnavailable} checked={false} disabled onChange={() => undefined} />
       </RadioGroup>
       <fieldset style={fieldset} aria-describedby={errors.workingDays ? "jours-erreur" : undefined}>
         <legend className="form-label" style={legend}>{a.workingDays}</legend>

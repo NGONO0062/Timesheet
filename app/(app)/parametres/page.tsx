@@ -46,7 +46,8 @@ export default async function Page() {
     reportHref: me.adminEmails.length ? `mailto:${me.adminEmails.join(",")}?subject=${encodeURIComponent(s.reportSubject)}` : null,
     hours: me.internship ? { arrival: me.usualArrival, departure: me.usualDeparture } : null,
     notifications: NOTIFICATION_KINDS.filter((k) => relevant[k]).map((kind) => ({ kind, enabled: me.notifications[kind] })),
-    preferences: { locale: me.locale, defaultSignatureMode: me.defaultSignatureMode, copyPreviousWeek: me.copyPreviousWeek },
+    // Interface en français seulement (point 53).
+    preferences: { locale: "fr", defaultSignatureMode: me.defaultSignatureMode, copyPreviousWeek: me.copyPreviousWeek },
     showCopyPreviousWeek: enters,
   };
   return <SettingsScreen view={view} />;

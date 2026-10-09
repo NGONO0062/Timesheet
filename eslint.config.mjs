@@ -26,7 +26,7 @@ const config = [
     rules: { "no-restricted-imports": "off" },
   },
   {
-    ignores: [".next/**", "node_modules/**", "design/**", "playwright-report/**", "test-results/**", "next-env.d.ts"],
+    ignores: [".next/**", "node_modules/**", ".claude/**", "design/**", "playwright-report/**", "test-results/**", "next-env.d.ts"],
   },
 ];
 

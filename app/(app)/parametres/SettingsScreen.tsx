@@ -219,9 +219,9 @@ function PreferencesForm({ initial, showCopy }: { initial: SettingsView["prefere
   return (
     <form className="ts-section" onSubmit={onSubmit} noValidate>
       <div className="ts-form-grid">
-        <SelectField label={s.language} value={values.locale} onChange={(e) => setValues((v) => ({ ...v, locale: e.target.value === "en" ? "en" : "fr" }))}>
+        <SelectField label={s.language} hint={s.languageUnavailable} value={values.locale} onChange={(e) => setValues((v) => ({ ...v, locale: e.target.value === "en" ? "en" : "fr" }))}>
           <option value="fr">{s.languages.fr}</option>
-          <option value="en">{s.languages.en}</option>
+          <option value="en" disabled>{s.languages.en}</option>
         </SelectField>
         <RadioGroup legend={s.signatureMode}>
           {(["DRAWN", "PASSWORD"] as const).map((m) => (
