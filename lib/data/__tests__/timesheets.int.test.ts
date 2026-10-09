@@ -129,7 +129,7 @@ describe("enregistrement et soumission", () => {
     expect(submitted).toMatchObject({ status: "SUBMITTED", submissionCount: 1 });
     expect(submitted.events.map((e) => e.type).sort()).toEqual(["CREATED", "SUBMITTED"]);
     const audit = await prisma.auditLog.findFirst({ where: { action: "TIMESHEET_SUBMITTED", actorId: yannick.userId }, orderBy: { at: "desc" } });
-    expect(audit).toMatchObject({ divisionId: divisionA, objectLabel: "Semaine 12 de 2026 · Test Intégration", result: "SUCCESS" });
+    expect(audit).toMatchObject({ divisionId: divisionA, objectLabel: "Semaine 12", result: "SUCCESS" });
 
     // Soumise : plus modifiable.
     await expect(saveDraft(yannick, { week: W12, comment: "", lines: [line([8, 8, 8, 8, 8])] }, NOW)).rejects.toThrow(new TimesheetRuleError("notEditable"));

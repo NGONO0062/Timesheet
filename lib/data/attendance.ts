@@ -248,8 +248,9 @@ async function checkSigner(scope: DivisionScope, input: SignInput, meta: Meta, o
     if (!input.drawing || input.drawing.length > 20_000 || !DRAWING.test(input.drawing.trim())) throw new AttendanceRuleError("drawing");
     return;
   }
+  // Fenêtre de sécurité en heure réelle : l'horloge de démonstration repart à chaque démarrage.
   const since = new Date(Date.now() - PASSWORD_WINDOW_MS);
-  const failures = await prisma.auditLog.count({ where: { action: "ATTENDANCE_SIGNATURE_FAILURE", actorId: scope.userId, at: { gte: since } } });
+  const failures = await prisma.auditLog.count({ where: { action: "ATTENDANCE_SIGNATURE_FAILURE", actorId: scope.userId, recordedAt: { gte: since } } });
   if (failures >= PASSWORD_ATTEMPTS) throw new AttendanceRuleError("throttled");
   const user = await prisma.user.findUnique({ where: { id: scope.userId }, select: { passwordHash: true } });
   if (!user?.passwordHash || !input.password || !(await verifyPassword(input.password, user.passwordHash))) {

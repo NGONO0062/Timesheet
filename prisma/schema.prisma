@@ -94,6 +94,8 @@ model Division {
   service        String?
   status         DivisionStatus @default(ONBOARDING)
   onboardingStep Int            @default(1)
+  // Onboarding, étape 2 : configuration de départ copiée de la division pilote, ou vierge.
+  configSource   ConfigSource?
   createdAt      DateTime       @default(now())
 
   settings     DivisionSettings?
@@ -358,7 +360,10 @@ model Signature {
 // En ajout seul : aucune route ne modifie ni ne supprime une ligne.
 model AuditLog {
   id          String      @id @default(cuid())
+  // Date de l'événement, sur l'horloge de l'application (TIMESHEET_NOW en démonstration).
   at          DateTime    @default(now())
+  // Enregistrement réel, toujours croissant : fenêtres de limitation (connexion, signature).
+  recordedAt  DateTime    @default(now())
   actorId     String?
   actorLabel  String
   divisionId  String?
@@ -371,10 +376,17 @@ model AuditLog {
   @@index([divisionId, at])
   @@index([action, at])
   @@index([action, objectLabel, at])
+  @@index([action, objectLabel, recordedAt])
 }
 
 // Liens à usage unique (PROMPT.md §19) : invitation (première connexion) et mot de passe
 // oublié. Seule l'empreinte SHA-256 du jeton est stockée ; le jeton n'existe que dans l'e-mail.
+// Configuration de départ d'une nouvelle division (PROMPT.md §9.10).
+enum ConfigSource {
+  COPY
+  BLANK
+}
+
 enum TokenKind {
   INVITATION
   RESET

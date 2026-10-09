@@ -233,7 +233,7 @@ export async function decide(scope: DivisionScope, ids: string[], decision: Deci
       actorLabel,
       divisionId: scope.divisionId,
       action: next === "VALIDATED" ? "TIMESHEET_VALIDATED" : "TIMESHEET_REJECTED",
-      objectLabel: `Semaine ${week.week} de ${week.year} · ${name}`,
+      objectLabel: `Semaine ${week.week} · ${name}`,
       result: "SUCCESS",
     });
 
@@ -316,7 +316,7 @@ export async function sendDueReminders(now: Date): Promise<number> {
       actorLabel: "TimeSheet",
       divisionId: sheet.divisionId,
       action: "VALIDATION_REMINDER_SENT",
-      objectLabel: `Semaine ${week.week} de ${week.year} · ${name}`,
+      objectLabel: `Semaine ${week.week} · ${name}`,
       result: "SUCCESS",
     });
     sent++;

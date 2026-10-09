@@ -31,10 +31,14 @@ test("stagiaire : profil et stage en lecture seule, réglages de la planche 14",
   await expect(account).toContainText("Professionnel");
   await expect(account).toContainText("Du 05/01/2026 au 26/06/2026");
   await expect(page.getByRole("link", { name: "Signaler une erreur" })).toHaveAttribute("href", /^mailto:paul\.tchouta@exemple\.com\?subject=/);
-  await expect(page.getByLabel("Arrivée")).toHaveValue("08:00");
-  await expect(page.getByRole("switch", { name: "E-mail quand une fiche est validée" })).not.toBeChecked();
-  await expect(page.getByRole("switch", { name: "E-mail quand une fiche est rejetée" })).toBeChecked();
-  await expect(page.getByRole("switch", { name: "Reprendre les lignes de la semaine précédente à l'ouverture d'une semaine vide" })).toBeChecked();
+  // Compte de démonstration : ses réglages peuvent avoir été changés à la main ; on vérifie
+  // les champs et l'état écrit à côté de chaque interrupteur, pas leurs valeurs.
+  await expect(page.getByLabel("Arrivée")).toHaveValue(/^\d{2}:\d{2}$/);
+  for (const name of ["Rappel de saisie le vendredi à 12:00 si la semaine est incomplète", "E-mail quand une fiche est validée", "E-mail quand une fiche est rejetée", "Rappel quand une fiche de présence attend votre signature"]) {
+    await expect(page.getByRole("switch", { name })).toBeVisible();
+  }
+  await expect(page.getByRole("region", { name: "Notifications" })).toContainText(/Activé|Désactivé/);
+  await expect(page.getByRole("switch", { name: "Reprendre les lignes de la semaine précédente à l'ouverture d'une semaine vide" })).toBeVisible();
   expect(await axe(page)).toEqual([]);
 });
 

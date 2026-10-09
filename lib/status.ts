@@ -1,18 +1,23 @@
 // Vocabulaire unique des statuts (planche C4-Etiquettes-statut).
 // Seul <StatusBadge> l'utilise : aucun autre libellé de statut n'est admis.
-import { dict } from "./i18n";
+import { dict, t } from "./i18n";
 import type { DayStatus, DisplayStatus } from "./timesheet/rules";
 
 export type ProjectStatus = "NOT_STARTED" | "IN_PROGRESS" | "ON_HOLD" | "DONE";
 export type AttendanceStatus = "GENERATED" | "SIGNED_BY_INTERN" | "SIGNED_BY_SUPERVISOR" | "SENT";
 
-export type StatusKind = "project" | "timesheet" | "day" | "attendance";
+export type DivisionStatus = "ACTIVE" | "ONBOARDING" | "SUSPENDED";
+export type AuditResult = "SUCCESS" | "FAILURE";
+
+export type StatusKind = "project" | "timesheet" | "day" | "attendance" | "division" | "audit";
 
 export type StatusValue = {
   project: ProjectStatus;
   timesheet: DisplayStatus;
   day: DayStatus;
   attendance: AttendanceStatus;
+  division: DivisionStatus;
+  audit: AuditResult;
 };
 
 type Look = { label: string; className: string };
@@ -53,12 +58,22 @@ const LOOKS: { [K in StatusKind]: Record<StatusValue[K], string> } = {
     SIGNED_BY_SUPERVISOR: TONE.success,
     SENT: TONE.success,
   },
+  division: {
+    ACTIVE: TONE.success,
+    ONBOARDING: TONE.info,
+    SUSPENDED: TONE.warning,
+  },
+  audit: {
+    SUCCESS: TONE.success,
+    FAILURE: TONE.danger,
+  },
 };
 
-export function statusLook<K extends StatusKind>(kind: K, value: StatusValue[K]): Look {
+/** `params` : valeurs du libellé (« Onboarding · étape {step} sur 5 »). */
+export function statusLook<K extends StatusKind>(kind: K, value: StatusValue[K], params?: Record<string, string | number>): Look {
   const labels = dict.status[kind] as Record<StatusValue[K], string>;
   const classes = LOOKS[kind] as Record<StatusValue[K], string>;
-  return { label: labels[value], className: classes[value] };
+  return { label: params ? t(labels[value], params) : labels[value], className: classes[value] };
 }
 
 /** Ordre d'affichage des statuts de projet (tri, colonnes, menu). */

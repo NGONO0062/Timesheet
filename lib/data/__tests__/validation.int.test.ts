@@ -122,7 +122,7 @@ describe("décisions", () => {
     expect(after).toMatchObject({ status: "REJECTED", rejectionReason: "Jeudi à revoir.", decidedById: samuel.userId });
     expect(after.lines[0]!.entries.filter((e) => e.flagged).map((e) => e.date.toISOString().slice(0, 10))).toEqual(["2026-03-05"]);
     expect(after.events.map((e) => e.type).sort()).toEqual(["REJECTED", "SUBMITTED"]);
-    expect(await prisma.auditLog.findFirst({ where: { action: "TIMESHEET_REJECTED", objectLabel: "Semaine 10 de 2026 · Test Validation" } })).not.toBeNull();
+    expect(await prisma.auditLog.findFirst({ where: { action: "TIMESHEET_REJECTED", objectLabel: "Semaine 10 · Test Validation" } })).not.toBeNull();
     // Déjà traitée : une seconde décision ne change rien.
     expect(await decide(samuel, [sheet.id], { kind: "VALIDATE" }, NOW, "Samuel Etoga")).toMatchObject({ done: 0, skipped: 1 });
   });

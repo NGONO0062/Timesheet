@@ -6,10 +6,10 @@ import { cx } from "@/lib/cx";
 import { dict, t } from "@/lib/i18n";
 import { PROJECT_STATUS_ORDER, statusLook, type ProjectStatus, type StatusKind, type StatusValue } from "@/lib/status";
 
-type Props<K extends StatusKind> = { kind: K; value: StatusValue[K]; className?: string };
+type Props<K extends StatusKind> = { kind: K; value: StatusValue[K]; params?: Record<string, string | number>; className?: string };
 
-export function StatusBadge<K extends StatusKind>({ kind, value, className }: Props<K>) {
-  const look = statusLook(kind, value);
+export function StatusBadge<K extends StatusKind>({ kind, value, params, className }: Props<K>) {
+  const look = statusLook(kind, value, params);
   return <span className={cx("badge", look.className, className)}>{look.label}</span>;
 }
 

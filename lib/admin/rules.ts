@@ -1,6 +1,7 @@
 // Administration de division (PROMPT.md §9.9) et paramètres (§9.11) : règles pures,
 // contrôle des formulaires avant la couche de données.
-import { dict } from "../i18n";
+import { formatNumber, NBSP } from "../format";
+import { dict, t } from "../i18n";
 import { DEFAULT_MATRIX, DIVISION_ROLES, isLocked, PERMISSIONS, type DivisionRole, type MatrixOverride, type Permission } from "../permissions";
 
 export const USERS_PAGE_SIZE = 5;
@@ -81,6 +82,26 @@ export function parseNumber(raw: string): number | null {
   const s = raw.trim().replace(",", ".");
   if (!/^\d+(\.\d+)?$/.test(s)) return null;
   return Number(s);
+}
+
+/** Changements lisibles d'une règle à l'autre, pour l'objet du journal d'audit. */
+export function describeRules(before: RulesInput, after: RulesInput): string[] {
+  const a = dict.admin;
+  const onOff = (v: boolean) => (v ? dict.form.active : dict.form.inactive);
+  const view = (r: RulesInput): Array<[string, string]> => [
+    [a.unit, r.unit === "HOURS" ? a.unitHours : a.unitDays],
+    [a.workingDays, WEEKDAY_KEYS.filter((d) => r.workingDays.includes(d)).map((d) => dict.weekdaysShort[WEEKDAY_KEYS.indexOf(d)]).join(", ")],
+    [a.hoursPerDay, `${r.hoursPerDay.trim()}${NBSP}h`],
+    [a.step, t(a.stepOption, { n: formatNumber(r.step) })],
+    [a.deadline, `${a.deadlineDays[r.deadlineDay as (typeof DEADLINE_DAYS)[number]] ?? r.deadlineDay} ${r.deadlineTime.trim()}`],
+    [a.threshold, `${r.fillAlertThreshold.trim()}${NBSP}%`],
+    [a.futureWeeks, onOff(r.allowFutureWeeks)],
+    [a.lockAfterValidation, onOff(r.lockAfterValidation)],
+  ];
+  const old = view(before);
+  return view(after)
+    .filter(([, value], i) => value !== old[i]![1])
+    .map(([label, value]) => `${label} : ${value}`);
 }
 
 export function checkRules(r: RulesInput): RulesErrors {

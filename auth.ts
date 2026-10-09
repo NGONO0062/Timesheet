@@ -74,6 +74,7 @@ const nextAuth = NextAuth({
         const { email, password } = parsed.data;
         const ip = clientIp(request);
 
+        // Fenêtre de sécurité en heure réelle (et non l'horloge de démonstration).
         const since = new Date(Date.now() - LOGIN_WINDOW_MS);
         const [fromHere, total] = await Promise.all([countRecentLoginFailures(email, since, ip), countRecentLoginFailures(email, since)]);
         if (fromHere >= LOGIN_MAX_FAILURES_PER_IP || total >= LOGIN_MAX_FAILURES_TOTAL) {

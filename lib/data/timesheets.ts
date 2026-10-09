@@ -405,7 +405,7 @@ export async function submitWeek(scope: DivisionScope, input: DraftInput, now: D
     actorLabel,
     divisionId: scope.divisionId,
     action: "TIMESHEET_SUBMITTED",
-    objectLabel: `Semaine ${input.week.week} de ${input.week.year} · ${actorLabel}`,
+    objectLabel: `Semaine ${input.week.week}`,
     result: "SUCCESS",
   });
 }

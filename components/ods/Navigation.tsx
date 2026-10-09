@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
+import { pageItems } from "@/lib/pagination";
 import { dict, t } from "@/lib/i18n";
 import { Icon } from "./Icon";
 
@@ -23,7 +24,7 @@ export function Breadcrumb({ items }: { items: Array<{ label: string; href?: str
 /** Pagination ODS. `href(n)` construit le lien de la page n. */
 export function Pagination({ page, pageCount, href, label = dict.nav.pagination }: { page: number; pageCount: number; href: (n: number) => string; label?: string }) {
   if (pageCount <= 1) return null;
-  const pages = Array.from({ length: pageCount }, (_, i) => i + 1);
+  const pages = pageItems(page, pageCount);
   return (
     <nav aria-label={label}>
       <ul className="pagination">
@@ -34,13 +35,19 @@ export function Pagination({ page, pageCount, href, label = dict.nav.pagination 
             </Link>
           </li>
         )}
-        {pages.map((n) => (
-          <li key={n}>
-            <Link className="page-link" href={href(n)} aria-current={n === page ? "page" : undefined} aria-label={t(dict.nav.page, { n })}>
-              {n}
-            </Link>
-          </li>
-        ))}
+        {pages.map((n, i) =>
+          n === "…" ? (
+            <li key={`ellipse-${i}`} aria-hidden="true">
+              <span className="page-link page-ellipsis">…</span>
+            </li>
+          ) : (
+            <li key={n}>
+              <Link className="page-link" href={href(n)} aria-current={n === page ? "page" : undefined} aria-label={t(dict.nav.page, { n })}>
+                {n}
+              </Link>
+            </li>
+          ),
+        )}
         {page < pageCount && (
           <li>
             <Link className="page-link" href={href(page + 1)} aria-label={dict.nav.nextPage}>

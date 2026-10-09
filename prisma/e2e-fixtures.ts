@@ -45,6 +45,13 @@ export const E2E_ADMIN = {
   settings: { email: "reglages.e2e@exemple.com", firstName: "Sacha", lastName: "Réglages", role: "STAFF" },
 } as const;
 
+/**
+ * Onboarding (jalon 7) : identifiant de la division créée par le test de bout en bout.
+ * Le journal d'audit, en ajout seul, interdit de la supprimer : avant chaque exécution,
+ * celle du passage précédent est vidée de ses comptes, suspendue et renommée.
+ */
+export const E2E_CREATED_DIVISION = "e2e-nouvelle";
+
 /** Adresse RH de la division de test : l'e-mail de la fiche de présence arrive dans Mailpit. */
 export const E2E_HR_EMAIL = "rh.e2e@exemple.com";
 
@@ -217,6 +224,17 @@ export async function resetE2eFixtures(): Promise<void> {
     });
 
     await resetAdminDivision(prisma, passwordHash);
+
+    const created = await prisma.division.findUnique({ where: { slug: E2E_CREATED_DIVISION } });
+    if (created) {
+      await prisma.user.deleteMany({ where: { divisionId: created.id } });
+      await prisma.rolePermission.deleteMany({ where: { divisionId: created.id } });
+      await prisma.divisionSettings.deleteMany({ where: { divisionId: created.id } });
+      await prisma.division.update({
+        where: { id: created.id },
+        data: { slug: `${E2E_CREATED_DIVISION}-${created.createdAt.getTime().toString(36)}`, name: "Division créée par les tests (archivée)", status: "SUSPENDED" },
+      });
+    }
   } finally {
     await prisma.$disconnect();
   }

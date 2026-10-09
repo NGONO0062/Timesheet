@@ -31,6 +31,12 @@ function parts(d: Date) {
   return { day: d.getUTCDate(), month: d.getUTCMonth(), year: d.getUTCFullYear(), weekday: (d.getUTCDay() + 6) % 7 };
 }
 
+/** « 5 janv. 2026 » : mois abrégé (planche 13, colonne « Créée le »). */
+export function formatShortDate(d: Date): string {
+  const p = parts(d);
+  return `${p.day} ${dict.monthsShort[p.month]} ${p.year}`;
+}
+
 /** « 16 mars 2026 » */
 export function formatDate(d: Date): string {
   const p = parts(d);
@@ -93,10 +99,10 @@ export function formatFromTo(start: Date, end: Date): string {
   return `${dict.fromTo.from} ${from} ${dict.fromTo.to} ${formatDate(end)}`;
 }
 
-/** Instant affiché dans le fuseau de la division : « 20 mars 2026, 16:42 ». */
-export function formatDateTime(instant: Date): string {
+/** Instant affiché dans le fuseau de la division : « 20 mars 2026, 16:42 », ou « 16:42:10 » avec les secondes (journal d'audit). */
+export function formatDateTime(instant: Date, withSeconds = false): string {
   const z = zoned(instant);
-  return `${z.day} ${dict.months[z.month]} ${z.year}, ${z.time}`;
+  return `${z.day} ${dict.months[z.month]} ${z.year}, ${withSeconds ? `${z.time}:${z.seconds}` : z.time}`;
 }
 
 /** « 20 mars 2026 à 16:42 », dans le fuseau de la division. */

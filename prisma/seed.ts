@@ -74,7 +74,9 @@ async function main() {
     await completeProjects(existing.id, userIds);
     const projects = await prisma.project.findMany({ where: { divisionId: existing.id }, include: { activities: true } });
     const added = await seedTimesheets(existing.id, userIds, new Map(projects.map((p) => [p.code, p])));
+    const events = await seedPlatform(existing.id, userIds);
     console.log(added > 0 ? `${added} fiche(s) de temps de démonstration ajoutée(s).` : "Données de démonstration déjà à jour. Pour repartir de zéro : npm run db:reset.");
+    if (events > 0) console.log(`Plateforme : ${events} événement(s) du journal d'audit ajouté(s).`);
     return;
   }
   const passwordHash = await hash(password!);
@@ -178,6 +180,8 @@ async function main() {
   await prisma.user.create({
     data: { divisionId: null, email: "rose.ekambi@exemple.com", passwordHash, firstName: "Rose", lastName: "Ekambi", role: "PLATFORM_ADMIN", createdAt: created },
   });
+
+  await seedPlatform(division.id, ids);
 
   const active = PEOPLE.filter((p) => p.active !== false).length;
   console.log(`Division CX Expertise : ${active} comptes actifs, ${PEOPLE.length - active} désactivé, ${PROJECTS.length} projets. Admin plateforme : Rose Ekambi.`);
@@ -442,6 +446,74 @@ async function completeProjects(divisionId: string, ids: Map<string, string>) {
       },
     });
   }
+}
+
+// ---------------------------------------------------------------------------
+// Administration plateforme (écran 13) : une division en onboarding (étape 2) et le
+// journal d'audit de la semaine 12. Les six événements visibles sur la planche sont
+// repris tels quels (vendredi 20 mars) ; le reste est déduit des fiches du seed.
+// ---------------------------------------------------------------------------
+
+const at = (iso: string) => new Date(`${iso}+01:00`);
+
+async function seedPlatform(divisionId: string, ids: Map<string, string>): Promise<number> {
+  if (!(await prisma.division.findUnique({ where: { slug: "experience-boutiques" } }))) {
+    await prisma.division.create({
+      data: { name: "Expérience boutiques", slug: "experience-boutiques", direction: "DEC", status: "ONBOARDING", onboardingStep: 2, createdAt: at("2026-03-19T10:15:00"), settings: { create: {} } },
+    });
+  }
+  if (await prisma.auditLog.count({ where: { metadata: { path: ["seed"], equals: true } } })) return 0;
+
+  type Event = { at: Date; actor: string | null; action: string; object: string; result?: "SUCCESS" | "FAILURE" };
+  const events: Event[] = [];
+
+  // Connexions du matin, du lundi 16 au vendredi 20 mars, pour chaque compte actif.
+  PEOPLE.filter((p) => p.active !== false).forEach((p, i) => {
+    for (let day = 0; day < 5; day++) {
+      const minute = String((i * 7 + day * 11) % 50 + 5).padStart(2, "0");
+      const second = String((i * 13 + day * 17) % 60).padStart(2, "0");
+      events.push({ at: at(`2026-03-${16 + day}T08:${minute}:${second}`), actor: `${p.first} ${p.last}`, action: "LOGIN_SUCCESS", object: email(p.first, p.last) });
+    }
+  });
+
+  // Soumissions et décisions des fiches du seed tombées dans la semaine.
+  const sheets = await prisma.timesheet.findMany({
+    where: { divisionId, OR: [{ submittedAt: { gte: at("2026-03-16T00:00:00") } }, { decidedAt: { gte: at("2026-03-16T00:00:00") } }] },
+    include: { user: { select: { firstName: true, lastName: true } }, decidedBy: { select: { firstName: true, lastName: true } } },
+  });
+  for (const t of sheets) {
+    const owner = `${t.user.firstName} ${t.user.lastName}`;
+    if (t.submittedAt && t.submittedAt >= at("2026-03-16T00:00:00") && t.submittedAt < at("2026-03-20T16:00:00")) {
+      events.push({ at: t.submittedAt, actor: owner, action: "TIMESHEET_SUBMITTED", object: `Semaine ${t.isoWeek}` });
+    }
+    if (t.decidedAt && t.decidedBy && t.decidedAt >= at("2026-03-16T00:00:00")) {
+      events.push({ at: t.decidedAt, actor: `${t.decidedBy.firstName} ${t.decidedBy.lastName}`, action: t.status === "REJECTED" ? "TIMESHEET_REJECTED" : "TIMESHEET_VALIDATED", object: `Semaine ${t.isoWeek} · ${owner}` });
+    }
+  }
+
+  // Planche 13 : les six dernières lignes du journal.
+  events.push(
+    { at: at("2026-03-20T16:10:45"), actor: "Paul Tchouta", action: "RULES_CHANGED", object: "Seuil d'alerte de remplissage : 80 %" },
+    { at: at("2026-03-20T16:42:10"), actor: "Aïcha Ndongo", action: "TIMESHEET_SUBMITTED", object: "Semaine 12" },
+    { at: at("2026-03-20T17:03:12"), actor: null, action: "LOGIN_FAILURE", object: "kevin.fotso@exemple.com", result: "FAILURE" },
+    { at: at("2026-03-20T17:05:41"), actor: "Kevin Fotso", action: "TIMESHEET_SUBMITTED", object: "Semaine 12" },
+    { at: at("2026-03-20T17:30:26"), actor: "Laure Bikoï", action: "TIMESHEET_SUBMITTED", object: "Semaine 12" },
+    { at: at("2026-03-20T17:48:02"), actor: "Yannick Essomba", action: "TIMESHEET_SUBMITTED", object: "Semaine 12" },
+  );
+
+  await prisma.auditLog.createMany({
+    data: events.map((e) => ({
+      at: e.at,
+      actorId: e.actor ? ids.get(e.actor) ?? null : null,
+      actorLabel: e.actor ?? e.object,
+      divisionId,
+      action: e.action,
+      objectLabel: e.object.replace(" %", " %"),
+      result: e.result ?? "SUCCESS",
+      metadata: { seed: true },
+    })),
+  });
+  return events.length;
 }
 
 main()

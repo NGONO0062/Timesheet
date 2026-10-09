@@ -47,7 +47,7 @@ export default async function Page({ searchParams }: Props) {
         ))}
       </nav>
       <UsersSection view={{ ...users, query, managers, roles }} />
-      <PermissionsSection initial={matrix} roles={roles} />
+      <PermissionsSection initial={matrix} />
       <WorkflowSection initial={settings.workflow} />
       <RulesSection initial={settings.rules} />
     </main>

@@ -90,7 +90,7 @@ test("les règles changées par l'admin s'appliquent à la saisie (§17, test 4)
   await expect(hours).toHaveValue("8");
 
   await hours.fill("7");
-  await page.getByLabel("Pas de saisie").selectOption({ label: "1 h" });
+  await page.getByLabel("Pas de saisie").selectOption("1");
   await page.getByRole("button", { name: "Enregistrer les règles" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Règles de saisie enregistrées. La saisie les applique dès maintenant." })).toBeVisible();
 

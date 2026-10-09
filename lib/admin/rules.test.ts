@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_MATRIX } from "../permissions";
-import { checkNewPassword, checkRules, checkUser, checkWorkflow, matrixOf, overridesFor, pageOf, parseNumber, type RulesInput } from "./rules";
+import { checkNewPassword, checkRules, checkUser, checkWorkflow, describeRules, matrixOf, overridesFor, pageOf, parseNumber, type RulesInput } from "./rules";
 
 const rules: RulesInput = {
   unit: "HOURS",
@@ -89,5 +89,17 @@ describe("mot de passe", () => {
     expect(checkNewPassword("court1", "court1")?.field).toBe("next");
     expect(checkNewPassword("sanschiffre-ici", "sanschiffre-ici")?.field).toBe("next");
     expect(checkNewPassword("Orange-Cameroun-2026", "Orange-Cameroun-2025")?.field).toBe("confirm");
+  });
+});
+
+describe("journal des règles", () => {
+  it("écrit ce qui a changé, comme la planche 13", () => {
+    expect(describeRules(rules, { ...rules, fillAlertThreshold: "80" })).toEqual([]);
+    expect(describeRules({ ...rules, fillAlertThreshold: "75" }, rules)).toEqual(["Seuil d'alerte de remplissage : 80 %"]);
+    expect(describeRules(rules, { ...rules, hoursPerDay: "7", step: 1, allowFutureWeeks: true })).toEqual([
+      "Heures attendues par jour : 7 h",
+      "Pas de saisie : 1 h",
+      "Autoriser la saisie des semaines futures : Actif",
+    ]);
   });
 });

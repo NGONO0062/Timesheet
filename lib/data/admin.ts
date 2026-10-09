@@ -2,7 +2,7 @@ import "server-only";
 // Administration de division (PROMPT.md §9.9) : utilisateurs, rôles et permissions,
 // workflow, règles de saisie. Tout exige ADMINISTER_DIVISION et reste dans la division.
 import type { Prisma, Weekday } from "@prisma/client";
-import { matrixOf, overridesFor, pageOf, type Matrix, type RulesInput, type UserInput, type WorkflowInput, parseNumber } from "@/lib/admin/rules";
+import { describeRules, matrixOf, overridesFor, pageOf, parseNumber, type Matrix, type RulesInput, type UserInput, type WorkflowInput } from "@/lib/admin/rules";
 import { dict, t } from "@/lib/i18n";
 import { invitationMail } from "@/lib/mail/templates";
 import { appUrl, sendMail } from "@/lib/mail/send";
@@ -185,18 +185,12 @@ export async function resendInvitation(scope: DivisionScope, id: string, meta: M
 
 export async function getMatrix(scope: DivisionScope): Promise<Matrix> {
   admin(scope);
-  const rows = await prisma.rolePermission.findMany({ where: { divisionId: scope.divisionId } });
-  return matrixOf(rows.map((r) => ({ role: r.role as DivisionRole, permission: r.permission as Permission, granted: r.granted })));
+  return readMatrix(scope.divisionId);
 }
 
 export async function saveMatrix(scope: DivisionScope, matrix: Matrix, meta: Meta) {
   admin(scope);
-  const overrides = overridesFor(matrix);
-  await prisma.$transaction([
-    prisma.rolePermission.deleteMany({ where: { divisionId: scope.divisionId } }),
-    prisma.rolePermission.createMany({ data: overrides.map((o) => ({ divisionId: scope.divisionId, role: o.role, permission: o.permission, granted: o.granted })) }),
-  ]);
-  await audit(scope, meta, "PERMISSIONS_CHANGED", dict.admin.permissionsTitle, { overrides: overrides.map((o) => `${o.role}:${o.permission}:${o.granted ? "+" : "-"}`) });
+  await writeMatrix(scope.divisionId, matrix, { actorId: scope.userId, ...meta });
 }
 
 // ---------------------------------------------------------------------------
@@ -205,11 +199,51 @@ export async function saveMatrix(scope: DivisionScope, matrix: Matrix, meta: Met
 
 export async function getDivisionSettings(scope: DivisionScope) {
   admin(scope);
-  const division = await prisma.division.findUniqueOrThrow({ where: { id: scope.divisionId }, include: { settings: true } });
-  const s = division.settings ?? (await prisma.divisionSettings.create({ data: { divisionId: scope.divisionId } }));
+  return readSettings(scope.divisionId);
+}
+
+export async function saveWorkflow(scope: DivisionScope, w: WorkflowInput, meta: Meta) {
+  admin(scope);
+  await writeWorkflow(scope.divisionId, w, { actorId: scope.userId, ...meta });
+}
+
+export async function saveRules(scope: DivisionScope, r: RulesInput, meta: Meta) {
+  admin(scope);
+  await writeRules(scope.divisionId, r, { actorId: scope.userId, ...meta });
+}
+
+// ---------------------------------------------------------------------------
+// Lecture et écriture par division, sans contrôle de permission : réservées aux
+// fonctions ci-dessus (admin de la division) et à l'onboarding (admin plateforme,
+// lib/data/platform.ts), qui vérifient chacune leur portée avant d'appeler.
+// ---------------------------------------------------------------------------
+
+type Writer = Meta & { actorId: string };
+
+async function auditDivision(divisionId: string, by: Writer, action: Parameters<typeof appendAudit>[0]["action"], objectLabel: string, metadata: Prisma.InputJsonObject) {
+  await appendAudit({ actorId: by.actorId, actorLabel: by.actorLabel, divisionId, action, objectLabel, result: "SUCCESS", metadata });
+}
+
+export async function readMatrix(divisionId: string): Promise<Matrix> {
+  const rows = await prisma.rolePermission.findMany({ where: { divisionId } });
+  return matrixOf(rows.map((r) => ({ role: r.role as DivisionRole, permission: r.permission as Permission, granted: r.granted })));
+}
+
+export async function writeMatrix(divisionId: string, matrix: Matrix, by: Writer) {
+  const overrides = overridesFor(matrix);
+  await prisma.$transaction([
+    prisma.rolePermission.deleteMany({ where: { divisionId } }),
+    prisma.rolePermission.createMany({ data: overrides.map((o) => ({ divisionId, role: o.role, permission: o.permission, granted: o.granted })) }),
+  ]);
+  await auditDivision(divisionId, by, "PERMISSIONS_CHANGED", dict.admin.permissionsTitle, { overrides: overrides.map((o) => `${o.role}:${o.permission}:${o.granted ? "+" : "-"}`) });
+}
+
+export async function readSettings(divisionId: string) {
+  const division = await prisma.division.findUniqueOrThrow({ where: { id: divisionId }, include: { settings: true } });
+  const s = division.settings ?? (await prisma.divisionSettings.create({ data: { divisionId } }));
   return {
     name: division.name,
-    workflow: { ownerValidation: s.ownerValidation, hrAutoSend: s.hrAutoSend, hrEmail: s.hrEmail ?? "", reminderAfterWorkingDays: s.reminderAfterWorkingDays, delegateToOwner: s.delegateToOwner },
+    workflow: { ownerValidation: s.ownerValidation, hrAutoSend: s.hrAutoSend, hrEmail: s.hrEmail ?? "", reminderAfterWorkingDays: s.reminderAfterWorkingDays, delegateToOwner: s.delegateToOwner } satisfies WorkflowInput,
     rules: {
       unit: s.unit,
       workingDays: [...s.workingDays] as string[],
@@ -224,15 +258,15 @@ export async function getDivisionSettings(scope: DivisionScope) {
   };
 }
 
-export async function saveWorkflow(scope: DivisionScope, w: WorkflowInput, meta: Meta) {
-  admin(scope);
+export async function writeWorkflow(divisionId: string, w: WorkflowInput, by: Writer) {
   const data = { ownerValidation: w.ownerValidation, hrAutoSend: w.hrAutoSend, hrEmail: w.hrEmail.trim().toLowerCase(), reminderAfterWorkingDays: w.reminderAfterWorkingDays, delegateToOwner: w.delegateToOwner };
-  await prisma.divisionSettings.upsert({ where: { divisionId: scope.divisionId }, update: data, create: { divisionId: scope.divisionId, ...data } });
-  await audit(scope, meta, "WORKFLOW_CHANGED", dict.admin.workflowTitle, data);
+  await prisma.divisionSettings.upsert({ where: { divisionId }, update: data, create: { divisionId, ...data } });
+  await auditDivision(divisionId, by, "WORKFLOW_CHANGED", dict.admin.workflowTitle, data);
 }
 
-export async function saveRules(scope: DivisionScope, r: RulesInput, meta: Meta) {
-  admin(scope);
+/** Règles enregistrées ; l'objet du journal dit ce qui a changé (« Seuil d'alerte de remplissage : 80 % »). */
+export async function writeRules(divisionId: string, r: RulesInput, by: Writer) {
+  const before = (await readSettings(divisionId)).rules;
   const data = {
     unit: r.unit,
     workingDays: r.workingDays as Weekday[],
@@ -244,8 +278,9 @@ export async function saveRules(scope: DivisionScope, r: RulesInput, meta: Meta)
     allowFutureWeeks: r.allowFutureWeeks,
     lockAfterValidation: r.lockAfterValidation,
   };
-  await prisma.divisionSettings.upsert({ where: { divisionId: scope.divisionId }, update: data, create: { divisionId: scope.divisionId, ...data } });
-  await audit(scope, meta, "RULES_CHANGED", dict.admin.rulesTitle, { ...data, hoursPerDay: data.hoursPerDay, step: data.step });
+  await prisma.divisionSettings.upsert({ where: { divisionId }, update: data, create: { divisionId, ...data } });
+  const changes = describeRules(before, r);
+  await auditDivision(divisionId, by, "RULES_CHANGED", changes.join(" ; ") || dict.admin.rulesTitle, data);
 }
 
 export const userLabel = (name: string, email: string) => t(dict.admin.userLabel, { name, email });

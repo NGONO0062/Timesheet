@@ -405,6 +405,7 @@ textarea.form-control{height:auto;min-height:100px;padding:10px;resize:vertical}
 .page-link{display:flex;align-items:center;justify-content:center;min-width:40px;height:40px;padding:0 10px;border:2px solid #fff;border-radius:6px;color:#000;font-weight:700;text-decoration:none}
 .page-link:hover{background:#000;border-color:#000;color:#fff}
 .page-link[aria-current]{background:#ff7900;border-color:#000;color:#000}
+.page-ellipsis,.page-ellipsis:hover{background:none;border-color:#fff;color:#000}
 
 /* ---------- Progress ---------- */
 .progress{height:10px;background:#ddd}
@@ -758,3 +759,7 @@ button.dropdown-item{width:100%;border:0;background:none;font-family:inherit;fon
 .ts-matrix td .form-check{justify-content:center}
 .ts-user-email{display:block;font-size:14px;line-height:16px;font-weight:400;color:#595959}
 @media (max-width:767.98px){.ts-weekdays{grid-template-columns:repeat(3,max-content)}}
+/* Onboarding (planche 13-Onboarding-division) : formulaire et colonne de résumé. */
+.ts-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,370px);gap:30px;align-items:start}
+@media (max-width:1023.98px){.ts-split{grid-template-columns:minmax(0,1fr)}}
+.ts-form-grid-4{grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:20px}

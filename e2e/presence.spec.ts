@@ -166,6 +166,7 @@ test("superviseur : signature, PDF signé, e-mail aux RH avec la pièce jointe",
 });
 
 test("accès : ni un autre collaborateur, ni un autre manager", async ({ page }) => {
+  test.setTimeout(90_000); // parcours long : trois connexions
   expect(sheetPdf).not.toBe("");
   await login(page, "aicha.ndongo@exemple.com");
   await expect(page).toHaveURL(/\/tableau-de-bord$/);
