@@ -19,6 +19,9 @@ const user = z.object({
   lastName: z.string().max(100),
   role,
   managerId: id.nullable(),
+  internship: z
+    .object({ kind: z.string().max(20), direction: z.string().max(100), department: z.string().max(100), service: z.string().max(100), start: z.string().max(10), end: z.string().max(10) })
+    .nullable(),
 });
 const granted = z.array(z.enum(PERMISSIONS)).max(PERMISSIONS.length);
 const matrix = z.object({ STAFF: granted, MANAGER: granted, OWNER: granted, DIVISION_ADMIN: granted });

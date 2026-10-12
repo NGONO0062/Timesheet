@@ -147,3 +147,7 @@ Les points restés ouverts ont été tranchés (délégation du porteur du proje
 75. **Premier admin plateforme.** Aucun écran ne le crée : `npm run plateforme:admin -- adresse "Prénom" "Nom"` crée le compte et affiche un lien d'invitation (7 jours). Voir `docs/exploitation.md`.
 76. **Image de production.** Le `Dockerfile` installe Chromium (même version que `playwright-core`) pour les PDF ; sans lui, la fiche de présence et les exports PDF ne fonctionnent pas. Les migrations se lancent hors de l'image (`npx prisma migrate deploy`).
 77. **Tests d'accessibilité.** `e2e/accessibilite.spec.ts` passe chaque route, pour chaque rôle, à 1280 et 375 px : zéro violation axe sérieuse ou critique, pas de défilement horizontal. Les étapes 3 à 5 de l'onboarding et les détails (fiche à valider, fiche de présence côté superviseur, gestion d'une division) sont couverts par leurs tests de bout en bout respectifs.
+
+## Après le jalon 8
+
+78. **Déclaration du stage (non maquettée, §9.11 « géré par l'admin de division »).** Aucun écran ne créait le stage : seul le seed en avait, donc aucune fiche de présence sur une base réelle. Ajouté à la fenêtre « Inviter » / « Modifier » de l'écran 12 : case « Stagiaire » (compte Staff seulement), puis Nature du stage, Direction, Département, Service, Début et Fin (jj/mm/aaaa), repris sur la fiche RH. Un stage qui a déjà des fiches de présence ne peut plus être retiré, seulement corrigé. Les fiches naissent à la validation de la dernière semaine d'un mois : un stage déclaré après coup n'en crée pas pour les mois déjà validés.

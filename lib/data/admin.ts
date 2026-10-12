@@ -2,7 +2,7 @@ import "server-only";
 // Administration de division (PROMPT.md §9.9) : utilisateurs, rôles et permissions,
 // workflow, règles de saisie. Tout exige ADMINISTER_DIVISION et reste dans la division.
 import type { Prisma, Weekday } from "@prisma/client";
-import { describeRules, matrixOf, overridesFor, pageOf, parseNumber, type Matrix, type RulesInput, type UserInput, type WorkflowInput } from "@/lib/admin/rules";
+import { describeRules, internshipData, internshipInput, matrixOf, overridesFor, pageOf, parseNumber, type InternshipInput, type Matrix, type RulesInput, type UserInput, type WorkflowInput } from "@/lib/admin/rules";
 import { dict, t } from "@/lib/i18n";
 import { invitationMail } from "@/lib/mail/templates";
 import { appUrl, sendMail } from "@/lib/mail/send";
@@ -14,7 +14,7 @@ import { issueToken } from "./tokens";
 const fullName = (u: { firstName: string; lastName: string }) => `${u.firstName} ${u.lastName}`;
 
 export class AdminRuleError extends Error {
-  constructor(public readonly code: "notFound" | "emailTaken" | "self" | "lastAdmin" | "manager") {
+  constructor(public readonly code: "notFound" | "emailTaken" | "self" | "lastAdmin" | "manager" | "internshipInUse") {
     super(code);
   }
 }
@@ -76,6 +76,7 @@ export async function listUsersPage(scope: DivisionScope, query: string, request
       managerId: u.managerId,
       manager: u.manager ? fullName(u.manager) : null,
       active: u.active,
+      internship: u.internship ? internshipInput(u.internship) : null,
       invited: !u.passwordHash && u.passwordTokens.length > 0,
       isSelf: u.id === scope.userId,
     })),
@@ -127,7 +128,10 @@ async function checkManager(scope: DivisionScope, managerId: string | null, self
   return manager.managedTeams[0]?.id ?? null;
 }
 
-/** Modification depuis la modale : nom, rôle, rattachement. L'adresse ne change pas. */
+/** Stage pour le journal d'audit : nature et période, ou null. */
+const internshipAudit = (i: InternshipInput | null | undefined) => (i === undefined ? {} : { internship: i ? `${i.kind} ${i.start}–${i.end}` : null });
+
+/** Modification depuis la modale : nom, rôle, rattachement, stage. L'adresse ne change pas. */
 export async function updateUser(scope: DivisionScope, id: string, input: Omit<UserInput, "email">, meta: Meta) {
   admin(scope);
   const user = await target(scope, id);
@@ -136,18 +140,27 @@ export async function updateUser(scope: DivisionScope, id: string, input: Omit<U
     if (user.id === scope.userId) throw new AdminRuleError("self");
     if (user.role === "DIVISION_ADMIN" && (await adminsLeft(scope, id)) === 0) throw new AdminRuleError("lastAdmin");
   }
-  const updated = await prisma.user.update({
-    where: { id },
-    data: {
-      firstName: input.firstName.trim(),
-      lastName: input.lastName.trim(),
-      role: input.role,
-      managerId: input.managerId,
-      // Le manager change : la personne rejoint son équipe. Sinon, l'équipe reste.
-      ...(input.managerId !== user.managerId ? { teamId } : {}),
-    },
-  });
-  await audit(scope, meta, "USER_UPDATED", `${fullName(updated)} · ${updated.email}`, { role: input.role, managerId: input.managerId });
+  // Un stage qui a déjà des fiches de présence reste : elles en reprennent la nature et la période.
+  if (input.internship === null && (await prisma.attendanceSheet.count({ where: { userId: id, divisionId: scope.divisionId } })) > 0) {
+    throw new AdminRuleError("internshipInUse");
+  }
+  const internship = input.internship ? internshipData(input.internship) : null;
+  const [updated] = await prisma.$transaction([
+    prisma.user.update({
+      where: { id },
+      data: {
+        firstName: input.firstName.trim(),
+        lastName: input.lastName.trim(),
+        role: input.role,
+        managerId: input.managerId,
+        // Le manager change : la personne rejoint son équipe. Sinon, l'équipe reste.
+        ...(input.managerId !== user.managerId ? { teamId } : {}),
+      },
+    }),
+    ...(internship ? [prisma.internship.upsert({ where: { userId: id }, update: internship, create: { userId: id, ...internship } })] : []),
+    ...(input.internship === null ? [prisma.internship.deleteMany({ where: { userId: id } })] : []),
+  ]);
+  await audit(scope, meta, "USER_UPDATED", `${fullName(updated)} · ${updated.email}`, { role: input.role, managerId: input.managerId, ...internshipAudit(input.internship) });
   return { name: fullName(updated) };
 }
 
@@ -158,12 +171,22 @@ export async function inviteUser(scope: DivisionScope, input: UserInput, meta: M
   if (await prisma.user.findUnique({ where: { email } })) throw new AdminRuleError("emailTaken");
   const teamId = await checkManager(scope, input.managerId);
   const user = await prisma.user.create({
-    data: { divisionId: scope.divisionId, email, firstName: input.firstName.trim(), lastName: input.lastName.trim(), role: input.role, managerId: input.managerId, teamId, passwordHash: null },
+    data: {
+      divisionId: scope.divisionId,
+      email,
+      firstName: input.firstName.trim(),
+      lastName: input.lastName.trim(),
+      role: input.role,
+      managerId: input.managerId,
+      teamId,
+      passwordHash: null,
+      ...(input.internship ? { internship: { create: internshipData(input.internship) } } : {}),
+    },
   });
   const division = await prisma.division.findUniqueOrThrow({ where: { id: scope.divisionId }, select: { name: true } });
   const token = await issueToken(user.id, "INVITATION", meta.now);
   await sendMail(invitationMail({ to: email, firstName: user.firstName, division: division.name, inviter: meta.actorLabel, url: appUrl(`/invitation/${token}`) }));
-  await audit(scope, meta, "USER_INVITED", `${fullName(user)} · ${email}`, { role: input.role });
+  await audit(scope, meta, "USER_INVITED", `${fullName(user)} · ${email}`, { role: input.role, ...internshipAudit(input.internship) });
   return { name: fullName(user), email };
 }
 

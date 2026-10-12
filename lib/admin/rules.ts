@@ -1,6 +1,6 @@
 // Administration de division (PROMPT.md §9.9) et paramètres (§9.11) : règles pures,
 // contrôle des formulaires avant la couche de données.
-import { formatNumber, NBSP } from "../format";
+import { formatFrDate, formatNumber, NBSP, parseFrDate } from "../format";
 import { dict, t } from "../i18n";
 import { DEFAULT_MATRIX, DIVISION_ROLES, isLocked, PERMISSIONS, type DivisionRole, type MatrixOverride, type Permission } from "../permissions";
 
@@ -120,17 +120,59 @@ export function checkRules(r: RulesInput): RulesErrors {
 // Utilisateurs
 // ---------------------------------------------------------------------------
 
-export type UserInput = { email: string; firstName: string; lastName: string; role: DivisionRole; managerId: string | null };
-export type UserErrors = Partial<Record<"email" | "firstName" | "lastName" | "role" | "manager", string>>;
+export const INTERNSHIP_KINDS = ["ACADEMIC", "PROFESSIONAL", "GRADUATE"] as const;
+export type InternshipKind = (typeof INTERNSHIP_KINDS)[number];
+
+/** Stage déclaré par l'admin de division (§9.11), dates au format jj/mm/aaaa. */
+export type InternshipInput = { kind: string; direction: string; department: string; service: string; start: string; end: string };
+
+/**
+ * `internship` : null retire le stage, absent le laisse tel quel. Seul un compte Staff
+ * peut être stagiaire (PROMPT.md §7 : « STAFF, stagiaires compris »).
+ */
+export type UserInput = { email: string; firstName: string; lastName: string; role: DivisionRole; managerId: string | null; internship?: InternshipInput | null };
+export type UserErrors = Partial<
+  Record<"email" | "firstName" | "lastName" | "role" | "manager" | "internKind" | "internDirection" | "internDepartment" | "internService" | "internStart" | "internEnd", string>
+>;
 
 export function checkUser(u: UserInput, managerIds: readonly string[]): UserErrors {
   const e: UserErrors = {};
-  if (!isEmail(u.email)) e.email = dict.admin.errors.email;
-  if (!u.firstName.trim()) e.firstName = dict.admin.errors.firstName;
-  if (!u.lastName.trim()) e.lastName = dict.admin.errors.lastName;
-  if (!DIVISION_ROLES.includes(u.role)) e.role = dict.admin.errors.role;
-  if (u.managerId && !managerIds.includes(u.managerId)) e.manager = dict.admin.errors.manager;
+  const x = dict.admin.errors;
+  if (!isEmail(u.email)) e.email = x.email;
+  if (!u.firstName.trim()) e.firstName = x.firstName;
+  if (!u.lastName.trim()) e.lastName = x.lastName;
+  if (!DIVISION_ROLES.includes(u.role)) e.role = x.role;
+  if (u.managerId && !managerIds.includes(u.managerId)) e.manager = x.manager;
+  const i = u.internship;
+  if (i) {
+    if (u.role !== "STAFF") e.role = x.internRole;
+    if (!(INTERNSHIP_KINDS as readonly string[]).includes(i.kind)) e.internKind = x.internKind;
+    if (!i.direction.trim()) e.internDirection = x.internDirection;
+    if (!i.department.trim()) e.internDepartment = x.internDepartment;
+    if (!i.service.trim()) e.internService = x.internService;
+    const start = parseFrDate(i.start);
+    const end = parseFrDate(i.end);
+    if (!start) e.internStart = x.internStart;
+    if (!end || (start && end < start)) e.internEnd = x.internEnd;
+  }
   return e;
+}
+
+/** Stage contrôlé par `checkUser` → colonnes de la table Internship. */
+export function internshipData(i: InternshipInput) {
+  return {
+    kind: i.kind as InternshipKind,
+    direction: i.direction.trim(),
+    department: i.department.trim(),
+    service: i.service.trim(),
+    startDate: parseFrDate(i.start)!,
+    endDate: parseFrDate(i.end)!,
+  };
+}
+
+/** Stage enregistré → valeurs du formulaire. */
+export function internshipInput(i: { kind: string; direction: string; department: string; service: string; startDate: Date; endDate: Date }): InternshipInput {
+  return { kind: i.kind, direction: i.direction, department: i.department, service: i.service, start: formatFrDate(i.startDate), end: formatFrDate(i.endDate) };
 }
 
 /** Pages de la liste : « Utilisateurs 1 à 5 sur 21 ». */

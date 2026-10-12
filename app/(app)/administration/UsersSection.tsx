@@ -8,11 +8,11 @@ import { useState, useTransition, type FormEvent } from "react";
 import { resendUserInvitation, saveUserForm, setUserActive, setUserRole, type AdminError } from "@/app/actions/admin";
 import { Button } from "@/components/ods/Button";
 import { Alert, Badge } from "@/components/ods/Display";
-import { RequiredLegend, SelectField, Switch, TextField } from "@/components/ods/Form";
+import { Checkbox, DateField, RequiredLegend, SelectField, Switch, TextField } from "@/components/ods/Form";
 import { Pagination } from "@/components/ods/Navigation";
 import { Modal } from "@/components/ods/Overlay";
 import { EmptyState } from "@/components/ts/States";
-import type { UserErrors } from "@/lib/admin/rules";
+import { INTERNSHIP_KINDS, type InternshipInput, type UserErrors } from "@/lib/admin/rules";
 import { dict, t } from "@/lib/i18n";
 import type { DivisionRole } from "@/lib/permissions";
 import { TableScroll } from "@/components/ods/TableScroll";
@@ -29,6 +29,7 @@ export type UserRow = {
   managerId: string | null;
   manager: string | null;
   active: boolean;
+  internship: InternshipInput | null;
   invited: boolean;
   isSelf: boolean;
 };
@@ -46,28 +47,54 @@ export type UsersView = {
 };
 
 type Notice = { tone: "success" | "danger"; text: string; undo?: () => void } | null;
-type Form = { firstName: string; lastName: string; email: string; role: DivisionRole; managerId: string };
+type Form = { firstName: string; lastName: string; email: string; role: DivisionRole; managerId: string; intern: boolean; internship: InternshipInput };
+
+const NO_INTERNSHIP: InternshipInput = { kind: "ACADEMIC", direction: "", department: "", service: "", start: "", end: "" };
 
 const errorText = (code: AdminError) => a.errors[code];
 
 function UserModal({ view, editing, onClose, onDone }: { view: UsersView; editing: UserRow | null; onClose: () => void; onDone: (text: string) => void }) {
   const [form, setForm] = useState<Form>(() =>
     editing
-      ? { firstName: editing.firstName, lastName: editing.lastName, email: editing.email, role: editing.role, managerId: editing.managerId ?? "" }
-      : { firstName: "", lastName: "", email: "", role: "STAFF", managerId: "" },
+      ? {
+          firstName: editing.firstName,
+          lastName: editing.lastName,
+          email: editing.email,
+          role: editing.role,
+          managerId: editing.managerId ?? "",
+          intern: Boolean(editing.internship),
+          internship: editing.internship ?? NO_INTERNSHIP,
+        }
+      : { firstName: "", lastName: "", email: "", role: "STAFF", managerId: "", intern: false, internship: NO_INTERNSHIP },
   );
   const [errors, setErrors] = useState<UserErrors>({});
   const [failure, setFailure] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const order = ["firstName", "lastName", "email", "role", "manager"] as const;
-  const ids: Record<(typeof order)[number], string> = { firstName: "utilisateur-prenom", lastName: "utilisateur-nom", email: "utilisateur-email", role: "utilisateur-role", manager: "utilisateur-manager" };
+  const order = ["firstName", "lastName", "email", "role", "manager", "internKind", "internDirection", "internDepartment", "internService", "internStart", "internEnd"] as const;
+  const ids: Record<(typeof order)[number], string> = {
+    firstName: "utilisateur-prenom",
+    lastName: "utilisateur-nom",
+    email: "utilisateur-email",
+    role: "utilisateur-role",
+    manager: "utilisateur-manager",
+    internKind: "stage-nature",
+    internDirection: "stage-direction",
+    internDepartment: "stage-departement",
+    internService: "stage-service",
+    internStart: "stage-debut",
+    internEnd: "stage-fin",
+  };
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }));
+  const setInternship = (patch: Partial<InternshipInput>) => setForm((f) => ({ ...f, internship: { ...f.internship, ...patch } }));
+  // Seul un compte Staff peut être stagiaire : le bloc disparaît avec un autre rôle.
+  const intern = form.role === "STAFF" && form.intern;
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setFailure(null);
     start(async () => {
-      const r = await saveUserForm(editing?.id ?? null, { ...form, managerId: form.managerId || null });
+      const { firstName, lastName, email, role } = form;
+      const r = await saveUserForm(editing?.id ?? null, { firstName, lastName, email, role, managerId: form.managerId || null, internship: intern ? form.internship : null });
       if (r.ok) {
         onDone(editing ? t(a.userSaved, { name: r.name }) : t(a.invitedNotice, { email: r.email ?? form.email }));
         return;
@@ -126,6 +153,24 @@ function UserModal({ view, editing, onClose, onDone }: { view: UsersView; editin
             <option key={m.id} value={m.id}>{m.name}</option>
           ))}
         </SelectField>
+        {form.role === "STAFF" && (
+          <Checkbox id="utilisateur-stagiaire" label={a.intern} hint={a.internHint} checked={form.intern} onChange={(e) => set({ intern: e.target.checked })} />
+        )}
+        {intern && (
+          <fieldset className="ts-section" style={{ margin: 0, padding: 0, border: 0, minWidth: 0 }}>
+            <legend className="h3" style={{ float: "none", padding: 0, marginBottom: 20 }}>{a.internshipLegend}</legend>
+            <SelectField id={ids.internKind} label={a.internKind} required value={form.internship.kind} error={errors.internKind} onChange={(e) => setInternship({ kind: e.target.value })}>
+              {INTERNSHIP_KINDS.map((k) => (
+                <option key={k} value={k}>{a.internKinds[k]}</option>
+              ))}
+            </SelectField>
+            <TextField id={ids.internDirection} label={a.internDirection} required autoComplete="off" value={form.internship.direction} error={errors.internDirection} onChange={(e) => setInternship({ direction: e.target.value })} />
+            <TextField id={ids.internDepartment} label={a.internDepartment} required autoComplete="off" value={form.internship.department} error={errors.internDepartment} onChange={(e) => setInternship({ department: e.target.value })} />
+            <TextField id={ids.internService} label={a.internService} required autoComplete="off" value={form.internship.service} error={errors.internService} onChange={(e) => setInternship({ service: e.target.value })} />
+            <DateField id={ids.internStart} label={a.internStart} required value={form.internship.start} error={errors.internStart} onChange={(e) => setInternship({ start: e.target.value })} />
+            <DateField id={ids.internEnd} label={a.internEnd} required value={form.internship.end} error={errors.internEnd} onChange={(e) => setInternship({ end: e.target.value })} />
+          </fieldset>
+        )}
         {failure && <Alert tone="danger" role="alert"><p>{failure}</p></Alert>}
         <div className="ts-actions">
           {editing?.invited && (

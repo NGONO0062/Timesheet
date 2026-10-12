@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_MATRIX } from "../permissions";
-import { checkNewPassword, checkRules, checkUser, checkWorkflow, describeRules, matrixOf, overridesFor, pageOf, parseNumber, type RulesInput } from "./rules";
+import { checkNewPassword, checkRules, checkUser, checkWorkflow, describeRules, internshipData, internshipInput, matrixOf, overridesFor, pageOf, parseNumber, type RulesInput } from "./rules";
 
 const rules: RulesInput = {
   unit: "HOURS",
@@ -72,6 +72,23 @@ describe("utilisateurs", () => {
     expect(checkUser(u, ["m1"])).toEqual({});
     expect(Object.keys(checkUser({ ...u, email: "a@", firstName: " ", lastName: "", managerId: "m2" }, ["m1"])).sort()).toEqual(["email", "firstName", "lastName", "manager"]);
     expect(checkUser({ ...u, managerId: null }, [])).toEqual({});
+  });
+
+  const stage = { kind: "PROFESSIONAL", direction: "DEC", department: "Expérience client", service: "Parcours", start: "05/01/2026", end: "26/06/2026" };
+  it("contrôle le stage : Staff seulement, champs remplis, dates dans l'ordre", () => {
+    expect(checkUser({ ...u, internship: stage }, ["m1"])).toEqual({});
+    expect(checkUser({ ...u, internship: null }, ["m1"])).toEqual({});
+    expect(checkUser({ ...u, role: "MANAGER", internship: stage }, ["m1"])).toEqual({ role: "Seul un compte Staff peut être stagiaire." });
+    const bad = checkUser({ ...u, internship: { kind: "STAGE", direction: " ", department: "", service: "", start: "31/02/2026", end: "fin juin" } }, ["m1"]);
+    expect(Object.keys(bad).sort()).toEqual(["internDepartment", "internDirection", "internEnd", "internKind", "internService", "internStart"]);
+    expect(checkUser({ ...u, internship: { ...stage, end: "04/01/2026" } }, ["m1"])).toEqual({ internEnd: "Saisissez une date de fin au format jj/mm/aaaa, après la date de début." });
+    expect(checkUser({ ...u, internship: { ...stage, end: "05/01/2026" } }, ["m1"])).toEqual({});
+  });
+
+  it("passe du formulaire à la base et retour", () => {
+    const data = internshipData({ ...stage, direction: " DEC " });
+    expect(data).toEqual({ kind: "PROFESSIONAL", direction: "DEC", department: "Expérience client", service: "Parcours", startDate: new Date("2026-01-05T00:00:00Z"), endDate: new Date("2026-06-26T00:00:00Z") });
+    expect(internshipInput(data)).toEqual(stage);
   });
 
   it("pagine par 5 : « Utilisateurs 1 à 5 sur 21 »", () => {

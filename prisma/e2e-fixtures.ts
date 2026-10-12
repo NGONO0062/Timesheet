@@ -43,6 +43,8 @@ export const E2E_ADMIN = {
   target: { email: "cible.e2e@exemple.com", firstName: "Théo", lastName: "Cible", role: "STAFF" },
   /** Écran Paramètres : horaires, notifications, mot de passe, préférences. */
   settings: { email: "reglages.e2e@exemple.com", firstName: "Sacha", lastName: "Réglages", role: "STAFF" },
+  /** Déclarée stagiaire par l'admin de division (fenêtre « Modifier »). */
+  intern: { email: "stage.e2e@exemple.com", firstName: "Inès", lastName: "Stage", role: "STAFF" },
 } as const;
 
 /**
@@ -250,6 +252,7 @@ async function resetAdminDivision(prisma: InstanceType<typeof prismaClient.Prism
   await prisma.divisionSettings.create({ data: { divisionId: division.id, hrEmail: E2E_HR_EMAIL } });
   await prisma.rolePermission.deleteMany({ where: { divisionId: division.id } });
   await prisma.timesheet.deleteMany({ where: { divisionId: division.id } });
+  await prisma.internship.deleteMany({ where: { user: { divisionId: division.id } } });
   // Comptes invités par les tests : retirés (leurs liens suivent).
   const emails = Object.values(E2E_ADMIN).map((u) => u.email);
   await prisma.user.updateMany({ where: { divisionId: division.id }, data: { managerId: null, teamId: null } });
@@ -277,7 +280,7 @@ async function resetAdminDivision(prisma: InstanceType<typeof prismaClient.Prism
     await prisma.passwordToken.deleteMany({ where: { userId: user.id } });
   }
   const team = await prisma.team.create({ data: { divisionId: division.id, name: "Équipe test", managerId: ids.manager } });
-  await prisma.user.updateMany({ where: { id: { in: [ids.rules, ids.target, ids.settings] } }, data: { managerId: ids.manager, teamId: team.id } });
+  await prisma.user.updateMany({ where: { id: { in: [ids.rules, ids.target, ids.settings, ids.intern] } }, data: { managerId: ids.manager, teamId: team.id } });
 
   const code = "ADM-2026-01";
   const project =

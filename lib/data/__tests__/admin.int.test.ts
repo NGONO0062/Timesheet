@@ -38,6 +38,7 @@ beforeAll(async () => {
 
 async function cleanB() {
   await prisma.rolePermission.deleteMany({ where: { divisionId: divisionB } });
+  await prisma.attendanceSheet.deleteMany({ where: { divisionId: divisionB } });
   await prisma.user.deleteMany({ where: { divisionId: divisionB } });
   await prisma.divisionSettings.deleteMany({ where: { divisionId: divisionB } });
 }
@@ -114,6 +115,30 @@ describe("invitation", () => {
     expect(await consumeToken(token, "INVITATION", "Orange-Cameroun-2026", meta.now)).toBe(true);
     expect(await consumeToken(token, "INVITATION", "Orange-Cameroun-2027", meta.now)).toBe(false);
     expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).passwordHash).toMatch(/^\$argon2id\$/);
+  });
+});
+
+describe("stage", () => {
+  it("se déclare à l'invitation, se modifie, et ne se retire plus une fois des fiches de présence générées", async () => {
+    const s = scope(divisionB, adminB);
+    const stage = { kind: "ACADEMIC", direction: "DEC", department: "Études", service: "Data CX", start: "05/01/2026", end: "26/06/2026" };
+    const person = { firstName: "Iris", lastName: "Stage", role: "STAFF" as const, managerId: null };
+    const r = await inviteUser(s, { ...person, email: `stagiaire-${RUN}@exemple.com`, internship: stage }, meta);
+    const id = (await prisma.user.findUniqueOrThrow({ where: { email: r.email } })).id;
+    expect((await listUsersPage(s, "Iris", 1)).rows[0]?.internship).toEqual(stage);
+
+    await updateUser(s, id, { ...person, internship: { ...stage, end: "31/07/2026" } }, meta);
+    expect((await prisma.internship.findUniqueOrThrow({ where: { userId: id } })).endDate).toEqual(new Date("2026-07-31T00:00:00Z"));
+    // Sans le champ, le stage reste tel quel.
+    await updateUser(s, id, person, meta);
+    expect(await prisma.internship.count({ where: { userId: id } })).toBe(1);
+
+    await prisma.attendanceSheet.create({ data: { divisionId: divisionB, userId: id, year: 2026, month: 1 } });
+    await expect(updateUser(s, id, { ...person, internship: null }, meta)).rejects.toMatchObject({ code: "internshipInUse" });
+    expect(await prisma.internship.count({ where: { userId: id } })).toBe(1);
+    await prisma.attendanceSheet.deleteMany({ where: { userId: id } });
+    await updateUser(s, id, { ...person, internship: null }, meta);
+    expect(await prisma.internship.count({ where: { userId: id } })).toBe(0);
   });
 });
 
