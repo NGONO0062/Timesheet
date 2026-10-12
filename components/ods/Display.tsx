@@ -39,10 +39,12 @@ type AlertProps = {
   /** `alert` pour une erreur à annoncer, `status` pour un résultat d'action. */
   role?: "alert" | "status";
   className?: string;
+  /** Message fermable : croix à droite, comme le Toast ODS. */
+  onClose?: () => void;
 };
 
 /** Alert ODS : pastille à glyphe, titre en gras, texte. */
-export function Alert({ tone, heading, children, action, role, className }: AlertProps) {
+export function Alert({ tone, heading, children, action, role, className, onClose }: AlertProps) {
   return (
     <div className={cx("alert", `alert-${tone}`, className)} role={role}>
       <Mark tone={tone} />
@@ -65,6 +67,11 @@ export function Alert({ tone, heading, children, action, role, className }: Aler
           </>
         )}
       </div>
+      {onClose && (
+        <button className="btn btn-icon btn-sm" type="button" aria-label={dict.form.closeMessage} onClick={onClose}>
+          <Icon name="cross" />
+        </button>
+      )}
     </div>
   );
 }

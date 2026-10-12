@@ -40,6 +40,7 @@ Repérés en comparant `/design` aux planches C1 à C4 rendues dans le même nav
 | Dropdown | `display: none` et position gérés par le JS Boosted | Rendu par React, positionné en CSS | Le JS Boosted n'est pas chargé (PROMPT.md §3). |
 | Modal, Offcanvas | `pointer-events: none`, `visibility: hidden`, `transform` | Rendus par React | Idem. |
 | Toast | Masqué sans `.show` | Visible tant qu'il est rendu | Idem. |
+| Alert fermable | `.alert-dismissible`, `.btn-close` fermé par le JS Boosted | Croix de l'application (`btn btn-icon btn-sm`), comme le Toast, sur les messages qui suivent une action | Le JS Boosted n'est pas chargé ; un message affiché après une action doit pouvoir être fermé. |
 | Spinner | Bordure de 0,25 em | 2 px | Bordures de 2 px. |
 | Toutes animations | — | Coupées sous `prefers-reduced-motion` | Accessibilité (§14). |
 

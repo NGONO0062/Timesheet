@@ -176,7 +176,7 @@ export function ReviewPanel({ sheet }: { sheet: ReviewSheet }) {
               </div>
             )}
             {error && (
-              <Alert tone="danger" role="alert">
+              <Alert tone="danger" role="alert" onClose={() => setError(null)}>
                 <p>{error}</p>
               </Alert>
             )}

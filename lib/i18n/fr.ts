@@ -1207,6 +1207,7 @@ export const fr = {
     active: "Actif",
     inactive: "Désactivé",
     close: "Fermer",
+    closeMessage: "Fermer le message",
     cancel: "Annuler",
     undo: "Annuler",
     retry: "Réessayer",

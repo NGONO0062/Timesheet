@@ -26,6 +26,12 @@ test.describe("écran de connexion", () => {
     await expect(page.getByLabel("Adresse e-mail")).toHaveValue(email);
     await expect(page.getByLabel("Mot de passe", { exact: true })).toHaveValue("");
     expect(await axe(page)).toEqual([]);
+    // Le message se ferme par sa croix et revient à la tentative suivante.
+    await alert.getByRole("button", { name: "Fermer le message" }).click();
+    await expect(alert).toHaveCount(0);
+    await page.getByLabel("Mot de passe", { exact: true }).fill("encore-faux");
+    await page.getByRole("button", { name: "Se connecter" }).click();
+    await expect(alert).toContainText("Connexion impossible");
   });
 
   test("compte inconnu et compte désactivé : même message", async ({ page }) => {

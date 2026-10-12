@@ -171,7 +171,7 @@ function UserModal({ view, editing, onClose, onDone }: { view: UsersView; editin
             <DateField id={ids.internEnd} label={a.internEnd} required value={form.internship.end} error={errors.internEnd} onChange={(e) => setInternship({ end: e.target.value })} />
           </fieldset>
         )}
-        {failure && <Alert tone="danger" role="alert"><p>{failure}</p></Alert>}
+        {failure && <Alert tone="danger" role="alert" onClose={() => setFailure(null)}><p>{failure}</p></Alert>}
         <div className="ts-actions">
           {editing?.invited && (
             <button className="btn" type="button" onClick={resend} disabled={pending} style={{ marginRight: "auto" }}>
@@ -264,6 +264,7 @@ export function UsersSection({ view }: { view: UsersView }) {
         <Alert
           tone={notice.tone}
           role={notice.tone === "danger" ? "alert" : "status"}
+          onClose={() => setNotice(null)}
           action={notice.undo ? <button className="btn btn-link" type="button" onClick={() => { const u = notice.undo; setNotice(null); u?.(); }}>{dict.form.undo}</button> : undefined}
         >
           <p>{notice.text}</p>

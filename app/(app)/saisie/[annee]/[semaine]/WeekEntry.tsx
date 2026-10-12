@@ -344,7 +344,7 @@ export function WeekEntry({ view }: { view: EntryView }) {
               />
             </TableScroll>
             {removed && (
-              <Alert tone="success" role="status" action={<button className="btn btn-link" type="button" onClick={undoRemove}>{dict.form.undo}</button>}>
+              <Alert tone="success" role="status" onClose={() => setRemoved(null)} action={<button className="btn btn-link" type="button" onClick={undoRemove}>{dict.form.undo}</button>}>
                 <p>{t(e.lineRemoved, { line: `${removed.row.project} · ${removed.row.activity}` })}</p>
               </Alert>
             )}
@@ -530,7 +530,7 @@ export function WeekEntry({ view }: { view: EntryView }) {
       >
         <p>{e.modalIntro}</p>
         {submitError && (
-          <Alert tone="danger" role="alert" heading={e.submitErrorTitle}>
+          <Alert tone="danger" role="alert" heading={e.submitErrorTitle} onClose={() => setSubmitError(null)}>
             <p>{errorText(submitError, step)}</p>
           </Alert>
         )}

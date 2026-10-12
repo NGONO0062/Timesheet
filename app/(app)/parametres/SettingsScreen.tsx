@@ -25,12 +25,13 @@ type Notice = { text: string; undo?: () => void } | null;
 
 const errorText = (code: SettingsError) => (code === "notFound" ? s.errors.unknown : s.errors[code]);
 
-function Saved({ notice, onUndo }: { notice: Notice; onUndo?: () => void }) {
+function Saved({ notice, onUndo, onClose }: { notice: Notice; onUndo?: () => void; onClose: () => void }) {
   if (!notice) return null;
   return (
     <Alert
       tone="success"
       role="status"
+      onClose={onClose}
       action={notice.undo ? <button className="btn btn-link" type="button" onClick={onUndo}>{dict.form.undo}</button> : undefined}
     >
       <p>{notice.text}</p>
@@ -93,8 +94,8 @@ function HoursForm({ initial }: { initial: { arrival: string; departure: string 
         </button>
       </div>
       <p className="form-text" id="format-horaires" style={{ marginTop: 0 }}>{s.hoursFormat}</p>
-      <Saved notice={notice} />
-      {failure && <Alert tone="danger" role="alert"><p>{failure}</p></Alert>}
+      <Saved notice={notice} onClose={() => setNotice(null)} />
+      {failure && <Alert tone="danger" role="alert" onClose={() => setFailure(null)}><p>{failure}</p></Alert>}
     </form>
   );
 }
@@ -128,8 +129,8 @@ function Notifications({ initial }: { initial: SettingsView["notifications"] }) 
           </ListGroupItem>
         ))}
       </ListGroup>
-      <Saved notice={notice} onUndo={() => { const u = notice?.undo; setNotice(null); u?.(); }} />
-      {failure && <Alert tone="danger" role="alert"><p>{failure}</p></Alert>}
+      <Saved notice={notice} onClose={() => setNotice(null)} onUndo={() => { const u = notice?.undo; setNotice(null); u?.(); }} />
+      {failure && <Alert tone="danger" role="alert" onClose={() => setFailure(null)}><p>{failure}</p></Alert>}
     </div>
   );
 }
@@ -189,8 +190,8 @@ function PasswordForm() {
           {s.changePassword}
         </button>
       </div>
-      <Saved notice={notice} />
-      {failure && <Alert tone="danger" role="alert"><p>{failure}</p></Alert>}
+      <Saved notice={notice} onClose={() => setNotice(null)} />
+      {failure && <Alert tone="danger" role="alert" onClose={() => setFailure(null)}><p>{failure}</p></Alert>}
     </form>
   );
 }
@@ -240,8 +241,8 @@ function PreferencesForm({ initial, showCopy }: { initial: SettingsView["prefere
           {s.savePreferences}
         </button>
       </div>
-      <Saved notice={notice} />
-      {failure && <Alert tone="danger" role="alert"><p>{failure}</p></Alert>}
+      <Saved notice={notice} onClose={() => setNotice(null)} />
+      {failure && <Alert tone="danger" role="alert" onClose={() => setFailure(null)}><p>{failure}</p></Alert>}
     </form>
   );
 }

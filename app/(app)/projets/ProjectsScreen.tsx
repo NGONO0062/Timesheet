@@ -259,13 +259,14 @@ export function ProjectsScreen(props: {
         <Alert
           tone="success"
           role="status"
+          onClose={() => setNotice(null)}
           action={notice.undo ? <button className="btn btn-link" type="button" onClick={() => { const u = notice.undo; setNotice(null); u?.(); }}>{dict.form.undo}</button> : undefined}
         >
           <p>{notice.text}</p>
         </Alert>
       )}
       {error && (
-        <Alert tone="danger" role="alert">
+        <Alert tone="danger" role="alert" onClose={() => setError(null)}>
           <p>{error}</p>
         </Alert>
       )}
@@ -389,7 +390,7 @@ function ProjectPanel({ project, team, onClose, onSaved }: {
     >
       <p className="small text-secondary">{dict.form.requiredLegend}</p>
       {errors.global && (
-        <Alert tone="danger" role="alert">
+        <Alert tone="danger" role="alert" onClose={() => setErrors((x) => ({ ...x, global: undefined }))}>
           <p>{errors.global}</p>
         </Alert>
       )}

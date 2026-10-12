@@ -146,12 +146,12 @@ export function AttendanceScreen({ view }: { view: AttendanceScreenView }) {
       </div>
 
       {notice && (
-        <Alert tone="success" role="status">
+        <Alert tone="success" role="status" onClose={() => setNotice(null)}>
           <p>{notice}</p>
         </Alert>
       )}
       {error && (
-        <Alert tone="danger" role="alert">
+        <Alert tone="danger" role="alert" onClose={() => setError(null)}>
           <p>{error}</p>
         </Alert>
       )}

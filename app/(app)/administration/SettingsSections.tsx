@@ -13,10 +13,10 @@ const a = dict.admin;
 
 type Notice = { tone: "success" | "danger"; text: string } | null;
 
-function Result({ notice }: { notice: Notice }) {
+function Result({ notice, onClose }: { notice: Notice; onClose: () => void }) {
   if (!notice) return null;
   return (
-    <Alert tone={notice.tone} role={notice.tone === "danger" ? "alert" : "status"}>
+    <Alert tone={notice.tone} role={notice.tone === "danger" ? "alert" : "status"} onClose={onClose}>
       <p>{notice.text}</p>
     </Alert>
   );
@@ -47,7 +47,7 @@ export function PermissionsSection({ initial }: { initial: Matrix }) {
           {a.savePermissions}
         </button>
       </div>
-      <Result notice={notice} />
+      <Result notice={notice} onClose={() => setNotice(null)} />
     </section>
   );
 }
@@ -84,7 +84,7 @@ export function WorkflowSection({ initial }: { initial: WorkflowInput }) {
             {a.saveWorkflow}
           </button>
         </div>
-        <Result notice={notice} />
+        <Result notice={notice} onClose={() => setNotice(null)} />
       </form>
     </section>
   );
@@ -129,7 +129,7 @@ export function RulesSection({ initial }: { initial: RulesInput }) {
             {a.saveRules}
           </button>
         </div>
-        <Result notice={notice} />
+        <Result notice={notice} onClose={() => setNotice(null)} />
       </form>
     </section>
   );

@@ -33,6 +33,8 @@ export function LoginForm() {
   }, {});
 
   const fields = { ...state.fields, ...local };
+  // Message fermé : il revient à la prochaine tentative (nouvel état).
+  const [closed, setClosed] = useState<LoginState | null>(null);
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     // Champ vide à l'envoi : message sous le champ, focus sur le premier en erreur.
@@ -49,8 +51,8 @@ export function LoginForm() {
 
   return (
     <form action={action} onSubmit={onSubmit} noValidate aria-labelledby="titre-connexion" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {state.error && (
-        <Alert tone="danger" role="alert" heading={t.errorTitle}>
+      {state.error && closed !== state && (
+        <Alert tone="danger" role="alert" heading={t.errorTitle} onClose={() => setClosed(state)}>
           <p>{state.error === "tentatives" ? t.errorThrottled : t.errorCredentials}</p>
         </Alert>
       )}

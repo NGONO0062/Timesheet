@@ -47,8 +47,8 @@ function Footer({ view, pending, onQuit, primary }: { view: OnboardingView; pend
   );
 }
 
-function Failure({ text }: { text: string | null }) {
-  return text ? <Alert tone="danger" role="alert"><p>{text}</p></Alert> : null;
+function Failure({ text, onClose }: { text: string | null; onClose: () => void }) {
+  return text ? <Alert tone="danger" role="alert" onClose={onClose}><p>{text}</p></Alert> : null;
 }
 
 function focusFirst<E extends Record<string, string | undefined>>(errors: E, ids: Record<keyof E, string>) {
@@ -87,7 +87,7 @@ function IdentityStep({ view }: { view: OnboardingView }) {
       <TextField id={ids.name} label={o.name} required autoComplete="off" value={v.name} error={errors.name} onChange={(e) => setV((x) => ({ ...x, name: e.target.value, slug: slugTouched ? x.slug : slugify(e.target.value) }))} />
       <TextField id={ids.slug} label={o.slug} required autoComplete="off" hint={o.slugHint} value={v.slug} error={errors.slug} onChange={(e) => { setSlugTouched(true); setV((x) => ({ ...x, slug: e.target.value })); }} />
       <TextField id={ids.direction} label={o.direction} required autoComplete="off" hint={o.directionHint} value={v.direction} error={errors.direction} onChange={(e) => setV((x) => ({ ...x, direction: e.target.value }))} />
-      <Failure text={failure} />
+      <Failure text={failure} onClose={() => setFailure(null)} />
       <Footer view={view} pending={pending} onQuit={() => submit("quit")} primary={<button className="btn btn-primary" type="submit" disabled={pending}>{o.next}</button>} />
     </form>
   );
@@ -127,7 +127,7 @@ function AdminStep({ view }: { view: OnboardingView }) {
         <Radio name="configuration" label={o.copy} hint={o.copyHint} checked={v.config === "COPY"} onChange={() => setV((x) => ({ ...x, config: "COPY" }))} />
         <Radio name="configuration" label={o.blank} hint={o.blankHint} checked={v.config === "BLANK"} onChange={() => setV((x) => ({ ...x, config: "BLANK" }))} />
       </fieldset>
-      <Failure text={failure} />
+      <Failure text={failure} onClose={() => setFailure(null)} />
       <Footer view={view} pending={pending} onQuit={() => submit("quit")} primary={<button className="btn btn-primary" type="submit" disabled={pending}>{o.next}</button>} />
     </form>
   );
@@ -162,7 +162,7 @@ function RolesStep({ view }: { view: OnboardingView }) {
       <p>{dict.admin.permissionsIntro}</p>
       <MatrixTable matrix={matrix} onChange={setMatrix} />
       <WorkflowFields value={w} errors={errors} onChange={(patch) => setW((x) => ({ ...x, ...patch }))} />
-      <Failure text={failure} />
+      <Failure text={failure} onClose={() => setFailure(null)} />
       <Footer view={view} pending={pending} onQuit={() => submit("quit")} primary={<button className="btn btn-primary" type="submit" disabled={pending}>{o.next}</button>} />
     </form>
   );
@@ -194,7 +194,7 @@ function RulesStep({ view }: { view: OnboardingView }) {
     <form className="ts-section" onSubmit={(e: FormEvent) => { e.preventDefault(); submit("next"); }} noValidate>
       <h2 className="h3">{o.rulesTitle}</h2>
       <RulesFields value={r} errors={errors} onChange={(patch) => setR((x) => ({ ...x, ...patch }))} />
-      <Failure text={failure} />
+      <Failure text={failure} onClose={() => setFailure(null)} />
       <Footer view={view} pending={pending} onQuit={() => submit("quit")} primary={<button className="btn btn-primary" type="submit" disabled={pending}>{o.next}</button>} />
     </form>
   );
@@ -241,7 +241,7 @@ function SummaryStep({ view }: { view: OnboardingView }) {
           <Facts rows={s.rows} />
         </section>
       ))}
-      <Failure text={failure} />
+      <Failure text={failure} onClose={() => setFailure(null)} />
       <Footer view={view} pending={pending} primary={<button className="btn btn-primary" type="submit" disabled={pending}>{o.create}</button>} />
     </form>
   );

@@ -44,6 +44,7 @@ export function DivisionState({ id, status }: { id: string; status: "ACTIVE" | "
         <Alert
           tone={notice.tone}
           role={notice.tone === "danger" ? "alert" : "status"}
+          onClose={() => setNotice(null)}
           action={notice.undo ? <button className="btn btn-link" type="button" onClick={() => { const u = notice.undo; setNotice(null); u?.(); }}>{dict.form.undo}</button> : undefined}
         >
           <p>{notice.text}</p>
