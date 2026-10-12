@@ -1,7 +1,7 @@
 // Gabarit de la feuille (.ts-sheet, écran 06) : le même HTML sert à l'aperçu et au
 // PDF (PROMPT.md §11.4). Pur, tout le texte est échappé.
-import { wordmarkHtml } from "../export/brand";
-import { dict } from "../i18n";
+import { documentHeadHtml, partiesHtml } from "../export/brand";
+import { dict, t } from "../i18n";
 import { SHEET_TEMPLATE } from "./config";
 import type { InternshipKind, SheetBlock, SheetModel } from "./sheet";
 
@@ -34,20 +34,35 @@ function signatureCell(s: PrintedSignature | null) {
   return `<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${escape(s.name)}${drawing}<span style="font-weight:400">${escape(s.note)}</span></span>`;
 }
 
-/** La feuille seule, avec les classes .ts-sheet* de la feuille de styles. */
-export function sheetHtml(m: SheetModel, signature: PrintedSignature | null = null): string {
+/** En-tête de la fiche : division, numéro, date de génération et mois (la couche de données les fournit). */
+export type SheetMeta = { division: string; number: string; generated: string; month: string };
+
+/**
+ * La feuille seule, avec les classes .ts-sheet* de la feuille de styles. Mise en page proforma
+ * (docs/questions-ouvertes.md, point 81) : tous les champs du modèle papier RH sont gardés.
+ */
+export function sheetHtml(m: SheetModel, meta: SheetMeta, signature: PrintedSignature | null = null): string {
   const a = dict.attendance;
+  const d = dict.document;
   const T = SHEET_TEMPLATE;
+  const b = (s: string) => `<b style="font-weight:700">${escape(s)}</b>`;
   return [
     `<div class="ts-sheet">`,
-    `<table class="ts-sheet-head"><tbody>`,
-    `<tr><td style="width:160px">${wordmarkHtml(14)}</td><td colspan="3" style="text-align:center">${escape(T.title)}</td></tr>`,
-    `<tr><td>${escape(T.reference)}</td><td style="width:140px;text-align:left">${escape(a.version)} : ${escape(T.version)}</td><td></td><td style="width:240px;text-align:left">${escape(a.updatedOn)} : ${escape(T.updatedOn)}</td></tr>`,
-    `</tbody></table>`,
-    `<p class="ts-sheet-line"><span>${escape(a.internName)} : <b>${escape(m.name)}</b></span></p>`,
-    `<p class="ts-sheet-line"><span>${escape(a.kind)} :</span>${KINDS.map(([k, label]) => `<span>${escape(label)} ${box(m.kind === k)}</span>`).join("")}</p>`,
-    `<p class="ts-sheet-line"><span>${escape(a.entity)} :</span><span>${escape(a.direction)} : <b>${escape(m.direction)}</b></span><span>${escape(a.department)} : <b>${escape(m.department)}</b></span><span>${escape(a.service)} : <b>${escape(m.service)}</b></span></p>`,
-    `<p class="ts-sheet-line"><span>${escape(a.periodLabel)} :</span><span>${escape(a.from)} <b>${escape(m.from)}</b></span><span>${escape(a.to)} <b>${escape(m.to)}</b></span></p>`,
+    documentHeadHtml({
+      issuer: [d.issuer, t(d.division, { name: meta.division })],
+      title: T.title,
+      facts: [[d.sheetReference, `${T.reference} · ${a.version} ${T.version}`], [a.updatedOn, T.updatedOn], [d.number, meta.number], [d.sheetGenerated, meta.generated]],
+      size: 12,
+    }),
+    partiesHtml(
+      [
+        // Chaque case reste collée à son libellé : une coupure de ligne ne doit pas l'attribuer au choix suivant.
+        { label: a.internName, html: `${b(m.name)}<br>${escape(a.kind)} :<br>${KINDS.map(([k, label]) => `<span style="white-space:nowrap;margin-right:10px">${escape(label)} ${box(m.kind === k)}</span>`).join("")}` },
+        { label: a.entity, html: `${escape(a.direction)} : ${b(m.direction)}<br>${escape(a.department)} : ${b(m.department)}<br>${escape(a.service)} : ${b(m.service)}` },
+        { label: a.periodLabel, html: `${escape(a.from)} ${b(m.from)} ${escape(a.to)} ${b(m.to)}<br>${escape(d.sheetMonth)} : ${b(meta.month)}` },
+      ],
+      30,
+    ),
     `<div class="ts-sheet-weeks">`,
     ...m.blocks.map(block),
     `<div></div>`,
@@ -58,7 +73,7 @@ export function sheetHtml(m: SheetModel, signature: PrintedSignature | null = nu
     `<p class="ts-sheet-line" style="gap:10px;flex-wrap:nowrap"><span style="white-space:nowrap">${escape(a.supervisorSignature)} :</span><span class="ts-sheet-field" style="flex:1 1 0%;min-height:30px">${signatureCell(signature)}</span></p>`,
     `</div>`,
     `</div>`,
-    `<div class="ts-sheet-foot"><span>${escape(T.footer)}</span><span>${escape(T.page)}</span></div>`,
+    `<div class="ts-sheet-foot"><span>${escape(T.footer)} · ${escape(dict.app.name)} · ${escape(meta.number)}</span><span>${escape(T.page)}</span></div>`,
     `</div>`,
   ].join("");
 }
@@ -87,6 +102,6 @@ const SHEET_CSS = [
 ].join("");
 
 /** Document autonome pour l'impression PDF (A4 paysage, une page). */
-export function sheetDocument(m: SheetModel, signature: PrintedSignature | null, title: string): string {
-  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${escape(title)}</title><style>${SHEET_CSS}</style></head><body>${sheetHtml(m, signature)}</body></html>`;
+export function sheetDocument(m: SheetModel, meta: SheetMeta, signature: PrintedSignature | null, title: string): string {
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${escape(title)}</title><style>${SHEET_CSS}</style></head><body>${sheetHtml(m, meta, signature)}</body></html>`;
 }

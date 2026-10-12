@@ -14,7 +14,8 @@ function shared(): Promise<Browser> {
 }
 
 /** Imprime un document HTML autonome (styles en ligne, aucun script, aucune ressource distante). */
-export async function htmlToPdf(html: string, options: { landscape?: boolean; fullBleed?: boolean } = {}): Promise<Uint8Array> {
+/** `footer` : gabarit du pied répété sur chaque page (pdfFooterTemplate de lib/export/brand.ts). */
+export async function htmlToPdf(html: string, options: { landscape?: boolean; fullBleed?: boolean; footer?: string } = {}): Promise<Uint8Array> {
   const context = await (await shared()).newContext({ javaScriptEnabled: false, offline: true });
   try {
     const page = await context.newPage();
@@ -24,7 +25,10 @@ export async function htmlToPdf(html: string, options: { landscape?: boolean; fu
       landscape: options.landscape ?? false,
       printBackground: true,
       // Pleine page : le gabarit fixe lui-même ses marges (fiche de présence).
-      margin: options.fullBleed ? { top: "0", right: "0", bottom: "0", left: "0" } : { top: "20mm", right: "15mm", bottom: "20mm", left: "15mm" },
+      margin: options.fullBleed ? { top: "0", right: "0", bottom: "0", left: "0" } : { top: "15mm", right: "15mm", bottom: "20mm", left: "15mm" },
+      displayHeaderFooter: Boolean(options.footer),
+      headerTemplate: "<span></span>",
+      footerTemplate: options.footer ?? "<span></span>",
       preferCSSPageSize: options.fullBleed ?? false,
     });
     return new Uint8Array(pdf);

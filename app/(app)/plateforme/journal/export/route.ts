@@ -4,11 +4,13 @@ import { parseAuditFilters, type AuditParams } from "@/lib/audit/filters";
 import { now } from "@/lib/clock";
 import { exportAudit } from "@/lib/data/platform";
 import { getViewer } from "@/lib/data/viewer";
+import { documentNumber, pdfFooterTemplate } from "@/lib/export/brand";
 import { htmlToPdf } from "@/lib/export/pdf";
 import { toCsv, toXlsx } from "@/lib/export/table";
-import { formatDateAt } from "@/lib/format";
+import { formatFrDate, zonedDay } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
 import { todayInDivision } from "@/lib/iso-week";
+import { roleLabel } from "@/lib/viewer";
 
 const TYPES = {
   csv: "text/csv; charset=utf-8",
@@ -34,9 +36,15 @@ export async function GET(request: Request) {
   if (format === "csv") body = toCsv(auditRows(rows));
   else if (format === "xlsx") body = toXlsx({ name: au.title, rows: auditRows(rows) });
   else {
+    const number = documentNumber("JRN", at);
     body = await htmlToPdf(
-      auditHtml(rows, { period: t(au.pdfPeriod, { from: filters.fromText, to: filters.toText }), generated: t(au.pdfGenerated, { date: formatDateAt(at), name: `${viewer.firstName} ${viewer.lastName}` }) }),
-      { landscape: true },
+      auditHtml(rows, {
+        period: t(au.pdfPeriod, { from: filters.fromText, to: filters.toText }),
+        issuedBy: `${viewer.firstName} ${viewer.lastName} (${roleLabel(viewer.role)})`,
+        number,
+        date: formatFrDate(zonedDay(at)),
+      }),
+      { landscape: true, footer: pdfFooterTemplate(`${dict.document.footer} · ${number}`) },
     );
   }
   return new Response(body as BodyInit, {

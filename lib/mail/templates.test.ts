@@ -21,11 +21,13 @@ describe("e-mails", () => {
     expect(m.html).not.toMatch(/<img|<script/);
   });
 
-  it("ouvre chaque e-mail HTML sur le bandeau TimeSheet, sans image", () => {
-    const band = /^<div[^>]*><table role="presentation"[^>]*><tr><td style="[^"]*background:#000000[^"]*"><span[^>]*><span style="color:#f16e00">Time<\/span>Sheet<\/span><\/td><\/tr><\/table><p>/;
+  it("met chaque e-mail HTML en page comme une proforma : TimeSheet et l'émetteur, l'objet, la mention en pied, sans image", () => {
     const hr = attendanceHrMail({ to: "rh@exemple.com", name: "Inès Stage", month: "février 2026", supervisor: "Samuel Etoga", fileName: "f.pdf", pdf: new Uint8Array([1]) });
     for (const m of [validatedMail({ ...ref, to: "a@exemple.com", firstName: "Aïcha", validator: "Samuel Etoga", hours: "40 h" }), hr]) {
-      expect(m.html).toMatch(band);
+      expect(m.html).toMatch(/^<div style="max-width:640px;[^"]*"><table role="presentation"/);
+      expect(m.html).toContain('<span style="color:#f16e00">Time</span>Sheet</span><div style="margin-top:10px"><b style="font-weight:700">Orange Cameroun</b></div>');
+      expect(m.html).toContain(`font-weight:700">${m.subject}</div>`);
+      expect(m.html).toMatch(/border-top:2px solid #000000;[^"]*">Interne Orange Cameroun · TimeSheet<\/p><\/div>$/);
       expect(m.html).not.toMatch(/<img/);
       expect(m.text.startsWith("Bonjour")).toBe(true);
     }

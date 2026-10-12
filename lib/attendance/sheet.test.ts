@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sheetHtml } from "./html";
-import { buildSheet, currentStep, monthLabel, monthsOfWeek, nextAttendanceStatus, sheetFileName, usedBlocks, weeksOfMonth, type SheetInput } from "./sheet";
+import { buildSheet, currentStep, monthLabel, monthsOfWeek, nextAttendanceStatus, sheetFileName, sheetNumber, usedBlocks, weeksOfMonth, type SheetInput } from "./sheet";
 
 const d = (s: string) => new Date(`${s}T00:00:00Z`);
 
@@ -71,23 +71,30 @@ describe("contenu de la feuille", () => {
     expect(m.blocks[0]!.rows[2]).toEqual({ label: "Mercredi 01/04", arrival: "08:00", departure: "17:00" });
   });
 
+  const meta = { division: "CX Expertise", number: "FP-2026-02-NDONGO", generated: "02/03/2026", month: "février 2026" };
+
   it("gabarit : nature du stage cochée, contenu échappé", () => {
-    const html = sheetHtml(buildSheet({ ...base, observation: "<b>RAS</b>" }));
+    const html = sheetHtml(buildSheet({ ...base, observation: "<b>RAS</b>" }), meta);
     expect(html).toContain('Professionnel <span class="ts-box is-checked" role="img" aria-label="coché">');
     expect(html).toContain("&lt;b&gt;RAS&lt;/b&gt;");
     expect(html).toContain("OCM/PS-01/SE/049");
   });
 
-  it("gabarit : le mot TimeSheet dans la case logo", () => {
-    const html = sheetHtml(buildSheet(base));
-    expect(html).toMatch(/<td style="width:160px"><span style="[^"]*background:#000000;color:#ffffff;[^"]*"><span style="color:#f16e00">Time<\/span>Sheet<\/span><\/td>/);
-    expect(html).not.toContain("logo-slot");
+  it("gabarit proforma : TimeSheet et l'émetteur, cartouche, trois blocs, numéro en pied", () => {
+    const html = sheetHtml(buildSheet(base), meta);
+    expect(html).toMatch(/<span style="color:#f16e00">Time<\/span>Sheet<\/span><div style="margin-top:10px"><b style="font-weight:700">Orange Cameroun<\/b><br>Division CX Expertise<\/div>/);
+    expect(html).toContain("FICHE DE PRESENCE STAGIAIRE");
+    for (const fact of ["OCM/PS-01/SE/049 · Version 1.0", "15/06/2023", "FP-2026-02-NDONGO", "02/03/2026"]) expect(html).toContain(`${fact}</td>`);
+    for (const label of ["NOM ET PRENOM DU STAGIAIRE", "ENTITE D'AFFECTATION", "PERIODE DE STAGE"]) expect(html).toContain(`>${label}</div>`);
+    expect(html).toContain('Mois : <b style="font-weight:700">février 2026</b>');
+    expect(html).toContain("<span>Interne Orange Cameroun · TimeSheet · FP-2026-02-NDONGO</span><span>Page 1/1</span>");
   });
 });
 
 describe("fichier et circuit", () => {
   it("nom du fichier sans accent", () => {
     expect(sheetFileName(2026, 2, "Ndongo")).toBe("Fiche_presence_2026-02_NDONGO.pdf");
+    expect(sheetNumber(2026, 2, "Ndongo")).toBe("FP-2026-02-NDONGO");
     expect(sheetFileName(2026, 11, "Bikoï Éyé")).toBe("Fiche_presence_2026-11_BIKOI-EYE.pdf");
   });
   it("mois en toutes lettres", () => {

@@ -1,10 +1,12 @@
 // Export du reporting (PROMPT.md §9.5) : CSV, Excel ou PDF, avec les filtres de l'écran.
 import { getViewer } from "@/lib/data/viewer";
+import { documentNumber, pdfFooterTemplate } from "@/lib/export/brand";
 import { htmlToPdf } from "@/lib/export/pdf";
 import { toCsv, toXlsx } from "@/lib/export/table";
-import { formatDateAt } from "@/lib/format";
+import { formatFrDate, zonedDay } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
 import { reportHtml, reportRows } from "@/lib/reporting/exports";
+import { roleLabel } from "@/lib/viewer";
 import { loadReport } from "../load";
 
 const TYPES = {
@@ -29,9 +31,16 @@ export async function GET(request: Request) {
   if (format === "csv") body = toCsv(reportRows(view));
   else if (format === "xlsx") body = toXlsx({ name: dict.reporting.title, rows: reportRows(view) });
   else {
+    const number = documentNumber("RPT", at);
     body = await htmlToPdf(
-      reportHtml(view, { scope: scopeLabel, generated: t(dict.reporting.pdfGenerated, { date: formatDateAt(at), name: `${viewer.firstName} ${viewer.lastName}` }) }),
-      { landscape: view.weeks.length > 6 },
+      reportHtml(view, {
+        scope: scopeLabel,
+        division: viewer.divisionName ?? "",
+        issuedBy: `${viewer.firstName} ${viewer.lastName} (${roleLabel(viewer.role)})`,
+        number,
+        date: formatFrDate(zonedDay(at)),
+      }),
+      { landscape: view.weeks.length > 6, footer: pdfFooterTemplate(`${dict.document.footer} · ${number}`) },
     );
   }
   return new Response(body as BodyInit, {

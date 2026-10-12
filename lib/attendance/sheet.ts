@@ -133,14 +133,21 @@ export function buildSheet(input: SheetInput): SheetModel {
 export const usedBlocks = (m: SheetModel) => m.blocks.filter((b) => b.used).length;
 
 /** `Fiche_presence_AAAA-MM_NOM.pdf` : nom en capitales, sans accent ni espace. */
-export function sheetFileName(year: number, month: number, lastName: string): string {
-  const name = lastName
+const fileSafe = (lastName: string) =>
+  lastName
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
-  return `Fiche_presence_${year}-${pad2(month)}_${name}.pdf`;
+
+export function sheetFileName(year: number, month: number, lastName: string): string {
+  return `Fiche_presence_${year}-${pad2(month)}_${fileSafe(lastName)}.pdf`;
+}
+
+/** Numéro imprimé sur la fiche : « FP-2026-02-NDONGO », un par stagiaire et par mois. */
+export function sheetNumber(year: number, month: number, lastName: string): string {
+  return `FP-${year}-${pad2(month)}-${fileSafe(lastName)}`;
 }
 
 /** Étape en cours du circuit (0 = Fiche générée) ; 4 quand tout est fait. */

@@ -4,10 +4,10 @@ import "server-only";
 // sur ses fiches ; son manager (ou l'owner de la division) pour la contre-signature.
 import { createHash } from "node:crypto";
 import type { Prisma } from "@prisma/client";
-import { sheetDocument, sheetHtml, type PrintedSignature } from "@/lib/attendance/html";
-import { buildSheet, monthLabel, monthsOfWeek, nextAttendanceStatus, sheetFileName, weeksOfMonth, type SheetModel } from "@/lib/attendance/sheet";
+import { sheetDocument, sheetHtml, type PrintedSignature, type SheetMeta } from "@/lib/attendance/html";
+import { buildSheet, monthLabel, monthsOfWeek, nextAttendanceStatus, sheetFileName, sheetNumber, weeksOfMonth, type SheetModel } from "@/lib/attendance/sheet";
 import { htmlToPdf } from "@/lib/export/pdf";
-import { formatDate, zonedDay } from "@/lib/format";
+import { formatDate, formatFrDate, zonedDay } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
 import { mondayOf } from "@/lib/iso-week";
 import { attendanceHrMail, attendanceRejectedMail, attendanceSupervisorMail, attendanceToSignMail } from "@/lib/mail/templates";
@@ -82,6 +82,13 @@ async function modelOf(sheet: SheetRecord): Promise<SheetModel> {
 
 const fileNameOf = (sheet: SheetRecord) => sheetFileName(sheet.year, sheet.month, sheet.user.lastName);
 
+const metaOf = (sheet: SheetRecord): SheetMeta => ({
+  division: sheet.division.name,
+  number: sheetNumber(sheet.year, sheet.month, sheet.user.lastName),
+  generated: formatFrDate(zonedDay(sheet.generatedAt)),
+  month: monthLabel(sheet.year, sheet.month).toLowerCase(),
+});
+
 function printed(sheet: SheetRecord): PrintedSignature | null {
   const s = sheet.signatures.find((x) => x.signerRole !== "STAFF");
   if (!s) return null;
@@ -89,7 +96,7 @@ function printed(sheet: SheetRecord): PrintedSignature | null {
 }
 
 async function renderPdf(sheet: SheetRecord, signature: PrintedSignature | null): Promise<Uint8Array> {
-  return htmlToPdf(sheetDocument(await modelOf(sheet), signature, fileNameOf(sheet)), { landscape: true, fullBleed: true });
+  return htmlToPdf(sheetDocument(await modelOf(sheet), metaOf(sheet), signature, fileNameOf(sheet)), { landscape: true, fullBleed: true });
 }
 
 const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
@@ -150,7 +157,7 @@ async function viewOf(sheet: SheetRecord) {
     status: sheet.status as AttendanceStatus,
     generatedAt: sheet.generatedAt,
     fileName: fileNameOf(sheet),
-    html: sheetHtml(model, printed(sheet)),
+    html: sheetHtml(model, metaOf(sheet), printed(sheet)),
     usedWeeks: weeksOfMonth(sheet.year, sheet.month).length,
     intern: { id: sheet.userId, name: fullName(sheet.user), firstName: sheet.user.firstName, arrival: sheet.user.usualArrival, departure: sheet.user.usualDeparture },
     supervisorName: sheet.user.manager ? fullName(sheet.user.manager) : "",
