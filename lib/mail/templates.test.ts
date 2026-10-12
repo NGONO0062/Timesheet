@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { wantsNotification } from "../notifications";
-import { invitationMail, rejectedMail, reminderMail, resetMail, validatedMail } from "./templates";
+import { attendanceHrMail, invitationMail, rejectedMail, reminderMail, resetMail, validatedMail } from "./templates";
 
 const ref = { week: 12, range: "16–20 mars 2026", url: "http://localhost:3000/saisie/2026/12" };
 
@@ -19,6 +19,16 @@ describe("e-mails", () => {
     expect(m.text).toContain("Motif : « Jeudi <5 h> & atelier annulé »");
     expect(m.html).toContain("Jeudi &lt;5 h&gt; &amp; atelier annulé");
     expect(m.html).not.toMatch(/<img|<script/);
+  });
+
+  it("ouvre chaque e-mail HTML sur le bandeau TimeSheet, sans image", () => {
+    const band = /^<div[^>]*><table role="presentation"[^>]*><tr><td style="[^"]*background:#000000[^"]*"><span[^>]*><span style="color:#f16e00">Time<\/span>Sheet<\/span><\/td><\/tr><\/table><p>/;
+    const hr = attendanceHrMail({ to: "rh@exemple.com", name: "Inès Stage", month: "février 2026", supervisor: "Samuel Etoga", fileName: "f.pdf", pdf: new Uint8Array([1]) });
+    for (const m of [validatedMail({ ...ref, to: "a@exemple.com", firstName: "Aïcha", validator: "Samuel Etoga", hours: "40 h" }), hr]) {
+      expect(m.html).toMatch(band);
+      expect(m.html).not.toMatch(/<img/);
+      expect(m.text.startsWith("Bonjour")).toBe(true);
+    }
   });
 
   it("relance le validateur", () => {

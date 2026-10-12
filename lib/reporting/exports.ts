@@ -1,5 +1,6 @@
 // Exports du reporting (PROMPT.md §9.5) : mêmes données que l'écran, même ordre.
 // Purs : la route d'export fournit le modèle de vue.
+import { brandBandHtml } from "../export/brand";
 import type { Cell } from "../export/table";
 import { dict, t } from "../i18n";
 import type { ReportView } from "./view";
@@ -52,6 +53,7 @@ tfoot th,tfoot td{border-top:2px solid #000000;border-bottom:0;background:#fafaf
 .num{text-align:right}
 footer{margin-top:20px;color:#595959}
 </style></head><body>
+${brandBandHtml()}
 <h1>${esc(t(r.pdfTitle, { scope: meta.scope }))}</h1>
 <div class="muted">${esc(view.period)} · ${esc(r.axes[axis])}</div>
 <div class="kpis">${kpi(r.entered, view.table.foot.total, view.texts.capacity)}${kpi(r.fill, view.texts.fill, view.texts.fillDetail)}${kpi(r.validated, view.texts.validated, view.texts.validatedDetail)}</div>

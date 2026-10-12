@@ -40,9 +40,16 @@ describe("exports", () => {
     const files = unzip(toXlsx({ name: "Reporting", rows: [["Projet", "S10"], ["A & <B>", 98], ["C", null]] }));
     expect([...files.keys()]).toEqual(expect.arrayContaining(["[Content_Types].xml", "xl/workbook.xml", "xl/worksheets/sheet1.xml", "xl/styles.xml"]));
     const sheet = files.get("xl/worksheets/sheet1.xml")!;
-    expect(sheet).toContain('<c r="A1" t="inlineStr" s="1"><is><t xml:space="preserve">Projet</t></is></c>');
-    expect(sheet).toContain('<c r="B2"><v>98</v></c>');
+    expect(sheet).toContain('<c r="A3" t="inlineStr" s="1"><is><t xml:space="preserve">Projet</t></is></c>');
+    expect(sheet).toContain('<c r="B4"><v>98</v></c>');
     expect(sheet).toContain("A &amp; &lt;B&gt;");
     expect(files.get("xl/workbook.xml")).toContain('name="Reporting"');
+  });
+
+  it("ouvre le classeur sur le mot TimeSheet : « Time » orange, « Sheet » blanc, fond noir", () => {
+    const files = unzip(toXlsx({ name: "Journal", rows: [["Date", "Action", "Résultat"]] }));
+    const sheet = files.get("xl/worksheets/sheet1.xml")!;
+    expect(sheet).toMatch(/^.*<sheetData><row r="1"[^>]*><c r="A1" t="inlineStr" s="2"><is>.*<color rgb="FFF16E00"\/>.*<t>Time<\/t>.*<color rgb="FFFFFFFF"\/>.*<t>Sheet<\/t><\/r><\/is><\/c><c r="B1" s="2"\/><c r="C1" s="2"\/><\/row><row r="3">/);
+    expect(files.get("xl/styles.xml")).toContain('<patternFill patternType="solid"><fgColor rgb="FF000000"/></patternFill>');
   });
 });

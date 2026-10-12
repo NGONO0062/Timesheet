@@ -1,5 +1,6 @@
 // Exports du journal d'audit (PROMPT.md §9.10) : mêmes colonnes que l'écran, mêmes
 // filtres. Purs : la route d'export fournit les lignes.
+import { brandBandHtml } from "../export/brand";
 import type { Cell } from "../export/table";
 import { formatDateTime } from "../format";
 import { dict } from "../i18n";
@@ -50,6 +51,7 @@ th,td{padding:5px;border-bottom:2px solid #dddddd;text-align:left;vertical-align
 thead th{border-bottom:2px solid #000000}
 footer{margin-top:20px;color:#595959}
 </style></head><body>
+${brandBandHtml()}
 <h1>${esc(au.pdfTitle)}</h1>
 <div class="muted">${esc(meta.period)}</div>
 <table><thead><tr>${HEAD().map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table>

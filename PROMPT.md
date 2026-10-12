@@ -324,7 +324,7 @@ L'écran se lit de haut en bas, du plus urgent au moins urgent.
 - Le modèle papier ne prévoit que la signature du superviseur. Celle du stagiaire certifie la fiche dans l'application, reste dans l'historique et n'est pas imprimée sur le PDF. Celle du superviseur est imprimée dans la case prévue.
 - Après la signature du superviseur, le PDF est envoyé par e-mail à l'adresse RH de la division. L'envoi est automatique si le réglage est activé, sinon il se fait par un bouton. L'écran montre le canal, le destinataire, la pièce jointe et l'état.
 - Nom du fichier : `Fiche_presence_AAAA-MM_NOM.pdf`.
-- La case logo du modèle papier reste vide tant que le fichier officiel n'est pas fourni.
+- La case logo du modèle papier porte le mot TimeSheet (décision du 12/10/2026, `docs/questions-ouvertes.md`, point 80).
 
 ### 9.8 Signature électronique
 

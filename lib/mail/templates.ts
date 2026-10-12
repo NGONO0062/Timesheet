@@ -1,5 +1,6 @@
 // Gabarits d'e-mails (PROMPT.md §19) : texte brut et HTML sobre, sans image.
-// Purs : l'envoi est fait par lib/mail/send.ts.
+// Le HTML s'ouvre sur le bandeau TimeSheet. Purs : l'envoi est fait par lib/mail/send.ts.
+import { mailBandHtml } from "../export/brand";
 import { dict, t } from "../i18n";
 
 export type Mail = {
@@ -13,12 +14,14 @@ export type Mail = {
 
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+const OPEN = `<div style="font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.4;color:#000000">${mailBandHtml()}`;
+
 /** Assemble un e-mail : salutation, paragraphes, lien, signature. */
 function compose(to: string, subject: string, firstName: string, paragraphs: string[], url: string, link: string = dict.mail.open): Mail {
   const lines = [t(dict.mail.hello, { name: firstName }), ...paragraphs, t(link, { url }), dict.mail.signature];
   const text = lines.join("\n\n");
   const html = [
-    '<div style="font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.4;color:#000000">',
+    OPEN,
     ...[t(dict.mail.hello, { name: firstName }), ...paragraphs].map((p) => `<p>${escape(p)}</p>`),
     `<p><a href="${escape(url)}" style="color:#000000;text-decoration:underline">${escape(url)}</a></p>`,
     `<p style="color:#595959">${escape(dict.mail.signature)}</p>`,
@@ -148,7 +151,7 @@ export function attendanceHrMail(input: { to: string; name: string; month: strin
     subject: t(dict.mail.attendanceHrSubject, { name: input.name, month: input.month }),
     text: [...paragraphs, dict.mail.signature].join("\n\n"),
     html: [
-      '<div style="font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.4;color:#000000">',
+      OPEN,
       ...paragraphs.map((p) => `<p>${escape(p)}</p>`),
       `<p style="color:#595959">${escape(dict.mail.signature)}</p>`,
       "</div>",

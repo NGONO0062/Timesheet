@@ -77,6 +77,12 @@ describe("contenu de la feuille", () => {
     expect(html).toContain("&lt;b&gt;RAS&lt;/b&gt;");
     expect(html).toContain("OCM/PS-01/SE/049");
   });
+
+  it("gabarit : le mot TimeSheet dans la case logo", () => {
+    const html = sheetHtml(buildSheet(base));
+    expect(html).toMatch(/<td style="width:160px"><span style="[^"]*background:#000000;color:#ffffff;[^"]*"><span style="color:#f16e00">Time<\/span>Sheet<\/span><\/td>/);
+    expect(html).not.toContain("logo-slot");
+  });
 });
 
 describe("fichier et circuit", () => {

@@ -730,7 +730,6 @@ export const fr = {
     unchecked: "non coché",
     arrival: "Arrivée",
     departure: "Départ",
-    logoSlot: "Emplacement du logo Orange",
     version: "Version",
     updatedOn: "Mise à jour le",
     internName: "NOM ET PRENOM DU STAGIAIRE",

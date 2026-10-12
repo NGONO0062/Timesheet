@@ -1,6 +1,9 @@
 // Exports d'un tableau (PROMPT.md §9.5) : CSV et Excel. Purs, sans dépendance.
 // Le CSV suit l'usage d'Excel en français : séparateur « ; », virgule décimale,
-// BOM UTF-8. Le classeur Excel est un .xlsx minimal (archive ZIP sans compression).
+// BOM UTF-8. Le classeur Excel est un .xlsx minimal (archive ZIP sans compression),
+// ouvert par une ligne noire au mot TimeSheet ; le CSV reste des données seules.
+import { BRAND } from "./brand";
+import { dict } from "../i18n";
 
 export type Cell = string | number | null;
 export type Sheet = { name: string; rows: Cell[][]; headerRows?: number };
@@ -106,17 +109,36 @@ function column(i: number): string {
   return s;
 }
 
+/** Lignes avant le tableau : le mot TimeSheet, puis une ligne vide. */
+export const XLSX_BRAND_ROWS = 2;
+
+const argb = (hex: string) => `FF${hex.slice(1).toUpperCase()}`;
+const run = (text: string, color: string) =>
+  `<r><rPr><b/><sz val="14"/><color rgb="${argb(color)}"/><rFont val="Arial"/></rPr><t>${xml(text)}</t></r>`;
+
+/** Ligne 1 : « Time » orange et « Sheet » blanc, fond noir sur toute la largeur du tableau. */
+function brandRow(width: number): string {
+  const cells = Array.from({ length: Math.max(width, 1) }, (_, ci) =>
+    ci === 0
+      ? `<c r="A1" t="inlineStr" s="2"><is>${run(dict.app.wordTime, BRAND.time)}${run(dict.app.wordSheet, BRAND.sheet)}</is></c>`
+      : `<c r="${column(ci)}1" s="2"/>`,
+  ).join("");
+  return `<row r="1" ht="30" customHeight="1">${cells}</row>`;
+}
+
 /** Classeur Excel (.xlsx) d'une feuille ; les lignes d'en-tête sont en gras. */
 export function toXlsx(sheet: Sheet): Uint8Array {
   const enc = new TextEncoder();
   const header = sheet.headerRows ?? 1;
-  const rows = sheet.rows
-    .map((r, ri) => {
+  const width = Math.max(0, ...sheet.rows.map((r) => r.length));
+  const rows = brandRow(width) + sheet.rows
+    .map((r, i) => {
+      const ri = i + XLSX_BRAND_ROWS;
       const cells = r
         .map((c, ci) => {
           if (c === null) return "";
           const ref = `${column(ci)}${ri + 1}`;
-          const style = ri < header ? ' s="1"' : "";
+          const style = i < header ? ' s="1"' : "";
           return typeof c === "number"
             ? `<c r="${ref}"${style}><v>${c}</v></c>`
             : `<c r="${ref}" t="inlineStr"${style}><is><t xml:space="preserve">${xml(c)}</t></is></c>`;
@@ -134,7 +156,7 @@ export function toXlsx(sheet: Sheet): Uint8Array {
     "xl/_rels/workbook.xml.rels":
       '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>',
     "xl/styles.xml":
-      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs></styleSheet>',
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font><font><b/><sz val="14"/><color rgb="' + argb(BRAND.sheet) + '"/><name val="Arial"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="' + argb(BRAND.black) + '"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf></cellXfs></styleSheet>',
     "xl/worksheets/sheet1.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows}</sheetData></worksheet>`,
   };
   return zip(Object.entries(files).map(([name, content]) => ({ name, data: enc.encode(content) })));

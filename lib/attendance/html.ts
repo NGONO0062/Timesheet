@@ -1,5 +1,6 @@
 // Gabarit de la feuille (.ts-sheet, écran 06) : le même HTML sert à l'aperçu et au
 // PDF (PROMPT.md §11.4). Pur, tout le texte est échappé.
+import { wordmarkHtml } from "../export/brand";
 import { dict } from "../i18n";
 import { SHEET_TEMPLATE } from "./config";
 import type { InternshipKind, SheetBlock, SheetModel } from "./sheet";
@@ -40,7 +41,7 @@ export function sheetHtml(m: SheetModel, signature: PrintedSignature | null = nu
   return [
     `<div class="ts-sheet">`,
     `<table class="ts-sheet-head"><tbody>`,
-    `<tr><td style="width:160px"><span class="logo-slot on-light" role="img" aria-label="${escape(a.logoSlot)}" style="width:20px;height:20px"></span></td><td colspan="3" style="text-align:center">${escape(T.title)}</td></tr>`,
+    `<tr><td style="width:160px">${wordmarkHtml(14)}</td><td colspan="3" style="text-align:center">${escape(T.title)}</td></tr>`,
     `<tr><td>${escape(T.reference)}</td><td style="width:140px;text-align:left">${escape(a.version)} : ${escape(T.version)}</td><td></td><td style="width:240px;text-align:left">${escape(a.updatedOn)} : ${escape(T.updatedOn)}</td></tr>`,
     `</tbody></table>`,
     `<p class="ts-sheet-line"><span>${escape(a.internName)} : <b>${escape(m.name)}</b></span></p>`,
@@ -83,7 +84,6 @@ const SHEET_CSS = [
   `.ts-sheet-bottom{grid-column:2 / -1;display:flex;flex-direction:column;gap:10px;padding:10px;border:2px solid #000}`,
   `.ts-sheet-field{display:inline-flex;align-items:center;min-height:20px;padding:0 5px;border:2px solid #000;font-weight:700}`,
   `.ts-sheet-foot{display:flex;justify-content:space-between;gap:20px;margin-top:auto;padding-top:5px;border-top:2px solid #000}`,
-  `.logo-slot{display:inline-flex;border:2px dashed #000}`,
 ].join("");
 
 /** Document autonome pour l'impression PDF (A4 paysage, une page). */
