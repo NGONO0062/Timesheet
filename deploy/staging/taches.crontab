@@ -1,0 +1,5 @@
+# Tâches planifiées du staging. Heures en UTC : Douala = UTC+1, sans heure d'été.
+# Relance des validateurs : chaque jour ouvré à 07:00, heure de Douala.
+0 6 * * 1-5 wget -q -O - --header "Authorization: Bearer $TASKS_SECRET" --post-data "" http://app:3000/api/taches/relances
+# Rappel de saisie : le vendredi à 12:00, heure de Douala.
+0 11 * * 5 wget -q -O - --header "Authorization: Bearer $TASKS_SECRET" --post-data "" http://app:3000/api/taches/rappels-saisie

@@ -1,0 +1,5 @@
+# Entrée HTTPS du staging : Caddy obtient le certificat pour DOMAIN et relaie vers l'application.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy app:3000
+}

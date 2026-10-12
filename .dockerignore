@@ -1,8 +1,9 @@
 node_modules
 .next
-.env
-.env.local
+**/.env
+**/.env.local
 test-results
 playwright-report
 storage
 design
+.claude
