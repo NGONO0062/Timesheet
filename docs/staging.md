@@ -4,6 +4,21 @@ Ce guide met TimeSheet en ligne sur un serveur gratuit, pour le tester comme en 
 
 Le staging sert à tester. Pas de vraies données d'Orange dessus : seulement des comptes d'essai.
 
+## Sur ce poste d'abord
+
+La même image, sur ce poste seulement (rien n'est ouvert sur Internet). Docker Desktop ouvert, depuis la racine du projet :
+
+```
+powershell -ExecutionPolicy Bypass -File deploy\staging\demarrer-local.ps1
+```
+
+- Application : http://localhost:3000. E-mails de l'application : http://localhost:8025 (Mailpit, rien ne part vraiment).
+- Base vide : créer le premier compte (dans `deploy/staging`) avec `docker compose -f compose.yml -f compose.local.yml run --rm outils npm run plateforme:admin -- adresse "Prénom" "Nom"`, puis ouvrir le lien affiché.
+- Données de démonstration à la place : ajouter `-Demo` à la commande, sur une base vide.
+- Arrêter : `docker compose -f compose.yml -f compose.local.yml stop`. Tout effacer : `down -v` au lieu de `stop`.
+
+Pour un staging en ligne, suivre la suite de ce guide.
+
 ## Ce qu'il faut
 
 - Un compte **Oracle Cloud** (offre « Always Free », gratuite ; une carte bancaire est demandée à l'inscription, rien n'est prélevé).

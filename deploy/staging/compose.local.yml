@@ -1,0 +1,19 @@
+# Variante locale : la même image que le staging et la production, sur ce poste seulement.
+# Application sur http://localhost:3000, e-mails dans Mailpit (http://localhost:8025).
+# Pas de Caddy ni d'adresse publique. Lancement : demarrer-local.ps1.
+services:
+  app:
+    environment:
+      APP_URL: http://localhost:3000
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  outils:
+    environment:
+      APP_URL: http://localhost:3000
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
