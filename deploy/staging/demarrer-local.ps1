@@ -9,6 +9,12 @@ Set-Location $PSScriptRoot
 $compose = @("compose", "-f", "compose.yml", "-f", "compose.local.yml")
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 
+# Une commande docker qui échoue arrête le script (PowerShell ne le fait pas seul).
+function Docker-Step {
+  docker @compose @args
+  if ($LASTEXITCODE -ne 0) { throw "Échec de : docker compose $($args -join ' '). Docker Desktop est-il ouvert ? Reste-t-il de la place sur le disque ?" }
+}
+
 function Secret([int]$bytes) {
   $b = New-Object byte[] $bytes
   [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
@@ -43,12 +49,12 @@ if ($Demo) {
 }
 
 Write-Host "Construction de l'application (longue la première fois)..."
-docker @compose --profile outils build
+Docker-Step --profile outils build
 Write-Host "Base de données..."
-docker @compose up -d db mailpit
-docker @compose run --rm outils npx prisma migrate deploy
-if ($Demo) { docker @compose run --rm outils npx prisma db seed }
-docker @compose up -d app taches
+Docker-Step up -d db mailpit
+Docker-Step run --rm outils npx prisma migrate deploy
+if ($Demo) { Docker-Step run --rm outils npx prisma db seed }
+Docker-Step up -d app taches
 
 Write-Host ""
 Write-Host "TimeSheet : http://localhost:3000"
