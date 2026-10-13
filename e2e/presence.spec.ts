@@ -66,7 +66,9 @@ test("stagiaire : fiche générée, aperçu, PDF, signature par mot de passe", a
   // Aperçu : le gabarit OCM/PS-01/SE/049, horaires habituels de la stagiaire.
   const sheet = page.locator(".ts-sheet");
   await expect(sheet).toContainText("FICHE DE PRESENCE STAGIAIRE");
-  await expect(sheet).toContainText("NOM ET PRENOM DU STAGIAIRE : STAGE Inès");
+  // Mise en page proforma (point 81) : le libellé et le nom sont dans deux cases.
+  await expect(sheet).toContainText("NOM ET PRENOM DU STAGIAIRE");
+  await expect(sheet).toContainText("STAGE Inès");
   await expect(sheet.getByRole("img", { name: "coché", exact: true })).toHaveCount(1);
   await expect(sheet.getByRole("img", { name: "non coché", exact: true })).toHaveCount(2);
   await expect(sheet.getByRole("row", { name: "Lundi 02/02 08:30 17:30" })).toBeVisible();

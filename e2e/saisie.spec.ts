@@ -156,7 +156,7 @@ test.describe("saisie hebdomadaire (écran 3)", () => {
     // Une demi-journée est refusée, avec le message sous la grille.
     await page.getByLabel("Refonte parcours souscription, lundi 16, jours").fill("0,5");
     await expect(page.getByLabel("Refonte parcours souscription, lundi 16, jours")).toHaveAttribute("aria-invalid", "true");
-    await expect(page.getByText("Saisissez 1 pour une journée entière, ou laissez la cellule vide.")).toBeVisible();
+    await expect(page.locator("#raison-soumission")).toHaveText("Saisissez 1 pour une journée entière, ou laissez la cellule vide.");
     await expect(page.getByRole("button", { name: "Soumettre la semaine" })).toBeDisabled();
     await page.getByLabel("Refonte parcours souscription, lundi 16, jours").fill("1");
 
