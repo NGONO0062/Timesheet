@@ -2,7 +2,7 @@ import "server-only";
 // Administration de division (PROMPT.md §9.9) : utilisateurs, rôles et permissions,
 // workflow, règles de saisie. Tout exige ADMINISTER_DIVISION et reste dans la division.
 import type { Prisma, Weekday } from "@prisma/client";
-import { describeRules, internshipData, internshipInput, matrixOf, overridesFor, pageOf, parseNumber, type InternshipInput, type Matrix, type RulesInput, type UserInput, type WorkflowInput } from "@/lib/admin/rules";
+import { DAY_ENTRY, describeRules, internshipData, internshipInput, matrixOf, overridesFor, pageOf, parseNumber, type InternshipInput, type Matrix, type RulesInput, type UserInput, type WorkflowInput } from "@/lib/admin/rules";
 import { dict, t } from "@/lib/i18n";
 import { invitationMail } from "@/lib/mail/templates";
 import { appUrl, sendMail } from "@/lib/mail/send";
@@ -268,10 +268,7 @@ export async function readSettings(divisionId: string) {
     name: division.name,
     workflow: { ownerValidation: s.ownerValidation, hrAutoSend: s.hrAutoSend, hrEmail: s.hrEmail ?? "", reminderAfterWorkingDays: s.reminderAfterWorkingDays, delegateToOwner: s.delegateToOwner } satisfies WorkflowInput,
     rules: {
-      unit: s.unit,
       workingDays: [...s.workingDays] as string[],
-      hoursPerDay: String(Number(s.hoursPerDay)).replace(".", ","),
-      step: Number(s.step),
       deadlineDay: s.deadlineDay as string,
       deadlineTime: s.deadlineTime,
       fillAlertThreshold: String(s.fillAlertThreshold),
@@ -292,11 +289,8 @@ export async function writeWorkflow(divisionId: string, w: WorkflowInput, by: Wr
 export async function writeRules(divisionId: string, r: RulesInput, by: Writer) {
   const before = (await readSettings(divisionId)).rules;
   const data = {
-    // Saisie en jours pas encore branchée (point 52) : l'unité reste l'heure.
-    unit: "HOURS" as const,
+    ...DAY_ENTRY,
     workingDays: r.workingDays as Weekday[],
-    hoursPerDay: parseNumber(r.hoursPerDay)!,
-    step: r.step,
     deadlineDay: r.deadlineDay as "FRIDAY" | "MONDAY",
     deadlineTime: r.deadlineTime.trim(),
     fillAlertThreshold: parseNumber(r.fillAlertThreshold)!,

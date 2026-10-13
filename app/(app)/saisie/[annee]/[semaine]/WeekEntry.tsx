@@ -17,7 +17,7 @@ import { StatusBadge } from "@/components/ts/StatusBadge";
 import { TimeGrid } from "@/components/ts/TimeGrid";
 import { WeekSelector } from "@/components/ts/WeekSelector";
 import { cx } from "@/lib/cx";
-import { capitalize, formatFromTo, formatHours, formatHoursOf, formatNumber, formatRange, formatTime, formatWeekdayDay } from "@/lib/format";
+import { capitalize, formatFromTo, formatDays, formatDaysOf, formatNumber, formatRange, formatTime, formatWeekdayDay } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
 import { isoWeekday, type IsoWeek } from "@/lib/iso-week";
 import { entryHref } from "@/lib/routes";
@@ -47,7 +47,7 @@ const DAY_TONE: Record<DayStatus, Tone | undefined> = {
 };
 
 function errorText(code: EntryActionError, step: number): string {
-  if (code === "invalidHours") return t(e.errors.invalidHours, { step: formatHours(step) });
+  if (code === "invalidHours") return t(e.errors.invalidHours, { step: formatDays(step) });
   return e.errors[code];
 }
 
@@ -205,7 +205,7 @@ export function WeekEntry({ view }: { view: EntryView }) {
   const reason = !view.validator
     ? e.noValidator
     : invalid
-      ? t(dict.grid.invalidNumber, { step: formatHours(step) })
+      ? t(dict.grid.invalidNumber, { step: formatDays(step) })
       : check.canSubmit && view.rejected && flaggedCells.length > 0
         ? t(e.resubmitHint, { name: view.validator.name })
         : check.message;
@@ -328,7 +328,7 @@ export function WeekEntry({ view }: { view: EntryView }) {
         <>
           <section aria-label={e.gridLabel} className="ts-section ts-wide">
             {editable && rows.length > 0 && (
-              <p className="small text-secondary">{t(e.rule, { hours: formatHours(view.hoursPerDay), step: formatHours(step) })}</p>
+              <p className="small text-secondary">{t(e.rule, { hours: formatDays(view.hoursPerDay), step: formatDays(step) })}</p>
             )}
             <TableScroll>
               <TimeGrid
@@ -386,7 +386,7 @@ export function WeekEntry({ view }: { view: EntryView }) {
                     <button className={cx("nav-link", j === day && "active")} type="button" aria-pressed={j === day} onClick={() => setDay(j)}>
                       <span>{`${dict.weekdaysShort[isoWeekday(d)]} ${d.getUTCDate()}`}</span>
                       <span className="small" style={{ fontWeight: 400 }}>
-                        {formatHours(totals[j]!)}
+                        {formatDays(totals[j]!)}
                       </span>
                     </button>
                   </li>
@@ -397,7 +397,7 @@ export function WeekEntry({ view }: { view: EntryView }) {
                   <h2 className="h4" id="titre-jour" tabIndex={-1}>
                     {`${capitalize(formatWeekdayDay(days[day]!))} ${dict.months[days[day]!.getUTCMonth()]}`}
                   </h2>
-                  <Badge tone={DAY_TONE[statuses[day]!]}>{formatHoursOf(totals[day]!, view.expected[day]!)}</Badge>
+                  <Badge tone={DAY_TONE[statuses[day]!]}>{formatDaysOf(totals[day]!, view.expected[day]!)}</Badge>
                 </div>
                 <ul className="list-group">
                   {rows.map((r, i) => {
@@ -422,8 +422,8 @@ export function WeekEntry({ view }: { view: EntryView }) {
                               value={r.values[day] === "" ? "0" : (r.values[day] ?? "0")}
                               onChange={(v) => setCell(r.id, day, v)}
                               step={step}
-                              decreaseLabel={t(e.decrease, { step: formatHours(step) })}
-                              increaseLabel={t(e.increase, { step: formatHours(step) })}
+                              decreaseLabel={t(e.decrease, { step: formatDays(step) })}
+                              increaseLabel={t(e.increase, { step: formatDays(step) })}
                               invalid={flagged || bad}
                               aria-describedby={flagged ? `signal-${i}` : undefined}
                             />
@@ -432,7 +432,7 @@ export function WeekEntry({ view }: { view: EntryView }) {
                         ) : (
                           <>
                             <span style={{ flex: "1 1 100%", display: "flex", flexDirection: "column", gap: 5 }}>{label}</span>
-                            <span className="fw-bold">{formatHours(numbers[i]![day]!)}</span>
+                            <span className="fw-bold">{formatDays(numbers[i]![day]!)}</span>
                           </>
                         )}
                         {flagged && (
@@ -440,7 +440,7 @@ export function WeekEntry({ view }: { view: EntryView }) {
                             {t(dict.grid.flagged, {
                               day: `${capitalize(formatWeekdayDay(days[day]!))} ${dict.months[days[day]!.getUTCMonth()]}`,
                               project: r.project,
-                              hours: formatHours(numbers[i]![day]!),
+                              hours: formatDays(numbers[i]![day]!),
                             })}
                           </FieldError>
                         )}
@@ -476,7 +476,7 @@ export function WeekEntry({ view }: { view: EntryView }) {
               <div className="ts-submitbar ts-wide">
                 <div className="ts-submitbar-sum">
                   <p>
-                    <span className="h2">{formatHours(total)}</span> {t(e.entered, { expected: formatHours(expectedTotal) })}
+                    <span className="h2">{formatDays(total)}</span> {t(e.entered, { expected: formatDays(expectedTotal) })}
                   </p>
                   {!view.rejected && <Progress value={(total * 100) / expectedTotal} label={dict.dashboard.progressLabel} />}
                   <p className="small" id="raison-soumission">{reason}</p>
@@ -488,7 +488,7 @@ export function WeekEntry({ view }: { view: EntryView }) {
               <div className="ts-narrow ts-section" style={{ gap: 20 }}>
                 <div className="ts-submitbar-sum" style={{ paddingTop: 20, borderTop: "2px solid #000000" }}>
                   <p>
-                    <span className="h2">{formatHours(total)}</span> {t(e.entered, { expected: formatHours(expectedTotal) })}
+                    <span className="h2">{formatDays(total)}</span> {t(e.entered, { expected: formatDays(expectedTotal) })}
                   </p>
                   <Progress value={(total * 100) / expectedTotal} label={dict.dashboard.progressLabel} />
                   <p className="small" id="raison-soumission-mobile">{reason}</p>
@@ -552,14 +552,14 @@ export function WeekEntry({ view }: { view: EntryView }) {
             {rows.map((r, i) => (
               <tr key={r.id}>
                 <td>{`${r.project} · ${r.activity}`}</td>
-                <td className="num">{formatHours(sum(numbers[i]!))}</td>
+                <td className="num">{formatDays(sum(numbers[i]!))}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr>
               <th scope="row">{e.weekTotal}</th>
-              <td className="num">{t(e.totalOf, { total: formatHours(total), expected: formatHours(expectedTotal) })}</td>
+              <td className="num">{t(e.totalOf, { total: formatDays(total), expected: formatDays(expectedTotal) })}</td>
             </tr>
           </tfoot>
         </table>

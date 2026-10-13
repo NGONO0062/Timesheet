@@ -21,10 +21,7 @@ const granted = z.array(z.enum(PERMISSIONS)).max(PERMISSIONS.length);
 const matrix = z.object({ STAFF: granted, MANAGER: granted, OWNER: granted, DIVISION_ADMIN: granted });
 const workflow = z.object({ ownerValidation: z.boolean(), hrAutoSend: z.boolean(), hrEmail: z.string().max(254), reminderAfterWorkingDays: z.number().int(), delegateToOwner: z.boolean() });
 const rules = z.object({
-  unit: z.enum(["HOURS", "DAYS"]),
   workingDays: z.array(z.string().max(10)).max(7),
-  hoursPerDay: z.string().max(10),
-  step: z.number(),
   deadlineDay: z.string().max(10),
   deadlineTime: z.string().max(10),
   fillAlertThreshold: z.string().max(10),

@@ -88,7 +88,7 @@ describe("onboarding d'une division", () => {
     // Fin prématurée : il manque les étapes 3 et 4.
     await expect(finishOnboarding(rose, divisionId, meta)).rejects.toEqual(new PlatformRuleError("incomplete", 3));
     await saveRolesAndWorkflow(rose, divisionId, matrixOf([]), { ...mine.workflow, hrEmail: "rh@exemple.com" }, meta);
-    await saveOnboardingRules(rose, divisionId, { ...mine.rules, hoursPerDay: "7,5" }, meta);
+    await saveOnboardingRules(rose, divisionId, { ...mine.rules, fillAlertThreshold: "75" }, meta);
     expect((await getOnboarding(rose, divisionId)).step).toBe(5);
 
     expect(await finishOnboarding(rose, divisionId, meta)).toEqual({ name: "Division d'intégration (plateforme)", email });

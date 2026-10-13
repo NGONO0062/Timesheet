@@ -1,7 +1,7 @@
 // Règles de saisie hebdomadaire (PROMPT.md §9.2). Les valeurs (heures par jour,
 // pas, jours ouvrés, échéance) viennent toujours de DivisionSettings.
 import { dict, t } from "../i18n";
-import { formatDayList, formatHours, formatWeekdayDay, formatNumber } from "../format";
+import { formatDayList, formatDays, formatWeekdayDay, formatNumber } from "../format";
 import { addDays, mondayOf, WEEKDAYS, type IsoWeek, type Weekday } from "../iso-week";
 
 export type EntryRules = {
@@ -75,12 +75,12 @@ export function submitCheck(days: Date[], totals: number[], expected: number[]):
   const over = days.filter((_, j) => (totals[j] ?? 0) > (expected[j] ?? 0) + EPSILON);
   if (over.length) {
     const cap = Math.max(...expected);
-    return { canSubmit: false, message: t(dict.grid.over, { expected: formatHours(cap), days: formatDayList(over) }) };
+    return { canSubmit: false, message: t(dict.grid.over, { expected: formatDays(cap), days: formatDayList(over) }) };
   }
   const under = days.filter((_, j) => (totals[j] ?? 0) < (expected[j] ?? 0) - EPSILON);
   if (under.length) {
     const missing = sum(expected) - sum(totals);
-    return { canSubmit: false, message: t(dict.grid.remaining, { hours: formatHours(missing), days: formatDayList(under) }) };
+    return { canSubmit: false, message: t(dict.grid.remaining, { hours: formatDays(missing), days: formatDayList(under) }) };
   }
   return { canSubmit: true, message: dict.grid.ready };
 }
@@ -91,9 +91,9 @@ export function overDayMessage(day: Date, total: number, expected: number): stri
   const month = dict.months[day.getUTCMonth()] ?? "";
   return t(dict.grid.overDay, {
     day: `${label.charAt(0).toUpperCase()}${label.slice(1)} ${month}`,
-    hours: formatHours(total),
-    expected: formatHours(expected),
-    excess: formatHours(total - expected),
+    hours: formatDays(total),
+    expected: formatDays(expected),
+    excess: formatDays(total - expected),
   });
 }
 

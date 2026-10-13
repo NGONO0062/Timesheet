@@ -1,5 +1,5 @@
 // Formats d'affichage (PROMPT.md §15) : virgule décimale, espace insécable
-// avant « h » et « % », tiret demi-cadratin pour les intervalles, 24 h.
+// avant « jour(s) » et « % », tiret demi-cadratin pour les intervalles, 24 h.
 import { dict } from "./i18n";
 
 export const NBSP = " ";
@@ -11,9 +11,9 @@ export function formatNumber(n: number): string {
   return String(rounded).replace(".", ",").replace("-", "−");
 }
 
-/** 8 → « 8 h » avec espace insécable. */
-export function formatHours(n: number): string {
-  return `${formatNumber(n)}${NBSP}h`;
+/** 1 → « 1 jour », 3 → « 3 jours » avec espace insécable (singulier sous 2). */
+export function formatDays(n: number): string {
+  return `${formatNumber(n)}${NBSP}${Math.abs(n) < 2 ? "jour" : "jours"}`;
 }
 
 /** 0.83 → « 83 % » avec espace insécable. */
@@ -21,9 +21,9 @@ export function formatPercent(ratio: number): string {
   return `${Math.round(ratio * 100)}${NBSP}%`;
 }
 
-/** « 8 / 8 h » : total sur attendu. */
-export function formatHoursOf(done: number, expected: number): string {
-  return `${formatNumber(done)} / ${formatHours(expected)}`;
+/** « 3 / 5 jours » : total sur attendu. */
+export function formatDaysOf(done: number, expected: number): string {
+  return `${formatNumber(done)} / ${formatDays(expected)}`;
 }
 
 // Les dates métier (jours de saisie) sont des dates sans heure, manipulées en UTC.

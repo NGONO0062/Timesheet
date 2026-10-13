@@ -29,7 +29,7 @@ test("projets de démonstration : liste, filtres et affichage dans l'adresse, co
   await expect(page.getByRole("button", { name: "Tous (7)" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".btn-primary:visible")).toHaveCount(1);
   await expect(row(page, "Veille et formation")).toContainText("Toute l'année 2026");
-  await expect(row(page, "Refonte parcours souscription")).toContainText("Budget dépassé de 10 h");
+  await expect(row(page, "Refonte parcours souscription")).toContainText("Budget dépassé de 9 jours");
   await expect(row(page, "Refonte FAQ en ligne").getByRole("button", { name: "Statut de Refonte FAQ en ligne : En pause. Modifier" })).toBeVisible();
   expect(await axe(page)).toEqual([]);
 
@@ -68,7 +68,7 @@ test("projets : création avec erreurs, statut avec « Annuler », archivage", a
   await panel.getByLabel("Date de début").fill("01/04/2026");
   await panel.getByLabel("Date de fin").fill("31/03/2026");
   await panel.getByLabel("Statut").selectOption({ label: "En cours" });
-  await panel.getByLabel("Budget d'heures").fill("120");
+  await panel.getByLabel("Budget en jours").fill("30");
   await panel.getByRole("button", { name: "Créer le projet" }).click();
   await expect(panel.getByText("Saisissez une date de fin au format jj/mm/aaaa, après la date de début.")).toBeVisible();
   await expect(panel.getByText("Ajoutez au moins une activité.")).toBeVisible();
@@ -81,7 +81,7 @@ test("projets : création avec erreurs, statut avec « Annuler », archivage", a
   await panel.getByRole("button", { name: "Créer le projet" }).click();
   await expect(panel).toBeHidden();
   await expect(page.getByRole("status").filter({ hasText: "Projet « Projet de test e2e » créé avec le statut « En cours »." })).toBeVisible();
-  await expect(row(page, "Projet de test e2e")).toContainText("0 / 120 h · 0 %");
+  await expect(row(page, "Projet de test e2e")).toContainText("0 / 30 jours · 0 %");
   await expect(page.getByText("4 projets · 3 en cours")).toBeVisible();
 
   // Statut : changement immédiat, puis « Annuler ».
@@ -115,10 +115,10 @@ test("reporting : indicateurs, axes et périmètre dans l'adresse, exports CSV, 
   await expect(page.getByLabel("De la semaine")).toHaveValue("2026-10");
   await expect(page.getByLabel("À la semaine")).toHaveValue("2026-12");
   const kpis = page.getByRole("list", { name: "Indicateurs de la période" });
-  await expect(kpis).toContainText("Heures saisies");
-  await expect(kpis).toContainText("sur 720 h de capacité (6 personnes, 3 semaines)");
-  await expect(page.getByRole("figure", { name: "Heures par projet, du 2 au 20 mars 2026" })).toBeVisible();
-  const detail = page.getByRole("table", { name: "Heures par projet du 2 au 20 mars 2026" });
+  await expect(kpis).toContainText("Jours saisis");
+  await expect(kpis).toContainText("sur 90 jours de capacité (6 personnes, 3 semaines)");
+  await expect(page.getByRole("figure", { name: "Jours par projet, du 2 au 20 mars 2026" })).toBeVisible();
+  const detail = page.getByRole("table", { name: "Jours par projet du 2 au 20 mars 2026" });
   await expect(detail.locator("tbody").getByRole("rowheader")).toHaveCount(4);
   await expect(detail.locator("tfoot").getByRole("rowheader")).toHaveText("Total");
   expect(await axe(page)).toEqual([]);
@@ -128,7 +128,7 @@ test("reporting : indicateurs, axes et périmètre dans l'adresse, exports CSV, 
   await expect(page.getByRole("heading", { name: "Détail par personne" })).toBeVisible();
   await page.getByLabel("Périmètre").selectOption({ label: "Aïcha Ndongo" });
   await expect(page).toHaveURL(/personne=/);
-  await expect(page.getByRole("table", { name: /^Heures par personne/ }).locator("tbody").getByRole("rowheader")).toHaveText(["Aïcha Ndongo"]);
+  await expect(page.getByRole("table", { name: /^Jours par personne/ }).locator("tbody").getByRole("rowheader")).toHaveText(["Aïcha Ndongo"]);
 
   // Exports : mêmes filtres que l'écran.
   await page.getByRole("button", { name: "Exporter" }).click();

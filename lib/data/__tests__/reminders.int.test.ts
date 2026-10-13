@@ -27,7 +27,7 @@ beforeAll(async () => {
       data: { divisionId, email: `rappel-${k}-${run}@exemple.com`, firstName: "Rappel", lastName: k, role: "STAFF", passwordHash: "x", notificationPrefs: k === "optOut" ? { fillReminder: false } : {} },
     });
     ids[k] = u.id;
-    const hours = k === "complete" || k === "submitted" ? 8 : 4;
+    const hours = k === "complete" || k === "submitted" ? 1 : 0.5;
     await prisma.timesheet.create({
       data: {
         divisionId,

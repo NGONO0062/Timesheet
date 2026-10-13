@@ -1,6 +1,6 @@
 // Règles de projet (PROMPT.md §9.4). Pures : la couche de données les applique
 // côté serveur, l'interface les affiche.
-import { formatDate, formatHours, formatNumber, formatPercent, formatRange, parseFrDate } from "../format";
+import { formatDate, formatDays, formatNumber, formatPercent, formatRange, parseFrDate } from "../format";
 import { dict, t } from "../i18n";
 import { statusLook, type ProjectStatus } from "../status";
 
@@ -60,7 +60,7 @@ export function budgetUsage(consumed: number, budget: number | null): { percent:
   if (budget === null || budget <= 0) return null;
   const percent = Math.round((consumed * 100) / budget);
   const over = consumed - budget;
-  return { percent, overText: over > 0 ? t(dict.project.budgetOver, { hours: formatHours(over) }) : null };
+  return { percent, overText: over > 0 ? t(dict.project.budgetOver, { hours: formatDays(over) }) : null };
 }
 
 /** Tri de la liste : par statut (En cours, À démarrer, En pause, Terminé), puis par code. */
@@ -80,8 +80,8 @@ export function projectPeriodLabel(start: Date, end: Date | null): string {
 /** « 612 / 960 h · 64 % » ou « 148 h · sans budget ». */
 export function consumedText(consumed: number, budget: number | null): string {
   const usage = budgetUsage(consumed, budget);
-  if (!usage || budget === null) return t(dict.project.hoursNoBudget, { used: formatHours(consumed) });
-  return t(dict.project.hoursBudget, { used: formatNumber(consumed), budget: formatHours(budget), percent: formatPercent(usage.percent / 100) });
+  if (!usage || budget === null) return t(dict.project.hoursNoBudget, { used: formatDays(consumed) });
+  return t(dict.project.hoursBudget, { used: formatNumber(consumed), budget: formatDays(budget), percent: formatPercent(usage.percent / 100) });
 }
 
 /** « 7 projets · 4 en cours ». */

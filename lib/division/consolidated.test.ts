@@ -36,7 +36,7 @@ describe("vue consolidée", () => {
     expect(rows[1]).toMatchObject({ fill: 100, submitted: 1, validated: 1, under: false });
     expect(rows[2]!.id).toBe(NO_TEAM);
     expect(total).toMatchObject({ persons: 4, entered: 100, capacity: 160, submitted: 2, validated: 1 });
-    expect(fillText(parcours)).toBe(`75${NBSP}% · 60 / 80${NBSP}h`);
+    expect(fillText(parcours)).toBe(`75${NBSP}% · 60 / 80${NBSP}jours`);
   });
 
   it("écrit les indicateurs de la semaine", () => {
@@ -65,7 +65,7 @@ describe("vue consolidée", () => {
       { id: "libre", name: "Sans budget", consumed: 900, budget: null, owner: null },
     ]);
     expect(budget).toHaveLength(1);
-    expect(driftRow(budget[0]!).gap).toBe(`410${NBSP}h consommées pour 400${NBSP}h prévues (+10${NBSP}h)`);
+    expect(driftRow(budget[0]!).gap).toBe(`410${NBSP}jours consommés pour 400${NBSP}jours prévus (+10${NBSP}jours)`);
 
     const { rows } = teamTable({ teams, people, states: [state("c", W12, 30, "SUBMITTED")], week: W12, weekCapacity: 40, threshold: 80 });
     const under = underfillDrifts(rows, W12, 80);
@@ -92,7 +92,7 @@ describe("vue consolidée", () => {
     });
     // Semaine 11 : échéance passée, rien de soumis ; semaine 12 : échéance à venir.
     expect(missing.map((m) => driftRow(m).object)).toEqual(["Aïcha Ndongo · semaine 11"]);
-    expect(driftRow(missing[0]!).gap).toBe(`40${NBSP}h non saisies`);
+    expect(driftRow(missing[0]!).gap).toBe(`Non saisi : 40${NBSP}jours`);
 
     const all = sortDrifts([...missing, ...late, ...under, ...budget]);
     expect(all.map((x) => x.kind)).toEqual(["BUDGET", "UNDERFILL", "UNDERFILL", "LATE_VALIDATION", "MISSING"]);

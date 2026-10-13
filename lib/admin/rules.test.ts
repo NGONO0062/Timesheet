@@ -3,10 +3,7 @@ import { DEFAULT_MATRIX } from "../permissions";
 import { checkNewPassword, checkRules, checkUser, checkWorkflow, describeRules, internshipData, internshipInput, matrixOf, overridesFor, pageOf, parseNumber, type RulesInput } from "./rules";
 
 const rules: RulesInput = {
-  unit: "HOURS",
   workingDays: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"],
-  hoursPerDay: "8",
-  step: 0.5,
   deadlineDay: "FRIDAY",
   deadlineTime: "18:00",
   fillAlertThreshold: "80",
@@ -45,13 +42,12 @@ describe("règles de saisie", () => {
     expect(parseNumber("7,5")).toBe(7.5);
     expect(parseNumber(" 8 ")).toBe(8);
     expect(parseNumber("8h")).toBeNull();
-    expect(checkRules({ ...rules, hoursPerDay: "7,5" })).toEqual({});
+    expect(checkRules(rules)).toEqual({});
   });
 
   it("refuse chaque champ hors limites", () => {
-    const e = checkRules({ ...rules, workingDays: [], hoursPerDay: "7,3", step: 0.3, deadlineTime: "25:00", fillAlertThreshold: "101" });
-    expect(Object.keys(e).sort()).toEqual(["deadline", "hoursPerDay", "step", "threshold", "workingDays"]);
-    expect(checkRules({ ...rules, hoursPerDay: "0" }).hoursPerDay).toBeDefined();
+    const e = checkRules({ ...rules, workingDays: [], deadlineTime: "25:00", fillAlertThreshold: "101" });
+    expect(Object.keys(e).sort()).toEqual(["deadline", "threshold", "workingDays"]);
     expect(checkRules({ ...rules, deadlineDay: "SUNDAY" }).deadline).toBeDefined();
     expect(checkRules({ ...rules, fillAlertThreshold: "79,5" }).threshold).toBeDefined();
   });
@@ -113,9 +109,8 @@ describe("journal des règles", () => {
   it("écrit ce qui a changé, comme la planche 13", () => {
     expect(describeRules(rules, { ...rules, fillAlertThreshold: "80" })).toEqual([]);
     expect(describeRules({ ...rules, fillAlertThreshold: "75" }, rules)).toEqual(["Seuil d'alerte de remplissage : 80 %"]);
-    expect(describeRules(rules, { ...rules, hoursPerDay: "7", step: 1, allowFutureWeeks: true })).toEqual([
-      "Heures attendues par jour : 7 h",
-      "Pas de saisie : 1 h",
+    expect(describeRules(rules, { ...rules, workingDays: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY"], allowFutureWeeks: true })).toEqual([
+      "Jours ouvrés : Lun, Mar, Mer, Jeu",
       "Autoriser la saisie des semaines futures : Actif",
     ]);
   });

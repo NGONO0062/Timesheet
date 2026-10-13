@@ -59,7 +59,7 @@ beforeAll(async () => {
     },
   });
   foreignProject = { id: p.id, activityId: p.activities[0]!.id };
-  await saveDraft(outsider, { week: W12, comment: "", lines: [{ projectId: p.id, activityId: foreignProject.activityId, hours: [8, 8, null, null, null] }] }, NOW);
+  await saveDraft(outsider, { week: W12, comment: "", lines: [{ projectId: p.id, activityId: foreignProject.activityId, hours: [1, 1, null, null, null] }] }, NOW);
 });
 
 afterAll(async () => {
@@ -113,18 +113,18 @@ describe("enregistrement et soumission", () => {
     expect(veille).toBeDefined();
     const line = (hours: Array<number | null>) => ({ projectId: veille!.projectId, activityId: veille!.activityId, hours });
 
-    await saveDraft(yannick, { week: W12, comment: "Semaine de formation", lines: [line([8, 8, 0, null, null])] }, NOW);
+    await saveDraft(yannick, { week: W12, comment: "Semaine de formation", lines: [line([1, 1, 0, null, null])] }, NOW);
     const frame = weekFrame(W12, await getEntrySettings(yannick));
     const sheet = await getWeekSheet(yannick, W12, frame.days);
     expect(sheet).toMatchObject({ stored: "DRAFT", comment: "Semaine de formation" });
-    expect(sheet.lines[0]!.hours).toEqual([8, 8, 0, null, null]);
+    expect(sheet.lines[0]!.hours).toEqual([1, 1, 0, null, null]);
 
-    await expect(submitWeek(yannick, { week: W12, comment: "", lines: [line([8, 8, 0, null, null])] }, NOW, "Test Intégration")).rejects.toThrow(
+    await expect(submitWeek(yannick, { week: W12, comment: "", lines: [line([1, 1, 0, null, null])] }, NOW, "Test Intégration")).rejects.toThrow(
       new TimesheetRuleError("incomplete"),
     );
-    await expect(saveDraft(yannick, { week: W12, comment: "", lines: [line([8, 8, 8, 8, 8.3])] }, NOW)).rejects.toThrow(new TimesheetRuleError("invalidHours"));
+    await expect(saveDraft(yannick, { week: W12, comment: "", lines: [line([1, 1, 1, 1, 0.5])] }, NOW)).rejects.toThrow(new TimesheetRuleError("invalidHours"));
 
-    await submitWeek(yannick, { week: W12, comment: "", lines: [line([8, 8, 8, 8, 8])] }, NOW, "Test Intégration");
+    await submitWeek(yannick, { week: W12, comment: "", lines: [line([1, 1, 1, 1, 1])] }, NOW, "Test Intégration");
     const submitted = await prisma.timesheet.findFirstOrThrow({ where: { userId: yannick.userId, isoYear: 2026, isoWeek: 12 }, include: { events: true } });
     expect(submitted).toMatchObject({ status: "SUBMITTED", submissionCount: 1 });
     expect(submitted.events.map((e) => e.type).sort()).toEqual(["CREATED", "SUBMITTED"]);
@@ -132,6 +132,6 @@ describe("enregistrement et soumission", () => {
     expect(audit).toMatchObject({ divisionId: divisionA, objectLabel: "Semaine 12", result: "SUCCESS" });
 
     // Soumise : plus modifiable.
-    await expect(saveDraft(yannick, { week: W12, comment: "", lines: [line([8, 8, 8, 8, 8])] }, NOW)).rejects.toThrow(new TimesheetRuleError("notEditable"));
+    await expect(saveDraft(yannick, { week: W12, comment: "", lines: [line([1, 1, 1, 1, 1])] }, NOW)).rejects.toThrow(new TimesheetRuleError("notEditable"));
   });
 });

@@ -1,6 +1,6 @@
 // Modèle de l'écran Reporting (planche 10), partagé par la page et les exports.
 // Pur : il ne fait que mettre en forme les données de la couche d'accès.
-import { formatFromTo, formatHours, formatRange } from "../format";
+import { formatFromTo, formatDays, formatRange } from "../format";
 import { dict, t } from "../i18n";
 import { addDays, compareWeeks, isValidIsoWeek, mondayOf, shiftWeek, type IsoWeek } from "../iso-week";
 import {
@@ -99,28 +99,28 @@ export function buildReportView(input: {
       label: s.label,
       cls: s.cls as SeriesClass,
       value: s.total,
-      valueText: formatHours(s.total),
+      valueText: formatDays(s.total),
       width: Math.round((s.total * 100) / maxBar),
     })),
-    barsAria: t(r.barsAria, { items: perSeries.map((s) => t(r.hoursOf, { label: s.label, hours: formatHours(s.total) })).join(", ") }),
+    barsAria: t(r.barsAria, { items: perSeries.map((s) => t(r.hoursOf, { label: s.label, hours: formatDays(s.total) })).join(", ") }),
     columns: weeks.map((w, j) => ({
       key: weekKey(w),
       label: compareWeeks(w, current) >= 0 ? t(r.weekOpen, { week: w.week }) : t(r.weekLabel, { week: w.week }),
       open: compareWeeks(w, current) >= 0,
       total: weekTotals[j]!,
-      totalText: formatHours(weekTotals[j]!),
+      totalText: formatDays(weekTotals[j]!),
       height: Math.round((weekTotals[j]! * COLUMN_HEIGHT) / maxCol),
       // De bas en haut : la première série en bas de la pile.
       segments: perSeries
         .filter((s) => s.byWeek[j]! > 0)
-        .map((s) => ({ key: s.key, cls: s.cls as SeriesClass, value: s.byWeek[j]!, title: t(r.segment, { label: s.label, week: w.week, hours: formatHours(s.byWeek[j]!) }) }))
+        .map((s) => ({ key: s.key, cls: s.cls as SeriesClass, value: s.byWeek[j]!, title: t(r.segment, { label: s.label, week: w.week, hours: formatDays(s.byWeek[j]!) }) }))
         .reverse(),
     })),
     columnsAria: t(r.columnsAria, {
-      items: weeks.map((w, j) => `${t(r.weekLabel, { week: w.week })}, ${formatHours(weekTotals[j]!)}`).join(" ; "),
+      items: weeks.map((w, j) => `${t(r.weekLabel, { week: w.week })}, ${formatDays(weekTotals[j]!)}`).join(" ; "),
     }),
     legend: perSeries.map((s) => ({ key: s.key, label: s.label, cls: s.cls as SeriesClass })),
-    capacityNote: t(r.capacityNote, { hours: formatHours(round(selectedPeople.length * (input.weekCapacity[0] ?? 0))) }),
+    capacityNote: t(r.capacityNote, { hours: formatDays(round(selectedPeople.length * (input.weekCapacity[0] ?? 0))) }),
     table: {
       head: weeks.map((w) => t(r.weekLabel, { week: w.week })),
       rows: entities.map((e) => ({
@@ -128,13 +128,13 @@ export function buildReportView(input: {
         label: e.label,
         sub: e.sub,
         count: e.count,
-        cells: e.byWeek.map((h) => formatHours(h)),
-        total: formatHours(e.total),
+        cells: e.byWeek.map((h) => formatDays(h)),
+        total: formatDays(e.total),
         share: formatShare(e.total, grand),
         series: seriesOf(e.key).cls as SeriesClass,
         raw: { byWeek: e.byWeek, total: e.total, share: grand > 0 ? e.total / grand : 0 },
       })),
-      foot: { cells: weekTotals.map((h) => formatHours(h)), total: formatHours(grand), share: formatShare(grand, grand), raw: { byWeek: weekTotals, total: grand } },
+      foot: { cells: weekTotals.map((h) => formatDays(h)), total: formatDays(grand), share: formatShare(grand, grand), raw: { byWeek: weekTotals, total: grand } },
     },
   };
 }

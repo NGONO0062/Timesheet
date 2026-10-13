@@ -6,8 +6,9 @@ import { utcDate } from "@/lib/iso-week";
 import { expectedPerDay, parseHours, dayTotals, submitCheck } from "@/lib/timesheet/rules";
 
 export const DAYS = [16, 17, 18, 19, 20].map((d) => utcDate(2026, 3, d));
-export const EXPECTED = expectedPerDay(DAYS, 8);
-export const STEP = 0.5;
+// Saisie en jours entiers (questions ouvertes, point 82) : 1 par jour, pas de 1.
+export const EXPECTED = expectedPerDay(DAYS, 1);
+export const STEP = 1;
 
 export const row = (id: string, project: string, activity: string, values: string[], flagged?: boolean[]): GridRow => ({
   id, project, activity, values, flagged,

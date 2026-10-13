@@ -246,11 +246,11 @@ L'écran se lit de haut en bas, du plus urgent au moins urgent.
 ### 9.2 Saisie hebdomadaire
 
 - Semaines ISO, du lundi au vendredi (jours ouvrés réglables par division). Fuseau `Africa/Douala`.
-- Unité : l'heure. 8 h attendues par jour, 40 h par semaine, pas de 0,5 h. Ces trois valeurs viennent de `DivisionSettings`, ne les écris jamais en dur.
+- Unité : le jour entier (décision du 13/10/2026, `docs/questions-ouvertes.md`, point 82). Une cellule vaut 1 ou reste vide : une journée sur un seul projet, ni heures ni demi-journée. 1 jour attendu par jour ouvré, 5 par semaine. Ces valeurs viennent de `DivisionSettings`, ne les écris jamais en dur.
 - Une ligne = un projet + une activité. On ne peut ajouter que les projets auxquels on est affecté, qui couvrent la semaine et dont le statut est « En cours ».
 - Une cellule accepte un nombre positif, multiple du pas, avec la virgule comme séparateur décimal.
-- Statut de chaque jour, affiché en badge sous le total : `À saisir` (0 h), `Incomplet` (entre 0 et 8), `Complet` (8), `Dépassement` (plus de 8, en erreur).
-- Le bouton Soumettre n'est actif que si chaque jour ouvré totalise exactement les heures attendues. Quand il est inactif, la raison est écrite à côté (« Il reste 16 h à saisir : jeudi 19 et vendredi 20 mars. »).
+- Statut de chaque jour, affiché en badge sous le total : `À saisir` (rien), `Complet` (1 jour), `Dépassement` (plus d'un jour, en erreur). `Incomplet` ne reste que pour d'anciennes saisies en heures converties.
+- Le bouton Soumettre n'est actif que si chaque jour ouvré est saisi, une journée exactement. Quand il est inactif, la raison est écrite à côté (« Il reste 2 jours à saisir : jeudi 19 et vendredi 20 mars. »).
 - Sauvegarde automatique du brouillon, environ une seconde après la dernière frappe. Une zone `role="status"` annonce « Brouillon enregistré automatiquement à 10:42 ». Si l'enregistrement échoue : « Brouillon non enregistré », et la saisie reste à l'écran.
 - La soumission passe par une modale de confirmation : période, validateur, heures par projet, total.
 - Une fois soumise, la fiche est en lecture seule. Les valeurs s'affichent en texte, pas en champs désactivés.
@@ -271,7 +271,7 @@ L'écran se lit de haut en bas, du plus urgent au moins urgent.
 
 ### 9.4 Projets
 
-- Champs : nom, code (du type `CX-2026-01`), dates de début et de fin, statut, budget d'heures facultatif, activités, membres.
+- Champs : nom, code (du type `CX-2026-01`), dates de début et de fin, statut, budget en jours facultatif, activités, membres.
 - **Statut**, porté par une étiquette (planche `C4-Etiquettes-statut`) :
 
   | Statut | Valeur | Saisie des temps |
@@ -285,7 +285,7 @@ L'écran se lit de haut en bas, du plus urgent au moins urgent.
 - Le changement est immédiat, sans fenêtre de confirmation. Un message de statut le confirme, dit l'effet sur la saisie et propose « Annuler ». Chaque changement crée une ligne d'`AuditLog`.
 - Quand un projet quitte « En cours », les lignes déjà présentes dans les brouillons de la semaine restent visibles en lecture seule, avec les heures déjà saisies. On ne peut plus y ajouter d'heures.
 - Le statut ne change jamais tout seul. Si la date de fin est passée et que le projet est encore « En cours », la ligne affiche « Date de fin dépassée » et laisse le manager décider.
-- Heures consommées : somme des heures des fiches soumises ou validées, sur le budget, avec une barre. Au-delà de 100 %, la barre passe en rouge et un texte dit « Budget dépassé de 10 h ». Le budget n'a pas d'étiquette : une ligne ne porte qu'une étiquette, le statut.
+- Jours consommés : somme des jours des fiches soumises ou validées, sur le budget, avec une barre. Au-delà de 100 %, la barre passe en rouge et un texte dit « Budget dépassé de 10 jours ». Le budget n'a pas d'étiquette : une ligne ne porte qu'une étiquette, le statut.
 - Deux affichages, par un Button group « Liste / Colonnes » :
   - **Liste** : tableau filtrable par statut (pills « Tous », « En cours », « À démarrer », « En pause », « Terminés », chacune avec son compte). Tri par statut puis par code.
   - **Colonnes** : une colonne par statut, une carte par projet. Pas de glisser-déposer : le statut se change par l'étiquette, au clavier comme à la souris. Sous 1024 px, seul l'affichage en liste est proposé. Le choix d'affichage est gardé dans l'URL (`?vue=colonnes`).
@@ -295,7 +295,7 @@ L'écran se lit de haut en bas, du plus urgent au moins urgent.
 ### 9.5 Reporting (manager)
 
 - Axe d'analyse : Projet, Personne ou Activité. Période de semaine à semaine. Périmètre : toute l'équipe ou une personne.
-- Indicateurs : heures saisies sur la capacité (personnes × semaines × heures hebdomadaires), taux de remplissage, fiches validées sur le total attendu.
+- Indicateurs : jours saisis sur la capacité (personnes × semaines × jours ouvrés), taux de remplissage, fiches validées sur le total attendu.
 - Heures par projet en barres, une couleur par projet. Heures par semaine en colonnes empilées par projet, avec les mêmes couleurs, le total écrit au-dessus et une légende (colonne évidée pour la semaine en cours de validation). Tableau de détail avec la part de chaque projet.
 - Export CSV, Excel, PDF.
 
@@ -341,7 +341,7 @@ Une page à ancres : Utilisateurs, Rôles et permissions, Workflows, Règles de 
 - **Utilisateurs** : recherche, invitation par e-mail, changement de rôle, rattachement à un manager, activation ou désactivation, pagination. Un compte désactivé ne peut plus se connecter mais ses données restent.
 - **Rôles et permissions** : la matrice du §7.
 - **Workflows** : étapes du circuit, adresse e-mail des RH (obligatoire), délai de relance (2, 3 ou 5 jours ouvrés), délégation au N+2.
-- **Règles de saisie** : unité, jours ouvrés, heures par jour, pas (0,25 / 0,5 / 1 h), échéance (vendredi ou lundi suivant, avec l'heure), seuil d'alerte, saisie des semaines futures, verrouillage après validation.
+- **Règles de saisie** : jours ouvrés, échéance (vendredi ou lundi suivant, avec l'heure), seuil d'alerte, saisie des semaines futures, verrouillage après validation.
 - Chaque interrupteur a son état écrit à côté (Actif / Désactivé).
 
 ### 9.10 Administration plateforme

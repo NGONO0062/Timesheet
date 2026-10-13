@@ -2,7 +2,7 @@ import "server-only";
 // Validation des fiches (PROMPT.md §9.3). Portée : un manager voit ses rattachés
 // directs, un owner toute sa division ; personne ne voit une autre division.
 import type { Prisma } from "@prisma/client";
-import { formatHours, formatDate, formatRange, zonedDay } from "@/lib/format";
+import { formatDays, formatDate, formatRange, zonedDay } from "@/lib/format";
 import { todayInDivision, type IsoWeek } from "@/lib/iso-week";
 import { rejectedMail, reminderMail, validatedMail } from "@/lib/mail/templates";
 import { appUrl, sendMail } from "@/lib/mail/send";
@@ -243,7 +243,7 @@ export async function decide(scope: DivisionScope, ids: string[], decision: Deci
     const ref = { week: week.week, range: formatRange(frame.days[0]!, frame.days.at(-1)!), url: appUrl(entryHref(week)) };
     if (next === "VALIDATED" && wantsNotification(sheet.user.notificationPrefs, "validated")) {
       const hours = sum(sheet.lines.flatMap((l) => l.entries.map((e) => Number(e.hours))));
-      await sendMail(validatedMail({ ...ref, to: sheet.user.email, firstName: sheet.user.firstName, validator: actorLabel, hours: formatHours(hours) }));
+      await sendMail(validatedMail({ ...ref, to: sheet.user.email, firstName: sheet.user.firstName, validator: actorLabel, hours: formatDays(hours) }));
     }
     if (next === "REJECTED" && wantsNotification(sheet.user.notificationPrefs, "rejected")) {
       await sendMail(rejectedMail({ ...ref, to: sheet.user.email, firstName: sheet.user.firstName, validator: actorLabel, reason }));

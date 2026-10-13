@@ -49,30 +49,29 @@ test.describe("comportements clavier", () => {
   test("grille : les flèches déplacent, les totaux et la soumission suivent la saisie", async ({ page }) => {
     await page.goto("/design/c2-a");
     const section = page.locator("section", { has: page.getByRole("heading", { name: "2. Partiellement remplie" }) });
-    const thu = section.getByRole("textbox", { name: "Refonte parcours souscription, jeudi 19, heures" });
+    const thu = section.getByRole("textbox", { name: "Refonte parcours souscription, jeudi 19, jours" });
     await thu.click();
     await page.keyboard.press("ArrowDown");
-    await expect(section.getByRole("textbox", { name: "Baromètre NPS T1 2026, jeudi 19, heures" })).toBeFocused();
+    await expect(section.getByRole("textbox", { name: "Baromètre NPS T1 2026, jeudi 19, jours" })).toBeFocused();
     await page.keyboard.press("ArrowLeft");
-    await expect(section.getByRole("textbox", { name: "Baromètre NPS T1 2026, mercredi 18, heures" })).toBeFocused();
+    await expect(section.getByRole("textbox", { name: "Baromètre NPS T1 2026, mercredi 18, jours" })).toBeFocused();
 
     const submit = section.getByRole("button", { name: "Soumettre la semaine" });
     await expect(submit).toBeDisabled();
-    await expect(section.getByText("Il reste 16 h à saisir : jeudi 19 et vendredi 20 mars.")).toBeVisible();
-    for (const [project, value] of [["Refonte parcours souscription", "4"], ["Baromètre NPS T1 2026", "4"]]) {
-      await section.getByRole("textbox", { name: `${project}, jeudi 19, heures` }).fill(value!);
-      await section.getByRole("textbox", { name: `${project}, vendredi 20, heures` }).fill(value!);
-    }
+    await expect(section.getByText("Il reste 2\u00a0jours à saisir : jeudi 19 et vendredi 20 mars.")).toBeVisible();
+    // Une journée entière par jour, sur un seul projet.
+    await section.getByRole("textbox", { name: "Refonte parcours souscription, jeudi 19, jours" }).fill("1");
+    await section.getByRole("textbox", { name: "Baromètre NPS T1 2026, vendredi 20, jours" }).fill("1");
     await expect(submit).toBeEnabled();
     await expect(section.getByText("La semaine est complète. Vous pouvez la soumettre.")).toBeVisible();
   });
 
   test("grille : un dépassement est relié aux cellules par aria-describedby", async ({ page }) => {
     await page.goto("/design/c2-a");
-    const cell = page.getByRole("textbox", { name: "Refonte parcours souscription, mercredi 18, heures" }).nth(1);
+    const cell = page.getByRole("textbox", { name: "Refonte parcours souscription, mercredi 18, jours" }).nth(1);
     await expect(cell).toHaveAttribute("aria-invalid", "true");
     const id = await cell.getAttribute("aria-describedby");
-    await expect(page.locator(`[id="${id}"]`)).toHaveText(/Mercredi 18 mars : 10\sh saisies pour 8\sh attendues/);
+    await expect(page.locator(`[id="${id}"]`)).toHaveText(/Mercredi 18 mars : 2\sjours saisis pour 1\sjour attendu/);
   });
 
   test("étiquette de projet : changement immédiat avec « Annuler »", async ({ page }) => {
@@ -137,7 +136,7 @@ test.describe("étiquette de projet (ProjectStatusMenu)", () => {
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Enter");
     const card = page.locator(".card", { has: page.getByRole("heading", { name: "Étiquette de projet dans un tableau à défilement" }) });
-    await expect(card.getByRole("status")).toHaveText(/« Refonte FAQ en ligne » est passé à « En cours ». Ses membres peuvent y saisir des heures./);
+    await expect(card.getByRole("status")).toHaveText(/« Refonte FAQ en ligne » est passé à « En cours ». Ses membres peuvent y saisir leurs journées./);
     await expect(trigger()).toHaveAccessibleName(/En cours/);
     await card.getByRole("status").getByRole("button", { name: "Annuler" }).click();
     await expect(trigger()).toHaveAccessibleName(/En pause/);

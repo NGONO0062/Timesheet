@@ -7,19 +7,19 @@ import { DAYS, EXPECTED, STEP, row, useGrid } from "../grid-demo";
 
 // Planche C2-Grille-etats-B : soumise, rejetée, validée.
 const SUBMITTED = [
-  row("r1", "Refonte parcours souscription", "Tests utilisateurs", ["4", "4", "3", "5", "4"]),
-  row("r2", "Baromètre NPS T1 2026", "Analyse", ["2", "4", "3", "3", "2"]),
-  row("r3", "Cartographie des irritants", "Atelier", ["2", "0", "2", "0", "2"]),
+  row("r1", "Refonte parcours souscription", "Tests utilisateurs", ["1", "1", "", "", ""]),
+  row("r2", "Baromètre NPS T1 2026", "Analyse", ["", "", "1", "1", ""]),
+  row("r3", "Cartographie des irritants", "Atelier", ["", "", "", "", "1"]),
 ];
 const REJECTED = [
-  row("r1", "Refonte parcours souscription", "Tests utilisateurs", ["4", "4", "3", "5", "4"], [false, false, false, true, false]),
-  row("r2", "Baromètre NPS T1 2026", "Analyse", ["2", "4", "3", "3", "2"]),
-  row("r3", "Cartographie des irritants", "Atelier", ["2", "0", "2", "0", "2"]),
+  row("r1", "Refonte parcours souscription", "Tests utilisateurs", ["1", "1", "", "1", ""], [false, false, false, true, false]),
+  row("r2", "Baromètre NPS T1 2026", "Analyse", ["", "", "1", "", ""]),
+  row("r3", "Cartographie des irritants", "Atelier", ["", "", "", "", "1"]),
 ];
 const VALIDATED = [
-  row("r1", "Refonte parcours souscription", "Tests utilisateurs", ["4", "4", "3", "0", "4"]),
-  row("r2", "Baromètre NPS T1 2026", "Analyse", ["2", "4", "3", "5", "2"]),
-  row("r3", "Cartographie des irritants", "Atelier", ["2", "0", "2", "3", "2"]),
+  row("r1", "Refonte parcours souscription", "Tests utilisateurs", ["1", "1", "", "", ""]),
+  row("r2", "Baromètre NPS T1 2026", "Analyse", ["", "", "1", "1", ""]),
+  row("r3", "Cartographie des irritants", "Atelier", ["", "", "", "", "1"]),
 ];
 
 const sectionStyle = { display: "flex", flexDirection: "column", gap: 20 } as const;
@@ -56,7 +56,7 @@ export default function Page() {
           <StatusBadge kind="timesheet" value="REJECTED" />
         </div>
         <Alert tone="danger" role="alert" heading="Fiche rejetée par Samuel Etoga, le 23 mars 2026 à 09:15">
-          <p>Motif : « Jeudi 19 mars, 5 h déclarées sur Refonte parcours souscription alors que l&apos;atelier de tests a été annulé. Merci de réaffecter ces heures. »</p>
+          <p>Motif : « Jeudi 19 mars, journée déclarée sur Refonte parcours souscription alors que l&apos;atelier de tests a été annulé. Merci de réaffecter cette journée. »</p>
         </Alert>
         <Rejected />
       </section>

@@ -468,7 +468,7 @@ function ProjectPanel({ project, team, onClose, onSaved }: {
             value={form.budget}
             onChange={(e) => set("budget", e.target.value)}
           />
-          <span className="input-group-text">h</span>
+          <span className="input-group-text">jours</span>
         </div>
         {err("p-budget", errors.budget)}
       </div>

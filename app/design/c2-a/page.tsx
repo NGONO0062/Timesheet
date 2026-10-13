@@ -8,18 +8,18 @@ import { DAYS, EXPECTED, STEP, row, useGrid } from "../grid-demo";
 
 // Planche C2-Grille-etats-A : vide, partielle, dépassement, complète.
 const PARTIAL = [
-  row("r1", "Refonte parcours souscription", "Tests utilisateurs", ["4", "4", "3", "", ""]),
-  row("r2", "Baromètre NPS T1 2026", "Analyse", ["2", "4", "3", "", ""]),
-  row("r3", "Cartographie des irritants", "Atelier", ["2", "0", "2", "", ""]),
+  row("r1", "Refonte parcours souscription", "Tests utilisateurs", ["1", "", "", "", ""]),
+  row("r2", "Baromètre NPS T1 2026", "Analyse", ["", "1", "", "", ""]),
+  row("r3", "Cartographie des irritants", "Atelier", ["", "", "1", "", ""]),
 ];
 const OVER = [
-  row("r1", "Refonte parcours souscription", "Tests utilisateurs", ["4", "4", "5", "", ""]),
-  row("r2", "Baromètre NPS T1 2026", "Analyse", ["4", "4", "5", "", ""]),
+  row("r1", "Refonte parcours souscription", "Tests utilisateurs", ["1", "1", "1", "", ""]),
+  row("r2", "Baromètre NPS T1 2026", "Analyse", ["", "", "1", "", ""]),
 ];
 const COMPLETE = [
-  row("r1", "Refonte parcours souscription", "Tests utilisateurs", ["4", "4", "3", "5", "4"]),
-  row("r2", "Baromètre NPS T1 2026", "Analyse", ["2", "4", "3", "3", "2"]),
-  row("r3", "Cartographie des irritants", "Atelier", ["2", "0", "2", "0", "2"]),
+  row("r1", "Refonte parcours souscription", "Tests utilisateurs", ["1", "1", "", "", ""]),
+  row("r2", "Baromètre NPS T1 2026", "Analyse", ["", "", "1", "1", ""]),
+  row("r3", "Cartographie des irritants", "Atelier", ["", "", "", "", "1"]),
 ];
 
 const sectionStyle = { display: "flex", flexDirection: "column", gap: 20 } as const;

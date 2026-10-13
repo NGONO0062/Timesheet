@@ -1,7 +1,7 @@
 // Reporting (PROMPT.md §9.5) et règles des graphiques (§4.3, point 6). Pur : la
 // couche de données fournit les heures et les fiches, l'écran et les exports
 // affichent le résultat.
-import { NBSP, formatNumber } from "../format";
+import { NBSP, formatDays } from "../format";
 import { dict, t } from "../i18n";
 import { compareWeeks, type IsoWeek } from "../iso-week";
 import { displayStatus, type StoredStatus } from "../timesheet/rules";
@@ -124,12 +124,12 @@ export function kpiTexts(k: Kpis) {
   const plural = (n: number, one: string, many: string) => t(n > 1 ? many : one, { n });
   const fill = k.capacity > 0 ? Math.round((k.entered * 100) / k.capacity) : 0;
   const missingParts = [
-    k.missingHours > 0 ? t(r.notEntered, { hours: `${formatNumber(k.missingHours)}${NBSP}h` }) : r.nothingMissing,
+    k.missingHours > 0 ? t(r.notEntered, { hours: formatDays(k.missingHours) }) : r.nothingMissing,
     ...(k.missingSheets > 0 ? [plural(k.missingSheets, r.missingSheetsOne, r.missingSheetsMany)] : []),
   ];
   return {
     capacity: t(r.capacityOf, {
-      capacity: `${formatNumber(k.capacity)}${NBSP}h`,
+      capacity: formatDays(k.capacity),
       persons: plural(k.persons, r.personsOne, r.personsMany),
       weeks: plural(k.weeks, r.weeksOne, r.weeksMany),
     }),

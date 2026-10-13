@@ -39,7 +39,7 @@ describe("saisie selon le statut du projet", () => {
 describe("changement de statut", () => {
   it("dit le nouveau statut et l'effet sur la saisie", () => {
     expect(statusChangedMessage("Refonte FAQ en ligne", "IN_PROGRESS")).toBe(
-      "« Refonte FAQ en ligne » est passé à « En cours ». Ses membres peuvent y saisir des heures.",
+      "« Refonte FAQ en ligne » est passé à « En cours ». Ses membres peuvent y saisir leurs journées.",
     );
     expect(statusChangedMessage("Refonte FAQ en ligne", "ON_HOLD")).toBe(
       "« Refonte FAQ en ligne » est passé à « En pause ». La saisie des temps y est fermée.",
@@ -58,7 +58,7 @@ describe("changement de statut", () => {
 describe("budget et tri", () => {
   it("écrit le dépassement de budget, sans étiquette", () => {
     expect(budgetUsage(296, 320)).toEqual({ percent: 93, overText: null });
-    expect(budgetUsage(410, 400)).toEqual({ percent: 103, overText: `Budget dépassé de 10${NBSP}h` });
+    expect(budgetUsage(410, 400)).toEqual({ percent: 103, overText: `Budget dépassé de 10${NBSP}jours` });
     expect(budgetUsage(120, null)).toBeNull();
   });
 
@@ -112,9 +112,9 @@ describe("écran Projets (jalon 4)", () => {
     expect(projectPeriodLabel(d(2026, 1, 5), d(2026, 6, 26))).toBe("5 janv. – 26 juin 2026");
     expect(projectPeriodLabel(d(2026, 1, 1), d(2026, 12, 31))).toBe("Toute l'année 2026");
     expect(projectPeriodLabel(d(2026, 1, 5), null)).toBe("Depuis le 5 janvier 2026");
-    expect(consumedText(612, 960)).toBe(`612 / 960${NBSP}h · 64${NBSP}%`);
-    expect(consumedText(410, 400)).toBe(`410 / 400${NBSP}h · 103${NBSP}%`);
-    expect(consumedText(148, null)).toBe(`148${NBSP}h · sans budget`);
+    expect(consumedText(612, 960)).toBe(`612 / 960${NBSP}jours · 64${NBSP}%`);
+    expect(consumedText(410, 400)).toBe(`410 / 400${NBSP}jours · 103${NBSP}%`);
+    expect(consumedText(148, null)).toBe(`148${NBSP}jours · sans budget`);
     expect(projectSummary(7, 4)).toBe("7 projets · 4 en cours");
   });
 

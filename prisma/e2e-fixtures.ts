@@ -121,13 +121,14 @@ export async function resetE2eFixtures(): Promise<void> {
     // Projets créés par les tests de l'écran Projets (activités et membres suivent).
     await prisma.project.deleteMany({ where: { divisionId: division.id, code: { notIn: ["CX-2026-00", "CX-2026-01", "CX-2026-04"] } } });
 
-    const entries = (week: 11 | 12, hours: Array<number | null>, flaggedDay?: number) =>
-      hours.flatMap((h, i) => (h === null ? [] : [{ date: plusDays(MONDAY[week], i), hours: h, flagged: i === flaggedDay }]));
+    // Jours du lundi au vendredi : 1 = journée entière, null = cellule vide.
+    const entries = (week: 11 | 12, days: Array<number | null>, flaggedDay?: number) =>
+      days.flatMap((h, i) => (h === null ? [] : [{ date: plusDays(MONDAY[week], i), hours: h, flagged: i === flaggedDay }]));
     const sheet = async (
       userId: string,
       week: 11 | 12,
       status: "DRAFT" | "SUBMITTED" | "REJECTED",
-      lines: Array<{ projectId: string; activityId: string; hours: Array<number | null>; flaggedDay?: number }>,
+      lines: Array<{ projectId: string; activityId: string; days: Array<number | null>; flaggedDay?: number }>,
       events: Array<{ type: string; actorId: string; at: string; note?: string }> = [],
       extra: { submittedAt?: string; decidedAt?: string; reason?: string } = {},
     ) => {
@@ -148,7 +149,7 @@ export async function resetE2eFixtures(): Promise<void> {
               projectId: l.projectId,
               activityId: l.activityId,
               position,
-              entries: { create: entries(week, l.hours, l.flaggedDay) },
+              entries: { create: entries(week, l.days, l.flaggedDay) },
             })),
           },
         },
@@ -159,14 +160,14 @@ export async function resetE2eFixtures(): Promise<void> {
     };
 
     // Rémi Rejet : semaine 12 soumise mercredi, rejetée jeudi matin (avant l'horloge de démonstration).
-    const reason = "Jeudi 19 mars : 7 h sur Refonte parcours souscription, à vérifier.";
+    const reason = "Jeudi 19 mars : journée sur Refonte parcours souscription, à vérifier.";
     await sheet(
       staff.rejected.id,
       12,
       "REJECTED",
       [
-        { ...line(refonte), hours: [6, 6, 6, 7, 6], flaggedDay: 3 },
-        { ...line(veille), hours: [2, 2, 2, 1, 2] },
+        { ...line(refonte), days: [1, 1, 1, 1, null], flaggedDay: 3 },
+        { ...line(veille), days: [null, null, null, null, 1] },
       ],
       [
         { type: "SUBMITTED", actorId: staff.rejected.id, at: "2026-03-18T15:00:00Z" },
@@ -177,22 +178,23 @@ export async function resetE2eFixtures(): Promise<void> {
 
     // Nina Mobile : brouillon avec une ligne d'un projet terminé (lecture seule).
     await sheet(staff.mobile.id, 12, "DRAFT", [
-      { ...line(usage), hours: [2, null, null, null, null] },
-      { ...line(veille), hours: [6, 8, 8, null, null] },
+      { ...line(usage), days: [1, null, null, null, null] },
+      { ...line(veille), days: [null, 1, 1, null, null] },
     ]);
 
     // Fiches soumises, à valider ou rejeter.
-    const full = (h: number) => [
-      { ...line(refonte), hours: [h, h, h, h, h] },
-      { ...line(veille), hours: [8 - h, 8 - h, 8 - h, 8 - h, 8 - h] },
+    // n premiers jours sur la refonte, le reste de la semaine en veille.
+    const full = (n: number) => [
+      { ...line(refonte), days: [0, 1, 2, 3, 4].map((i) => (i < n ? 1 : null)) },
+      { ...line(veille), days: [0, 1, 2, 3, 4].map((i) => (i < n ? null : 1)) },
     ];
-    for (const [user, week, h, at] of [
-      [staff.alice, 12, 6, "2026-03-18T16:00:00Z"],
-      [staff.bruno, 12, 5, "2026-03-18T16:10:00Z"],
-      [staff.chloe, 12, 4, "2026-03-18T16:20:00Z"],
-      [staff.david, 11, 7, "2026-03-13T16:30:00Z"],
+    for (const [user, week, n, at] of [
+      [staff.alice, 12, 4, "2026-03-18T16:00:00Z"],
+      [staff.bruno, 12, 3, "2026-03-18T16:10:00Z"],
+      [staff.chloe, 12, 2, "2026-03-18T16:20:00Z"],
+      [staff.david, 11, 4, "2026-03-13T16:30:00Z"],
     ] as const) {
-      await sheet(user.id, week, "SUBMITTED", full(h), [{ type: "SUBMITTED", actorId: user.id, at }], { submittedAt: at });
+      await sheet(user.id, week, "SUBMITTED", full(n), [{ type: "SUBMITTED", actorId: user.id, at }], { submittedAt: at });
     }
 
     // Inès Stage : stagiaire de Martin Valideur. Février 2026 (semaines 6 à 9) validé,
@@ -216,7 +218,7 @@ export async function resetE2eFixtures(): Promise<void> {
           decidedById: manager.id,
           decidedAt: plusDays(monday, 7),
           lines: {
-            create: [{ ...line(veille), position: 0, entries: { create: [0, 1, 2, 3, 4].map((i) => ({ date: plusDays(monday, i), hours: 8 })) } }],
+            create: [{ ...line(veille), position: 0, entries: { create: [0, 1, 2, 3, 4].map((i) => ({ date: plusDays(monday, i), hours: 1 })) } }],
           },
         },
       });

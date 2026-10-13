@@ -5,7 +5,7 @@ import { useId, type KeyboardEvent } from "react";
 import { FieldError } from "@/components/ods/Form";
 import { Icon, Mark } from "@/components/ods/Icon";
 import { cx } from "@/lib/cx";
-import { capitalize, formatDayMonth, formatHours, formatHoursOf, formatNumber, formatWeekdayDay } from "@/lib/format";
+import { capitalize, formatDayMonth, formatDays, formatDaysOf, formatNumber, formatWeekdayDay } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
 import { isoWeekday } from "@/lib/iso-week";
 import { dayStatus, dayTotals, overDayMessage, parseHours, sum } from "@/lib/timesheet/rules";
@@ -132,7 +132,7 @@ export function TimeGrid({ caption, days, expected, rows, step, readOnly, future
                         className="ts-flag-toggle"
                         type="button"
                         aria-pressed={on}
-                        aria-label={t(dict.validation.flagCell, { project: row.project, day: formatWeekdayDay(d), hours: formatHours(numbers[r]![j]!) })}
+                        aria-label={t(dict.validation.flagCell, { project: row.project, day: formatWeekdayDay(d), hours: formatDays(numbers[r]![j]!) })}
                         onClick={() => onToggleFlag(row.id, j)}
                       >
                         {on && <Mark tone="danger" />}
@@ -166,7 +166,7 @@ export function TimeGrid({ caption, days, expected, rows, step, readOnly, future
                       data-cell={`${r}-${j}`}
                       className={cx("form-control", (flagged || over || bad) && "is-invalid")}
                       type="text"
-                      inputMode="decimal"
+                      inputMode="numeric"
                       autoComplete="off"
                       placeholder="0"
                       value={row.values[j] ?? ""}
@@ -179,7 +179,7 @@ export function TimeGrid({ caption, days, expected, rows, step, readOnly, future
                   </td>
                 );
               })}
-              <td className="ts-total">{formatHours(sum(numbers[r]!))}</td>
+              <td className="ts-total">{formatDays(sum(numbers[r]!))}</td>
               {!readOnly && (
                 <td className="ts-col-act">
                   {!row.locked && (
@@ -202,17 +202,17 @@ export function TimeGrid({ caption, days, expected, rows, step, readOnly, future
             <th scope="row">{dict.grid.dayTotal}</th>
             {days.map((_, j) =>
               readOnly ? (
-                <td key={j}>{formatHoursOf(totals[j]!, expected[j]!)}</td>
+                <td key={j}>{formatDaysOf(totals[j]!, expected[j]!)}</td>
               ) : (
                 <td key={j}>
                   <span className="ts-day">
-                    {formatHoursOf(totals[j]!, expected[j]!)}
+                    {formatDaysOf(totals[j]!, expected[j]!)}
                     <StatusBadge kind="day" value={statuses[j]!} />
                   </span>
                 </td>
               ),
             )}
-            <td>{formatHoursOf(weekTotal, weekExpected)}</td>
+            <td>{formatDaysOf(weekTotal, weekExpected)}</td>
             {!readOnly && <td className="ts-col-act" />}
           </tr>
         </tfoot>
@@ -233,13 +233,13 @@ export function TimeGrid({ caption, days, expected, rows, step, readOnly, future
                   {t(dict.grid.flagged, {
                     day: `${capitalize(formatWeekdayDay(d))} ${dict.months[d.getUTCMonth()]}`,
                     project: row.project,
-                    hours: formatHours(numbers[r]![j]!),
+                    hours: formatDays(numbers[r]![j]!),
                   })}
                 </FieldError>
               ) : null,
             ),
           )}
-          {anyInvalid && <FieldError id={ids.invalid}>{t(dict.grid.invalidNumber, { step: formatHours(step) })}</FieldError>}
+          {anyInvalid && <FieldError id={ids.invalid}>{t(dict.grid.invalidNumber, { step: formatDays(step) })}</FieldError>}
         </>
       )}
     </>

@@ -36,7 +36,7 @@ async function submittedSheet(user: string, divisionId: string, week: number, su
           projectId: project.id,
           activityId: project.activities[0]!.id,
           position: 0,
-          entries: { create: [0, 1, 2, 3, 4].map((d) => ({ date: new Date(Date.UTC(2026, 0, 5 + (week - 2) * 7 + d)), hours: 8 })) },
+          entries: { create: [0, 1, 2, 3, 4].map((d) => ({ date: new Date(Date.UTC(2026, 0, 5 + (week - 2) * 7 + d)), hours: 1 })) },
         }],
       },
       events: { create: [{ type: "SUBMITTED", actorId: user, at: new Date(submittedAt) }] },
@@ -77,7 +77,7 @@ describe("portée du validateur", () => {
     const { rows, counts } = await listQueue(samuel, ALL, "SUBMITTED");
     const names = rows.map((r) => `${r.name} S${r.week.week}`);
     expect(names).toEqual(expect.arrayContaining(["Laure Bikoï S12", "Sandrine Mvondo S12", "Yannick Essomba S12", "Ibrahim Njoya S11"]));
-    expect(rows.find((r) => r.name === "Ibrahim Njoya")).toMatchObject({ submissionCount: 2, projects: 2, hours: 40, expected: 40 });
+    expect(rows.find((r) => r.name === "Ibrahim Njoya")).toMatchObject({ submissionCount: 2, projects: 2, hours: 5, expected: 5 });
     expect(counts.REJECTED).toBeGreaterThanOrEqual(1); // Kevin Fotso, semaine 12
     // Ni les brouillons, ni une autre équipe, ni une autre division.
     expect(names.some((n) => n.startsWith("Aïcha Ndongo S12"))).toBe(false);

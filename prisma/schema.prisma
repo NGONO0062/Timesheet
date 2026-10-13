@@ -112,10 +112,10 @@ model Division {
 model DivisionSettings {
   divisionId               String    @id
   division                 Division  @relation(fields: [divisionId], references: [id], onDelete: Cascade)
-  unit                     Unit      @default(HOURS)
+  unit                     Unit      @default(DAYS)
   workingDays              Weekday[] @default([MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY])
-  hoursPerDay              Decimal   @default(8) @db.Decimal(4, 2)
-  step                     Decimal   @default(0.5) @db.Decimal(4, 2)
+  hoursPerDay              Decimal   @default(1) @db.Decimal(4, 2)
+  step                     Decimal   @default(1) @db.Decimal(4, 2)
   deadlineDay              Weekday   @default(FRIDAY)
   deadlineTime             String    @default("18:00")
   fillAlertThreshold       Int       @default(80)
@@ -296,7 +296,7 @@ model TimeEntry {
   lineId  String
   line    TimesheetLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
   date    DateTime      @db.Date
-  hours   Decimal       @db.Decimal(5, 2)
+  hours   Decimal       @db.Decimal(8, 5)
   flagged Boolean       @default(false)
 
   @@id([lineId, date])

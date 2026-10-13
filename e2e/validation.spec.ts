@@ -75,8 +75,8 @@ test("détail de démonstration : grille, commentaire, historique, Précédente 
   await expect(page.getByRole("heading", { level: 1, name: "Ibrahim Njoya · semaine 11" })).toBeVisible();
   await expect(page.getByText("Staff · 9–13 mars 2026 · soumise le 19 mars 2026 à 08:50")).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Parcourir les fiches en attente" })).toContainText(/Fiche \d sur 4/);
-  await expect(page.getByRole("table", { name: "Heures par projet et par jour, semaine 11 du 9 au 13 mars 2026, en lecture seule" })).toBeVisible();
-  await expect(page.getByText("Heures du mercredi réparties entre les tests et la formation, comme demandé.")).toBeVisible();
+  await expect(page.getByRole("table", { name: "Jours par projet, semaine 11 du 9 au 13 mars 2026, en lecture seule" })).toBeVisible();
+  await expect(page.getByText("Journée de formation du vendredi ajoutée, comme demandé.")).toBeVisible();
   const history = page.locator("section[aria-labelledby='titre-histo'] li");
   await expect(history).toHaveText([/Soumise par Ibrahim Njoya/, /Rejetée par Samuel Etoga/, /Soumise par Ibrahim Njoya/, /Brouillon créé/]);
   // Valider par défaut : un seul bouton primaire. Rejeter : bouton danger, motif requis.
@@ -150,7 +150,7 @@ test("détail : rejet avec cellule signalée, vue du collaborateur, puis validat
   await expect(page.getByText("Semaine 12 rejetée par Martin Valideur")).toBeVisible();
   await page.goto("/saisie/2026/12");
   await expect(page.getByRole("alert").filter({ hasText: "Fiche rejetée par Martin Valideur" })).toContainText("Motif : « Jeudi 19 : la réunion était annulée. »");
-  await expect(page.getByLabel("Refonte parcours souscription, jeudi 19, heures")).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByLabel("Refonte parcours souscription, jeudi 19, jours")).toHaveAttribute("aria-invalid", "true");
 });
 
 test("accès : la file n'existe pas sans la permission, la tâche de relance exige son secret", async ({ page, request }) => {

@@ -33,10 +33,7 @@ const workflow = z.object({
   delegateToOwner: z.boolean(),
 });
 const rules = z.object({
-  unit: z.enum(["HOURS", "DAYS"]),
   workingDays: z.array(z.string().max(10)).max(7),
-  hoursPerDay: z.string().max(10),
-  step: z.number(),
   deadlineDay: z.string().max(10),
   deadlineTime: z.string().max(10),
   fillAlertThreshold: z.string().max(10),

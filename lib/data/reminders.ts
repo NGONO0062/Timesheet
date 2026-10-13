@@ -3,7 +3,7 @@ import "server-only";
 // chaque personne qui saisit ses temps et dont la semaine en cours est incomplète, non
 // soumise, reçoit un e-mail avant l'échéance. Une fois par personne et par semaine.
 // Appelé par le planificateur de l'hébergement (POST /api/taches/rappels-saisie).
-import { formatDateAt, formatHours, formatRange } from "@/lib/format";
+import { formatDateAt, formatDays, formatRange } from "@/lib/format";
 import { isoWeekOf, todayInDivision } from "@/lib/iso-week";
 import { fillUpcomingMail } from "@/lib/mail/templates";
 import { appUrl, sendMail } from "@/lib/mail/send";
@@ -72,8 +72,8 @@ export async function sendFillReminders(now: Date, only?: string[]): Promise<num
           firstName: p.firstName,
           week: week.week,
           range: formatRange(frame.days[0]!, frame.days.at(-1)!),
-          done: formatHours(done),
-          expected: formatHours(expected),
+          done: formatDays(done),
+          expected: formatDays(expected),
           deadline: formatDateAt(frame.deadline),
           url: appUrl(entryHref(week)),
         }),

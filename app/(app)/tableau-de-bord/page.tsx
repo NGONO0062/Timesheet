@@ -13,7 +13,7 @@ import {
 } from "@/lib/data/timesheets";
 import { requirePermission, scopeOf } from "@/lib/data/viewer";
 import {
-  formatDate, formatDateAt, formatDayMonth, formatFromTo, formatHours, formatHoursOf, formatLongDate, formatRange,
+  formatDate, formatDateAt, formatDayMonth, formatFromTo, formatDays, formatDaysOf, formatLongDate, formatRange,
   formatPercent, formatTime, zonedDay,
 } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
@@ -78,10 +78,10 @@ export default async function Page({ searchParams }: Props) {
       title: t(d.missingTitle, { week: r.week.week }),
       detail: t(d.missingDetail, {
         period: formatFromTo(r.frame.days[0]!, r.frame.days.at(-1)!),
-        hours: formatHours(r.expected - r.hours),
+        hours: formatDays(r.expected - r.hours),
         deadline: formatDayMonth(zonedDay(r.deadline)),
       }),
-      detailShort: t(d.missingDetailShort, { range: formatRange(r.frame.days[0]!, r.frame.days.at(-1)!), hours: formatHours(r.expected - r.hours) }),
+      detailShort: t(d.missingDetailShort, { range: formatRange(r.frame.days[0]!, r.frame.days.at(-1)!), hours: formatDays(r.expected - r.hours) }),
       action: t(d.missingAction, { week: r.week.week }),
       href: entryHref(r.week),
     })),
@@ -101,8 +101,8 @@ export default async function Page({ searchParams }: Props) {
       return {
         key: `presence-${a.year}-${a.month}`,
         title: t(d.attendanceTitle, { month: `${dict.months[a.month - 1]} ${a.year}` }),
-        detail: t(d.attendanceDetail, { hours: formatHours(a.validatedHours), date: generated }),
-        detailShort: t(d.attendanceDetailShort, { hours: formatHours(a.validatedHours), date: generated }),
+        detail: t(d.attendanceDetail, { hours: formatDays(a.validatedHours), date: generated }),
+        detailShort: t(d.attendanceDetailShort, { hours: formatDays(a.validatedHours), date: generated }),
         action: d.attendanceAction,
         href: attendanceHref(a.year, a.month),
       };
@@ -200,9 +200,9 @@ export default async function Page({ searchParams }: Props) {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div className="ts-head" style={{ alignItems: "baseline", gap: 10 }}>
             <p>
-              <span className="h2">{formatHours(total)}</span>{" "}
-              <span className="ts-wide">{t(d.enteredOf, { expected: formatHours(expected) })}</span>
-              <span className="ts-narrow">{t(d.enteredOfShort, { expected: formatHours(expected) })}</span>
+              <span className="h2">{formatDays(total)}</span>{" "}
+              <span className="ts-wide">{t(d.enteredOf, { expected: formatDays(expected) })}</span>
+              <span className="ts-narrow">{t(d.enteredOfShort, { expected: formatDays(expected) })}</span>
             </p>
             <p className="fw-bold">{formatPercent(ratio)}</p>
           </div>
@@ -212,7 +212,7 @@ export default async function Page({ searchParams }: Props) {
           {days.map((day) => (
             <li key={day.key} className={day.today ? "is-today" : undefined}>
               <span className="small text-secondary">{day.today ? d.today : day.label}</span>
-              <span className="h5">{formatHours(day.hours)}</span>
+              <span className="h5">{formatDays(day.hours)}</span>
               <StatusBadge kind="day" value={day.status} />
             </li>
           ))}
@@ -225,7 +225,7 @@ export default async function Page({ searchParams }: Props) {
                 {day.today && <span className="visually-hidden">{d.todaySuffix}</span>}
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span className="fw-bold">{formatHours(day.hours)}</span>
+                <span className="fw-bold">{formatDays(day.hours)}</span>
                 <StatusBadge kind="day" value={day.status} />
               </span>
             </li>
@@ -265,7 +265,7 @@ export default async function Page({ searchParams }: Props) {
                     {notice ? (
                       <span className="small text-secondary ts-project-hours">{notice}</span>
                     ) : (
-                      <span className="fw-bold ts-project-hours">{t(d.hoursThisWeek, { hours: formatHours(p.hours) })}</span>
+                      <span className="fw-bold ts-project-hours">{t(d.hoursThisWeek, { hours: formatDays(p.hours) })}</span>
                     )}
                   </li>
                 );
@@ -280,7 +280,7 @@ export default async function Page({ searchParams }: Props) {
                       <span className="fw-bold">{p.name}</span>
                       <StatusBadge kind="project" value={p.status} />
                     </span>
-                    <span className="small">{notice ? (startsShort(p.startDate, today) ?? notice) : formatHours(p.hours)}</span>
+                    <span className="small">{notice ? (startsShort(p.startDate, today) ?? notice) : formatDays(p.hours)}</span>
                   </li>
                 );
               })}
@@ -308,7 +308,7 @@ export default async function Page({ searchParams }: Props) {
                 <tr key={`${r.week.year}-${r.week.week}`}>
                   <th scope="row">{t(dict.week.label, { week: r.week.week })}</th>
                   <td>{formatRange(r.frame.days[0]!, r.frame.days.at(-1)!)}</td>
-                  <td className="num">{formatHoursOf(r.hours, r.expected)}</td>
+                  <td className="num">{formatDaysOf(r.hours, r.expected)}</td>
                   <td>
                     <StatusBadge kind="timesheet" value={r.status} />
                   </td>
@@ -325,7 +325,7 @@ export default async function Page({ searchParams }: Props) {
             <li className="list-group-item" key={`${r.week.year}-${r.week.week}`}>
               <span style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                 <Link href={entryHref(r.week)}>{t(dict.week.label, { week: r.week.week })}</Link>
-                <span className="small text-secondary">{`${formatRange(r.frame.days[0]!, r.frame.days.at(-1)!, false)} · ${formatHoursOf(r.hours, r.expected)}`}</span>
+                <span className="small text-secondary">{`${formatRange(r.frame.days[0]!, r.frame.days.at(-1)!, false)} · ${formatDaysOf(r.hours, r.expected)}`}</span>
               </span>
               <StatusBadge kind="timesheet" value={r.status} />
             </li>

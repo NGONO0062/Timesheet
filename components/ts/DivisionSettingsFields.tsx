@@ -5,9 +5,8 @@
 // à leur manière.
 import type { ReactNode } from "react";
 import { Badge, ListGroup, ListGroupItem } from "@/components/ods/Display";
-import { Checkbox, FieldError, InputGroup, InputGroupText, Radio, RadioGroup, SelectField, Switch, TextField } from "@/components/ods/Form";
-import { DEADLINE_DAYS, REMINDER_DAYS, STEPS, WEEKDAY_KEYS, type Matrix, type RulesErrors, type RulesInput, type WorkflowErrors, type WorkflowInput } from "@/lib/admin/rules";
-import { formatNumber } from "@/lib/format";
+import { Checkbox, FieldError, InputGroup, InputGroupText, SelectField, Switch, TextField } from "@/components/ods/Form";
+import { DEADLINE_DAYS, REMINDER_DAYS, WEEKDAY_KEYS, type Matrix, type RulesErrors, type RulesInput, type WorkflowErrors, type WorkflowInput } from "@/lib/admin/rules";
 import { dict, t } from "@/lib/i18n";
 import { DIVISION_ROLES, isLocked, PERMISSIONS, type DivisionRole, type Permission } from "@/lib/permissions";
 import { roleLabel } from "@/lib/viewer";
@@ -131,8 +130,6 @@ export function WorkflowFields({ value: w, errors, onChange }: { value: Workflow
 
 const RULE_FIELD_IDS: Record<keyof RulesErrors, string> = {
   workingDays: "jour-MONDAY",
-  hoursPerDay: "heures-par-jour",
-  step: "pas-de-saisie",
   deadline: "echeance-jour",
   threshold: "seuil-alerte",
 };
@@ -146,11 +143,6 @@ export function focusFirstRule(e: RulesErrors) {
 export function RulesFields({ value: r, errors, onChange }: { value: RulesInput; errors: RulesErrors; onChange: (patch: Partial<RulesInput>) => void }) {
   return (
     <div className="ts-form-grid">
-      <RadioGroup legend={a.unit}>
-        <Radio name="unite" label={a.unitHours} checked={r.unit === "HOURS"} onChange={() => onChange({ unit: "HOURS" })} />
-        {/* Pas encore branché (point 52) : désactivé, raison écrite dessous. */}
-        <Radio name="unite" label={a.unitDays} hint={a.unitDaysUnavailable} checked={false} disabled onChange={() => undefined} />
-      </RadioGroup>
       <fieldset style={fieldset} aria-describedby={errors.workingDays ? "jours-erreur" : undefined}>
         <legend className="form-label" style={legend}>{a.workingDays}</legend>
         <div className="ts-weekdays">
@@ -167,28 +159,6 @@ export function RulesFields({ value: r, errors, onChange }: { value: RulesInput;
         </div>
         {errors.workingDays && <FieldError id="jours-erreur">{errors.workingDays}</FieldError>}
       </fieldset>
-      <div>
-        <label className="form-label is-required" htmlFor="heures-par-jour">{a.hoursPerDay}</label>
-        <InputGroup>
-          <input
-            id="heures-par-jour"
-            className={errors.hoursPerDay ? "form-control is-invalid" : "form-control"}
-            inputMode="decimal"
-            aria-required
-            aria-invalid={errors.hoursPerDay ? true : undefined}
-            aria-describedby={errors.hoursPerDay ? "heures-par-jour-erreur" : undefined}
-            value={r.hoursPerDay}
-            onChange={(e) => onChange({ hoursPerDay: e.target.value })}
-          />
-          <InputGroupText>{a.hoursSuffix}</InputGroupText>
-        </InputGroup>
-        {errors.hoursPerDay && <FieldError id="heures-par-jour-erreur">{errors.hoursPerDay}</FieldError>}
-      </div>
-      <SelectField id="pas-de-saisie" label={a.step} value={String(r.step)} error={errors.step} onChange={(e) => onChange({ step: Number(e.target.value) })}>
-        {STEPS.map((s) => (
-          <option key={s} value={s}>{t(a.stepOption, { n: formatNumber(s) })}</option>
-        ))}
-      </SelectField>
       <fieldset style={fieldset}>
         <legend className="form-label is-required" style={legend}>{a.deadline}</legend>
         <div style={{ display: "flex", gap: 10 }}>

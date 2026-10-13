@@ -57,12 +57,12 @@ type ProjectSeed = {
 // Projets de l'équipe de Samuel Etoga (planche 09-Projets).
 const PROJECTS: ProjectSeed[] = [
   { code: "CX-2026-00", name: "Veille et formation", start: "2026-01-01", end: "2026-12-31", budget: null, status: "IN_PROGRESS", activities: ["Formation"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Ibrahim Njoya", "Sandrine Mvondo", "Yannick Essomba"] },
-  { code: "CX-2026-01", name: "Refonte parcours souscription", start: "2026-01-05", end: "2026-06-26", budget: 960, status: "IN_PROGRESS", activities: ["Tests utilisateurs", "Atelier"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Ibrahim Njoya"] },
-  { code: "CX-2026-02", name: "Baromètre NPS T1 2026", start: "2026-01-05", end: "2026-03-27", budget: 400, status: "IN_PROGRESS", activities: ["Analyse"], members: ["Aïcha Ndongo", "Sandrine Mvondo", "Yannick Essomba"] },
-  { code: "CX-2026-03", name: "Cartographie des irritants", start: "2026-02-02", end: "2026-05-29", budget: 600, status: "IN_PROGRESS", activities: ["Atelier", "Rédaction"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Sandrine Mvondo", "Yannick Essomba"] },
-  { code: "CX-2026-04", name: "Tests d'usage appli mobile", start: "2026-01-12", end: "2026-02-27", budget: 320, status: "DONE", activities: ["Tests utilisateurs"], members: ["Kevin Fotso", "Ibrahim Njoya", "Sandrine Mvondo", "Yannick Essomba"] },
-  { code: "CX-2026-05", name: "Refonte FAQ en ligne", start: "2026-02-02", end: "2026-04-30", budget: 300, status: "ON_HOLD", activities: ["Rédaction"], members: ["Kevin Fotso", "Laure Bikoï"] },
-  { code: "CX-2026-06", name: "Enquête boutiques T2 2026", start: "2026-04-06", end: "2026-06-26", budget: 240, status: "NOT_STARTED", activities: ["Enquête", "Analyse"], members: ["Aïcha Ndongo", "Ibrahim Njoya", "Yannick Essomba"] },
+  { code: "CX-2026-01", name: "Refonte parcours souscription", start: "2026-01-05", end: "2026-06-26", budget: 120, status: "IN_PROGRESS", activities: ["Tests utilisateurs", "Atelier"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Ibrahim Njoya"] },
+  { code: "CX-2026-02", name: "Baromètre NPS T1 2026", start: "2026-01-05", end: "2026-03-27", budget: 50, status: "IN_PROGRESS", activities: ["Analyse"], members: ["Aïcha Ndongo", "Sandrine Mvondo", "Yannick Essomba"] },
+  { code: "CX-2026-03", name: "Cartographie des irritants", start: "2026-02-02", end: "2026-05-29", budget: 75, status: "IN_PROGRESS", activities: ["Atelier", "Rédaction"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Sandrine Mvondo", "Yannick Essomba"] },
+  { code: "CX-2026-04", name: "Tests d'usage appli mobile", start: "2026-01-12", end: "2026-02-27", budget: 40, status: "DONE", activities: ["Tests utilisateurs"], members: ["Kevin Fotso", "Ibrahim Njoya", "Sandrine Mvondo", "Yannick Essomba"] },
+  { code: "CX-2026-05", name: "Refonte FAQ en ligne", start: "2026-02-02", end: "2026-04-30", budget: 38, status: "ON_HOLD", activities: ["Rédaction"], members: ["Kevin Fotso", "Laure Bikoï"] },
+  { code: "CX-2026-06", name: "Enquête boutiques T2 2026", start: "2026-04-06", end: "2026-06-26", budget: 30, status: "NOT_STARTED", activities: ["Enquête", "Analyse"], members: ["Aïcha Ndongo", "Ibrahim Njoya", "Yannick Essomba"] },
 ];
 
 async function main() {
@@ -191,8 +191,8 @@ async function main() {
 // Fiches de temps (écrans 02 à 05). Semaine de référence : 12 de 2026 (16–20 mars).
 // ---------------------------------------------------------------------------
 
-/** Heures par jour, du lundi au vendredi ; null pour une cellule laissée vide. */
-type Line = [code: string, activity: string, hours: Array<number | null>];
+/** Jours du lundi au vendredi (1 = journée entière) ; null pour une cellule laissée vide. */
+type Line = [code: string, activity: string, days: Array<number | null>];
 
 function mondayOf(year: number, week: number): Date {
   const jan4 = new Date(Date.UTC(year, 0, 4));
@@ -290,46 +290,51 @@ async function seedTimesheets(
     return { submittedAt: `${friday} 16:30`, decidedAt: `${nextMonday} 10:00` };
   };
   const january: Line[] = [
-    ["CX-2026-01", "Tests utilisateurs", [3, 3, 3, 3, 3]],
-    ["CX-2026-02", "Analyse", [3, 3, 3, 3, 3]],
-    ["CX-2026-00", "Formation", [2, 2, 2, 2, 2]],
+    ["CX-2026-01", "Tests utilisateurs", [1, 1, null, null, null]],
+    ["CX-2026-02", "Analyse", [null, null, 1, 1, null]],
+    ["CX-2026-00", "Formation", [null, null, null, null, 1]],
   ];
   const february: Line[] = [
-    ["CX-2026-01", "Tests utilisateurs", [3, 3, 3, 3, 3]],
-    ["CX-2026-02", "Analyse", [2, 2, 2, 2, 2]],
-    ["CX-2026-03", "Atelier", [2, 2, 2, 2, 2]],
-    ["CX-2026-00", "Formation", [1, 1, 1, 1, 1]],
+    ["CX-2026-01", "Tests utilisateurs", [1, 1, null, null, null]],
+    ["CX-2026-02", "Analyse", [null, null, 1, null, null]],
+    ["CX-2026-03", "Atelier", [null, null, null, 1, null]],
+    ["CX-2026-00", "Formation", [null, null, null, null, 1]],
   ];
 
   // Aïcha Ndongo, stagiaire depuis le 5 janvier : semaines 2 à 10 validées,
-  // semaine 11 non saisie (manquante), semaine 12 en brouillon (24 h sur 40).
+  // semaine 11 non saisie (manquante), semaine 12 en brouillon (3 jours sur 5).
   for (let week = 2; week <= 10; week++) await sheet("Aïcha Ndongo", week, "VALIDATED", week <= 5 ? january : february, validated(week));
   await sheet("Aïcha Ndongo", 12, "DRAFT", [
-    ["CX-2026-01", "Tests utilisateurs", [4, 4, 3, null, null]],
-    ["CX-2026-02", "Analyse", [2, 4, 3, null, null]],
-    ["CX-2026-03", "Atelier", [2, 0, 2, null, null]],
+    ["CX-2026-01", "Tests utilisateurs", [1, null, null, null, null]],
+    ["CX-2026-02", "Analyse", [null, 1, null, null, null]],
+    ["CX-2026-03", "Atelier", [null, null, 1, null, null]],
   ]);
 
   // Kevin Fotso : semaine 12 rejetée, cellule du jeudi 19 signalée (écran 05).
   const kevinWeek: Line[] = [
-    ["CX-2026-01", "Tests utilisateurs", [3, 3, 3, 3, 3]],
-    ["CX-2026-03", "Atelier", [3, 3, 3, 3, 3]],
-    ["CX-2026-00", "Formation", [2, 2, 2, 2, 2]],
+    ["CX-2026-01", "Tests utilisateurs", [1, 1, null, null, null]],
+    ["CX-2026-03", "Atelier", [null, null, 1, 1, null]],
+    ["CX-2026-00", "Formation", [null, null, null, null, 1]],
   ];
-  for (let week = 2; week <= 11; week++) await sheet("Kevin Fotso", week, "VALIDATED", week <= 5 ? kevinWeek.filter(([c]) => c !== "CX-2026-03").map(([c, a, h]) => [c, a, c === "CX-2026-01" ? [6, 6, 6, 6, 6] : h] as Line) : kevinWeek, validated(week));
+  // Semaines 2 à 5 : avant le début de la cartographie (2 février).
+  const kevinEarly: Line[] = [
+    ["CX-2026-01", "Tests utilisateurs", [1, 1, 1, 1, null]],
+    ["CX-2026-00", "Formation", [null, null, null, null, 1]],
+  ];
+  for (let week = 2; week <= 11; week++) await sheet("Kevin Fotso", week, "VALIDATED", week <= 5 ? kevinEarly : kevinWeek, validated(week));
   await sheet(
     "Kevin Fotso",
     12,
     "REJECTED",
     [
-      ["CX-2026-01", "Tests utilisateurs", [4, 4, 3, 5, 4]],
-      ["CX-2026-03", "Atelier", [2, 4, 3, 3, 2]],
-      ["CX-2026-00", "Formation", [2, 0, 2, 0, 2]],
+      ["CX-2026-01", "Tests utilisateurs", [1, 1, null, 1, null]],
+      ["CX-2026-03", "Atelier", [null, null, 1, null, null]],
+      ["CX-2026-00", "Formation", [null, null, null, null, 1]],
     ],
     {
       submittedAt: "2026-03-20 16:42",
       decidedAt: "2026-03-23 09:15",
-      reason: "Jeudi 19 mars, 5 h déclarées sur Refonte parcours souscription alors que l'atelier de tests a été annulé. Merci de réaffecter ces heures.",
+      reason: "Jeudi 19 mars, journée déclarée sur Refonte parcours souscription alors que l'atelier de tests a été annulé. Merci de réaffecter cette journée.",
       flagged: [[0, 3]],
     },
   );
@@ -337,8 +342,8 @@ async function seedTimesheets(
   // File de validation de Samuel Etoga (écran 07) : semaines 2 à 11 validées,
   // semaine 12 soumise ; Ibrahim Njoya en 2e soumission pour la semaine 11.
   const usual = (main: Line[0], activity: string): Line[] => [
-    [main, activity, [6, 6, 6, 6, 6]],
-    ["CX-2026-00", "Formation", [2, 2, 2, 2, 2]],
+    [main, activity, [1, 1, 1, 1, null]],
+    ["CX-2026-00", "Formation", [null, null, null, null, 1]],
   ];
   const team: Array<[name: string, lines: Line[], lastValidated: number]> = [
     ["Laure Bikoï", usual("CX-2026-01", "Tests utilisateurs"), 11],
@@ -349,29 +354,29 @@ async function seedTimesheets(
   for (const [name, lines, last] of team) {
     for (let week = 2; week <= last; week++) await sheet(name, week, "VALIDATED", lines, validated(week));
   }
-  await sheet("Laure Bikoï", 12, "SUBMITTED", [["CX-2026-01", "Tests utilisateurs", [5, 5, 5, 5, 5]], ["CX-2026-03", "Atelier", [3, 3, 3, 3, 3]]], { submittedAt: "2026-03-20 17:30" });
+  await sheet("Laure Bikoï", 12, "SUBMITTED", [["CX-2026-01", "Tests utilisateurs", [1, 1, 1, null, null]], ["CX-2026-03", "Atelier", [null, null, null, 1, 1]]], { submittedAt: "2026-03-20 17:30" });
   await sheet(
     "Sandrine Mvondo",
     12,
     "SUBMITTED",
-    [["CX-2026-02", "Analyse", [3, 3, 3, 3, 3]], ["CX-2026-03", "Atelier", [3, 3, 3, 3, 3]], ["CX-2026-00", "Formation", [2, 2, 2, 2, 2]]],
+    [["CX-2026-02", "Analyse", [1, 1, null, null, null]], ["CX-2026-03", "Atelier", [null, null, 1, 1, null]], ["CX-2026-00", "Formation", [null, null, null, null, 1]]],
     { submittedAt: "2026-03-20 15:10" },
   );
   await sheet("Yannick Essomba", 12, "SUBMITTED", usual("CX-2026-02", "Analyse"), { submittedAt: "2026-03-20 17:48" });
   await sheet("Ibrahim Njoya", 11, "SUBMITTED", usual("CX-2026-01", "Tests utilisateurs"), {
     submittedAt: "2026-03-19 08:50",
-    comment: "Heures du mercredi réparties entre les tests et la formation, comme demandé.",
-    previous: { submittedAt: "2026-03-13 17:05", rejectedAt: "2026-03-16 10:20", reason: "Mercredi 11 mars : la formation manque. Merci de répartir les heures." },
+    comment: "Journée de formation du vendredi ajoutée, comme demandé.",
+    previous: { submittedAt: "2026-03-13 17:05", rejectedAt: "2026-03-16 10:20", reason: "Vendredi 13 mars : la journée de formation manque. Merci de l'ajouter." },
   });
 
   // Équipes Études et Data CX (vue consolidée, écran 11) : semaines 2 à 10 validées.
   // Études : semaine 11 validée, semaine 12 validée pour quatre personnes, Nadège Fouda
-  // en brouillon (36 h). Data CX : semaine 11 en attente depuis le 13 mars (validation
+  // en brouillon (4 jours sur 5). Data CX : semaine 11 en attente depuis le 13 mars (validation
   // en retard), semaine 12 soumise par trois personnes, rien pour Vanessa Ndzana.
   const studies = ["Christelle Nana", "Boris Mbida", "Estelle Owona", "Franck Ateba", "Nadège Fouda"];
   const data = ["Arnaud Biyong", "Carine Messi", "Thierry Eyenga", "Vanessa Ndzana"];
-  const studyLines: Line[] = [["CX-2026-07", "Enquête", [4, 4, 4, 4, 4]], ["CX-2026-07", "Analyse", [4, 4, 4, 4, 4]]];
-  const dataLines: Line[] = [["CX-2026-08", "Données", [5, 5, 5, 5, 5]], ["CX-2026-08", "Visualisation", [3, 3, 3, 3, 3]]];
+  const studyLines: Line[] = [["CX-2026-07", "Enquête", [1, 1, 1, null, null]], ["CX-2026-07", "Analyse", [null, null, null, 1, 1]]];
+  const dataLines: Line[] = [["CX-2026-08", "Données", [1, 1, 1, null, null]], ["CX-2026-08", "Visualisation", [null, null, null, 1, 1]]];
   const byTeam = (who: string, week: number) => ({ ...validated(week), decider: studies.includes(who) ? "Hélène Nkoa" : "Olivier Manga" });
   for (const who of studies) {
     for (let week = 2; week <= 11; week++) await sheet(who, week, "VALIDATED", studyLines, byTeam(who, week));
@@ -379,7 +384,7 @@ async function seedTimesheets(
   for (const who of studies.slice(0, 4)) {
     await sheet(who, 12, "VALIDATED", studyLines, { submittedAt: "2026-03-18 17:00", decidedAt: "2026-03-19 08:30", decider: "Hélène Nkoa" });
   }
-  await sheet("Nadège Fouda", 12, "DRAFT", [["CX-2026-07", "Enquête", [4, 4, 4, 4, null]], ["CX-2026-07", "Analyse", [4, 4, 4, 4, null]]]);
+  await sheet("Nadège Fouda", 12, "DRAFT", [["CX-2026-07", "Enquête", [1, 1, 1, null, null]], ["CX-2026-07", "Analyse", [null, null, null, 1, null]]]);
   for (const who of data) {
     for (let week = 2; week <= 10; week++) await sheet(who, week, "VALIDATED", dataLines, byTeam(who, week));
   }
@@ -418,11 +423,11 @@ async function completeProjects(divisionId: string, ids: Map<string, string>) {
   });
   const teamProjects: Array<ProjectSeed & { manager: string }> = [
     {
-      code: "CX-2026-07", name: "Études de satisfaction clients", start: "2026-01-05", end: "2026-06-30", budget: 1000, status: "IN_PROGRESS",
+      code: "CX-2026-07", name: "Études de satisfaction clients", start: "2026-01-05", end: "2026-06-30", budget: 125, status: "IN_PROGRESS",
       activities: ["Enquête", "Analyse"], members: ["Christelle Nana", "Boris Mbida", "Estelle Owona", "Franck Ateba", "Nadège Fouda"], manager: "Hélène Nkoa",
     },
     {
-      code: "CX-2026-08", name: "Tableaux de bord CX", start: "2026-01-05", end: "2026-12-18", budget: 1400, status: "IN_PROGRESS",
+      code: "CX-2026-08", name: "Tableaux de bord CX", start: "2026-01-05", end: "2026-12-18", budget: 175, status: "IN_PROGRESS",
       activities: ["Données", "Visualisation"], members: ["Arnaud Biyong", "Carine Messi", "Thierry Eyenga", "Vanessa Ndzana"], manager: "Olivier Manga",
     },
   ];

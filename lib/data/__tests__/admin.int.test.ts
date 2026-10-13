@@ -78,8 +78,8 @@ describe("isolation de l'administration entre divisions", () => {
     expect(await getMatrix(scope(divisionA, "lecture"))).toEqual(before);
 
     const rulesA = (await getDivisionSettings(scope(divisionA, "lecture"))).rules;
-    await saveRules(scope(divisionB, adminB), { ...rulesA, hoursPerDay: "7", step: 1 }, meta);
-    expect((await getDivisionSettings(scope(divisionB, adminB))).rules).toMatchObject({ hoursPerDay: "7", step: 1 });
+    await saveRules(scope(divisionB, adminB), { ...rulesA, fillAlertThreshold: "70" }, meta);
+    expect((await getDivisionSettings(scope(divisionB, adminB))).rules).toMatchObject({ fillAlertThreshold: "70" });
     expect((await getDivisionSettings(scope(divisionA, "lecture"))).rules).toEqual(rulesA);
   });
 

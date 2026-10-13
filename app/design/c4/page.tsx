@@ -28,7 +28,7 @@ export default function Page() {
               {([
                 ["NOT_STARTED", "Le projet est créé mais pas encore lancé.", "Fermée"],
                 ["IN_PROGRESS", "Le projet est actif.", "Ouverte à ses membres"],
-                ["ON_HOLD", "Le projet est suspendu et reprendra.", "Fermée, les heures déjà saisies sont conservées"],
+                ["ON_HOLD", "Le projet est suspendu et reprendra.", "Fermée, les jours déjà saisis sont conservés"],
                 ["DONE", "Le projet est clos.", "Fermée, le projet reste dans le reporting"],
               ] as const).map(([v, meaning, entry]) => (
                 <tr key={v}>
@@ -85,9 +85,9 @@ export default function Page() {
               {([
                 ["UPCOMING", "Jour futur, rien n'est attendu."],
                 ["TODO", "Aucune heure saisie."],
-                ["PARTIAL", "Moins que les heures attendues."],
-                ["COMPLETE", "Exactement les heures attendues."],
-                ["OVER", "Plus que les heures attendues, la soumission est bloquée."],
+                ["PARTIAL", "Moins que la journée attendue."],
+                ["COMPLETE", "Exactement la journée attendue."],
+                ["OVER", "Plus d’une journée, la soumission est bloquée."],
                 ["TO_FIX", "Jour signalé par le manager lors d'un rejet."],
               ] as const).map(([v, meaning]) => (
                 <tr key={v}><td style={{ whiteSpace: "nowrap" }}><StatusBadge kind="day" value={v} /></td><td>{meaning}</td></tr>

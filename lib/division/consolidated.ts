@@ -1,6 +1,6 @@
 // Vue consolidée de la division (PROMPT.md §9.6, planche 11-Vue-consolidee). Pur :
 // la couche de données fournit équipes, heures et fiches ; l'écran affiche le résultat.
-import { NBSP, formatHours, formatNumber } from "../format";
+import { NBSP, formatDays, formatNumber } from "../format";
 import { dict, t } from "../i18n";
 import { compareWeeks, type IsoWeek } from "../iso-week";
 import { displayStatus, type StoredStatus } from "../timesheet/rules";
@@ -77,7 +77,7 @@ export function teamTable(input: { teams: TeamInfo[]; people: Member[]; states: 
 export const NO_TEAM = "sans-equipe";
 
 /** Remplissage d'une ligne du tableau : « 83 % · 200 / 240 h ». */
-export const fillText = (r: TeamRow) => t(d.teamFill, { pct: pct(r.fill), entered: formatNumber(r.entered), capacity: formatHours(r.capacity) });
+export const fillText = (r: TeamRow) => t(d.teamFill, { pct: pct(r.fill), entered: formatNumber(r.entered), capacity: formatDays(r.capacity) });
 
 /** Indicateurs de la semaine (planche 11) : remplissage, fiches soumises, fiches validées. */
 export function kpiTexts(total: TeamRow) {
@@ -85,7 +85,7 @@ export function kpiTexts(total: TeamRow) {
   const pending = total.submitted - total.validated;
   return {
     fill: pct(total.fill),
-    fillDetail: t(d.fillDetail, { entered: formatHours(total.entered), capacity: formatHours(total.capacity) }),
+    fillDetail: t(d.fillDetail, { entered: formatDays(total.entered), capacity: formatDays(total.capacity) }),
     submitted: t(d.of, { n: total.submitted, total: total.persons }),
     submittedDetail: total.submitted === 0 ? d.noSheetTitle : notSubmitted === 0 ? d.allSubmitted : plural(notSubmitted, d.notSubmittedOne, d.notSubmittedMany),
     validated: t(d.of, { n: total.validated, total: total.persons }),
@@ -186,7 +186,7 @@ export function driftRow(drift: Drift): { tone: "danger" | "warning"; type: stri
         tone: "danger",
         type,
         object: drift.project,
-        gap: t(d.budgetGap, { consumed: formatHours(drift.consumed), budget: formatHours(drift.budget), over: formatHours(round(drift.consumed - drift.budget)) }),
+        gap: t(d.budgetGap, { consumed: formatDays(drift.consumed), budget: formatDays(drift.budget), over: formatDays(round(drift.consumed - drift.budget)) }),
         owner,
         action: { kind: "link", href: `/projets?projet=${encodeURIComponent(drift.projectId)}`, label: d.seeProject },
       };
@@ -213,7 +213,7 @@ export function driftRow(drift: Drift): { tone: "danger" | "warning"; type: stri
         tone: "warning",
         type,
         object: t(d.missingObject, { name: drift.person, week: drift.week.week }),
-        gap: t(d.missingGap, { hours: formatHours(drift.missing) }),
+        gap: t(d.missingGap, { hours: formatDays(drift.missing) }),
         owner,
         action: { kind: "remindPerson", label: d.remind },
       };

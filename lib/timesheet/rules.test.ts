@@ -7,7 +7,8 @@ import {
 import { isEditable, nextStatus } from "./transitions";
 
 const WEEK12 = [16, 17, 18, 19, 20].map((d) => utcDate(2026, 3, d));
-const EXPECTED = expectedPerDay(WEEK12, 8);
+// Saisie en jours entiers : 1 par jour ouvré (questions ouvertes, point 82).
+const EXPECTED = expectedPerDay(WEEK12, 1);
 
 describe("lecture d'une cellule", () => {
   it("accepte un nombre positif multiple du pas, virgule ou point", () => {
@@ -23,6 +24,9 @@ describe("lecture d'une cellule", () => {
       expect(parseHours(raw, 0.5), raw).toEqual({ kind: "invalid" });
     }
     expect(parseHours("1,25", 0.25)).toEqual({ kind: "ok", value: 1.25 });
+    // Pas d'un jour : ni demi-journée, ni fraction.
+    expect(parseHours("1", 1)).toEqual({ kind: "ok", value: 1 });
+    expect(parseHours("0,5", 1)).toEqual({ kind: "invalid" });
   });
 });
 
@@ -45,33 +49,33 @@ describe("totaux et statuts des jours", () => {
 
 describe("conditions de soumission", () => {
   it("bloque une semaine incomplète et dit ce qui manque", () => {
-    const r = submitCheck(WEEK12, [8, 8, 8, 0, 0], EXPECTED);
+    const r = submitCheck(WEEK12, [1, 1, 1, 0, 0], EXPECTED);
     expect(r.canSubmit).toBe(false);
-    expect(r.message).toBe(`Il reste 16${NBSP}h à saisir : jeudi 19 et vendredi 20 mars.`);
+    expect(r.message).toBe(`Il reste 2${NBSP}jours à saisir : jeudi 19 et vendredi 20 mars.`);
   });
 
   it("bloque un dépassement en priorité", () => {
-    const r = submitCheck(WEEK12, [8, 8, 10, 0, 0], EXPECTED);
+    const r = submitCheck(WEEK12, [1, 1, 2, 0, 0], EXPECTED);
     expect(r.canSubmit).toBe(false);
-    expect(r.message).toBe(`Plafond de 8${NBSP}h dépassé : mercredi 18 mars. Corrigez avant de soumettre.`);
+    expect(r.message).toBe(`Journée dépassée (1${NBSP}jour au plus) : mercredi 18 mars. Corrigez avant de soumettre.`);
   });
 
   it("autorise une semaine complète", () => {
-    expect(submitCheck(WEEK12, [8, 8, 8, 8, 8], EXPECTED)).toEqual({
+    expect(submitCheck(WEEK12, [1, 1, 1, 1, 1], EXPECTED)).toEqual({
       canSubmit: true,
       message: "La semaine est complète. Vous pouvez la soumettre.",
     });
   });
 
-  it("attend 0 h un jour férié", () => {
-    const expected = expectedPerDay(WEEK12, 8, [utcDate(2026, 3, 20)]);
-    expect(expected).toEqual([8, 8, 8, 8, 0]);
-    expect(submitCheck(WEEK12, [8, 8, 8, 8, 0], expected).canSubmit).toBe(true);
+  it("n'attend rien un jour férié", () => {
+    const expected = expectedPerDay(WEEK12, 1, [utcDate(2026, 3, 20)]);
+    expect(expected).toEqual([1, 1, 1, 1, 0]);
+    expect(submitCheck(WEEK12, [1, 1, 1, 1, 0], expected).canSubmit).toBe(true);
   });
 
   it("explique un dépassement sous la grille", () => {
-    expect(overDayMessage(utcDate(2026, 3, 18), 10, 8)).toBe(
-      `Mercredi 18 mars : 10${NBSP}h saisies pour 8${NBSP}h attendues. Retirez 2${NBSP}h avant de soumettre.`,
+    expect(overDayMessage(utcDate(2026, 3, 18), 2, 1)).toBe(
+      `Mercredi 18 mars : 2${NBSP}jours saisis pour 1${NBSP}jour attendu. Retirez 1${NBSP}jour avant de soumettre.`,
     );
   });
 });

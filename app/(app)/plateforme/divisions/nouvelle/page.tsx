@@ -9,7 +9,6 @@ import { Breadcrumb, SteppedProcess } from "@/components/ods/Navigation";
 import { matrixOf, overridesFor } from "@/lib/admin/rules";
 import { getOnboarding, PlatformRuleError } from "@/lib/data/platform";
 import { requirePlatformAdmin } from "@/lib/data/viewer";
-import { formatNumber } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
 import { roleLabel } from "@/lib/viewer";
 import { Facts, OnboardingForm, type OnboardingView } from "./OnboardingForm";
@@ -67,7 +66,7 @@ export default async function Page({ searchParams }: Props) {
         {
           n: 4,
           title: o.steps[3]!,
-          rows: [[o.factRules, t(o.rulesSummary, { hours: r.hoursPerDay, step: formatNumber(r.step), deadline: a.deadlineDays[r.deadlineDay as "FRIDAY" | "MONDAY"]?.toLowerCase() ?? r.deadlineDay, time: r.deadlineTime })]],
+          rows: [[o.factRules, t(o.rulesSummary, { deadline: a.deadlineDays[r.deadlineDay as "FRIDAY" | "MONDAY"]?.toLowerCase() ?? r.deadlineDay, time: r.deadlineTime })]],
         },
       ],
     };
@@ -79,7 +78,7 @@ export default async function Page({ searchParams }: Props) {
       admin: { fullName: "", email: "", config: "COPY" },
       matrix: matrixOf([]),
       workflow: { ownerValidation: false, hrAutoSend: true, hrEmail: "", reminderAfterWorkingDays: 3, delegateToOwner: true },
-      rules: { unit: "HOURS", workingDays: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], hoursPerDay: "8", step: 0.5, deadlineDay: "FRIDAY", deadlineTime: "18:00", fillAlertThreshold: "80", allowFutureWeeks: false, lockAfterValidation: true },
+      rules: { workingDays: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], deadlineDay: "FRIDAY", deadlineTime: "18:00", fillAlertThreshold: "80", allowFutureWeeks: false, lockAfterValidation: true },
       adminEmail: "",
       summary: [],
     };

@@ -114,13 +114,13 @@ test("onboarding d'une division, de l'identité à l'invitation (§17, test 5)",
   // Étape 4 : règles de saisie.
   await expect(page.getByText("Étape 4 sur 5. Votre progression est enregistrée à chaque étape.")).toBeVisible();
   await page.waitForLoadState("networkidle");
-  await page.getByLabel("Heures attendues par jour").fill("7,5");
+  await page.getByLabel("Seuil d'alerte de remplissage").fill("75");
   await page.getByRole("button", { name: "Continuer" }).click();
 
   // Étape 5 : récapitulatif, puis création.
   await expect(page.getByText(`Vérifiez la configuration. À la création, la division devient active et l'invitation part à ${ADMIN_EMAIL}.`)).toBeVisible();
   await expect(page.getByRole("region", { name: "Étape 3 · Rôles et workflow" })).toContainText("Staff + Consulter le reporting");
-  await expect(page.getByRole("region", { name: "Étape 4 · Règles de saisie" })).toContainText("7,5 h par jour");
+  await expect(page.getByRole("region", { name: "Étape 4 · Règles de saisie" })).toContainText("Saisie en jours entiers, échéance vendredi à 18:00");
   await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Créer la division et inviter l'administrateur" }).click();
   await expect(page).toHaveURL(/\/plateforme\?creee=/);

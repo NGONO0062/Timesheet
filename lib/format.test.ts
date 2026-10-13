@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  formatDateAt, formatDateTime, formatDayList, formatFromTo, formatHours, formatHoursOf, formatLongDate, formatLongDateAt, formatNumber,
+  formatDateAt, formatDateTime, formatDayList, formatFromTo, formatDays, formatDaysOf, formatLongDate, formatLongDateAt, formatNumber,
   formatFrDate, formatPercent, formatRange, formatTime, NBSP, parseFrDate, zonedDay,
 } from "./format";
 import { utcDate } from "./iso-week";
@@ -12,10 +12,13 @@ describe("formats", () => {
     expect(formatNumber(3.25)).toBe("3,25");
   });
 
-  it("met une espace insécable avant h et %", () => {
-    expect(formatHours(8)).toBe(`8${NBSP}h`);
+  it("met une espace insécable avant jour(s) et %, singulier sous 2", () => {
+    expect(formatDays(0)).toBe(`0${NBSP}jour`);
+    expect(formatDays(1)).toBe(`1${NBSP}jour`);
+    expect(formatDays(1.5)).toBe(`1,5${NBSP}jour`);
+    expect(formatDays(8)).toBe(`8${NBSP}jours`);
     expect(formatPercent(0.833)).toBe(`83${NBSP}%`);
-    expect(formatHoursOf(24, 40)).toBe(`24 / 40${NBSP}h`);
+    expect(formatDaysOf(3, 5)).toBe(`3 / 5${NBSP}jours`);
   });
 
   it("écrit les intervalles comme la maquette", () => {

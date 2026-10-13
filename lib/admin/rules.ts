@@ -1,12 +1,11 @@
 // Administration de division (PROMPT.md §9.9) et paramètres (§9.11) : règles pures,
 // contrôle des formulaires avant la couche de données.
-import { formatFrDate, formatNumber, NBSP, parseFrDate } from "../format";
-import { dict, t } from "../i18n";
+import { formatFrDate, NBSP, parseFrDate } from "../format";
+import { dict } from "../i18n";
 import { DEFAULT_MATRIX, DIVISION_ROLES, isLocked, PERMISSIONS, type DivisionRole, type MatrixOverride, type Permission } from "../permissions";
 
 export const USERS_PAGE_SIZE = 5;
 export const REMINDER_DAYS = [2, 3, 5] as const;
-export const STEPS = [0.25, 0.5, 1] as const;
 export const DEADLINE_DAYS = ["FRIDAY", "MONDAY"] as const;
 export const WEEKDAY_KEYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
 
@@ -64,18 +63,21 @@ export function checkWorkflow(w: WorkflowInput): WorkflowErrors {
   return e;
 }
 
+/**
+ * Saisie en jours entiers (décision du 13/10/2026, questions ouvertes point 82) :
+ * une journée vaut 1, sur un seul projet. Plus d'unité, d'heures par jour ni de pas à régler.
+ */
+export const DAY_ENTRY = { unit: "DAYS", hoursPerDay: 1, step: 1 } as const;
+
 export type RulesInput = {
-  unit: "HOURS" | "DAYS";
   workingDays: string[];
-  hoursPerDay: string;
-  step: number;
   deadlineDay: string;
   deadlineTime: string;
   fillAlertThreshold: string;
   allowFutureWeeks: boolean;
   lockAfterValidation: boolean;
 };
-export type RulesErrors = Partial<Record<"workingDays" | "hoursPerDay" | "step" | "deadline" | "threshold", string>>;
+export type RulesErrors = Partial<Record<"workingDays" | "deadline" | "threshold", string>>;
 
 /** Nombre saisi en français (« 7,5 ») ; null si invalide. */
 export function parseNumber(raw: string): number | null {
@@ -89,10 +91,7 @@ export function describeRules(before: RulesInput, after: RulesInput): string[] {
   const a = dict.admin;
   const onOff = (v: boolean) => (v ? dict.form.active : dict.form.inactive);
   const view = (r: RulesInput): Array<[string, string]> => [
-    [a.unit, r.unit === "HOURS" ? a.unitHours : a.unitDays],
     [a.workingDays, WEEKDAY_KEYS.filter((d) => r.workingDays.includes(d)).map((d) => dict.weekdaysShort[WEEKDAY_KEYS.indexOf(d)]).join(", ")],
-    [a.hoursPerDay, `${r.hoursPerDay.trim()}${NBSP}h`],
-    [a.step, t(a.stepOption, { n: formatNumber(r.step) })],
     [a.deadline, `${a.deadlineDays[r.deadlineDay as (typeof DEADLINE_DAYS)[number]] ?? r.deadlineDay} ${r.deadlineTime.trim()}`],
     [a.threshold, `${r.fillAlertThreshold.trim()}${NBSP}%`],
     [a.futureWeeks, onOff(r.allowFutureWeeks)],
@@ -107,9 +106,6 @@ export function describeRules(before: RulesInput, after: RulesInput): string[] {
 export function checkRules(r: RulesInput): RulesErrors {
   const e: RulesErrors = {};
   if (r.workingDays.length === 0 || r.workingDays.some((d) => !(WEEKDAY_KEYS as readonly string[]).includes(d))) e.workingDays = dict.admin.errors.workingDays;
-  const hours = parseNumber(r.hoursPerDay);
-  if (hours === null || hours <= 0 || hours > 24 || Math.round(hours * 4) !== hours * 4) e.hoursPerDay = dict.admin.errors.hoursPerDay;
-  if (!(STEPS as readonly number[]).includes(r.step)) e.step = dict.admin.errors.step;
   if (!(DEADLINE_DAYS as readonly string[]).includes(r.deadlineDay) || !isTime(r.deadlineTime)) e.deadline = dict.admin.errors.deadline;
   const threshold = parseNumber(r.fillAlertThreshold);
   if (threshold === null || !Number.isInteger(threshold) || threshold < 0 || threshold > 100) e.threshold = dict.admin.errors.threshold;

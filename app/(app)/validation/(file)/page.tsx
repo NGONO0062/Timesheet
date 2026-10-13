@@ -5,7 +5,7 @@ import { countSheetsToCountersign } from "@/lib/data/attendance";
 import { currentWeek } from "@/lib/data/timesheets";
 import { listQueue, listReviewablePeople } from "@/lib/data/validation";
 import { requirePermission, scopeOf } from "@/lib/data/viewer";
-import { formatDayMonth, formatHoursOf, formatRange, formatTime, zonedDay } from "@/lib/format";
+import { formatDayMonth, formatDaysOf, formatRange, formatTime, zonedDay } from "@/lib/format";
 import { dict, t } from "@/lib/i18n";
 import { addDays, mondayOf } from "@/lib/iso-week";
 import { parseTab, periodOptions, submissionTag } from "@/lib/validation/queue";
@@ -45,7 +45,7 @@ export default async function Page({ searchParams }: Props) {
         id: r.id,
         name: r.name,
         week: t(dict.validation.weekShort, { week: r.week.week, range: formatRange(monday, addDays(monday, 4), false) }),
-        hours: formatHoursOf(r.hours, r.expected),
+        hours: formatDaysOf(r.hours, r.expected),
         projects: r.projects,
         submitted: r.submittedAt ? `${formatDayMonth(zonedDay(r.submittedAt))}, ${formatTime(r.submittedAt)}` : "",
         status: r.status,

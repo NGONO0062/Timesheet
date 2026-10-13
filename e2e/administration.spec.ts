@@ -76,26 +76,27 @@ test("CX Expertise : utilisateurs, recherche, pagination, permissions, accessibi
   await expect(page.getByRole("switch", { name: "Validation par l'owner (N+2)" })).not.toBeChecked();
   await expect(page.getByRole("switch", { name: "Validation par l'owner (N+2)" })).toBeDisabled();
   await expect(page.getByText("Pas encore disponible : les fiches sont validées en une étape, par le manager (N+1).")).toBeVisible();
-  await expect(page.getByRole("radio", { name: "Jours et demi-journées" })).toBeDisabled();
   await expect(page.getByText("Désactivée", { exact: true })).toBeVisible();
   await expect(page.getByText("Automatique", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Pas de saisie")).toHaveValue("0.5");
+  // Saisie en jours entiers (point 82) : ni unité, ni heures par jour, ni pas à régler.
+  await expect(page.getByLabel("Heures attendues par jour")).toHaveCount(0);
+  await expect(page.getByLabel("Pas de saisie")).toHaveCount(0);
   expect(await axe(page)).toEqual([]);
 });
 
 test("les règles changées par l'admin s'appliquent à la saisie (§17, test 4)", async ({ page }) => {
   test.setTimeout(90_000); // parcours long : admin, puis collaboratrice
   await openAdmin(page, ADMIN, "/administration#regles");
-  const hours = page.getByLabel("Heures attendues par jour");
-  await hours.fill("7,3");
+  const threshold = page.getByLabel("Seuil d'alerte de remplissage");
+  await threshold.fill("101");
   await page.getByRole("button", { name: "Enregistrer les règles" }).click();
-  await expect(page.getByText("Saisissez un nombre d'heures entre 0,25 et 24, par pas de 0,25.")).toBeVisible();
-  await expect(hours).toBeFocused();
+  await expect(page.getByText("Saisissez un seuil entier entre 0 et 100.")).toBeVisible();
+  await expect(threshold).toBeFocused();
   await page.getByRole("button", { name: "Annuler" }).click();
-  await expect(hours).toHaveValue("8");
+  await expect(threshold).toHaveValue("80");
 
-  await hours.fill("7");
-  await page.getByLabel("Pas de saisie").selectOption("1");
+  // Le vendredi n'est plus ouvré : la semaine attend quatre jours.
+  await page.getByRole("checkbox", { name: "vendredi" }).uncheck();
   await page.getByRole("button", { name: "Enregistrer les règles" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Règles de saisie enregistrées. La saisie les applique dès maintenant." })).toBeVisible();
 
@@ -107,7 +108,7 @@ test("les règles changées par l'admin s'appliquent à la saisie (§17, test 4)
   await page.context().clearCookies();
   await login(page, RULES);
   await expect(page).toHaveURL(/\/tableau-de-bord$/);
-  await expect(page.locator("main")).toContainText(/0\sh\s*saisies sur 35\sh/);
+  await expect(page.locator("main")).toContainText(/0\sjour\s*sur 4\sjours attendus/);
   await expect(page.getByRole("navigation", { name: "Navigation principale" }).getByRole("link", { name: "Reporting" })).toBeVisible();
 });
 
