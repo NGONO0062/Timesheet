@@ -288,7 +288,7 @@ L'écran se lit de haut en bas, du plus urgent au moins urgent.
 - Jours consommés : somme des jours des fiches soumises ou validées, sur le budget, avec une barre. Au-delà de 100 %, la barre passe en rouge et un texte dit « Budget dépassé de 10 jours ». Le budget n'a pas d'étiquette : une ligne ne porte qu'une étiquette, le statut.
 - Deux affichages, par un Button group « Liste / Colonnes » :
   - **Liste** : tableau filtrable par statut (pills « Tous », « En cours », « À démarrer », « En pause », « Terminés », chacune avec son compte). Tri par statut puis par code.
-  - **Colonnes** : une colonne par statut, une carte par projet. Pas de glisser-déposer : le statut se change par l'étiquette, au clavier comme à la souris. Sous 1024 px, seul l'affichage en liste est proposé. Le choix d'affichage est gardé dans l'URL (`?vue=colonnes`).
+  - **Colonnes** : une colonne par statut, une carte par projet. Une carte se glisse d'une colonne à l'autre à la souris (point 84) ; le statut se change aussi par l'étiquette, au clavier comme à la souris. Même message, avec « Annuler ». Sous 1024 px, seul l'affichage en liste est proposé. Le choix d'affichage est gardé dans l'URL (`?vue=colonnes`).
 - Les projets archivés sont masqués. Un interrupteur « Afficher les projets archivés » les fait réapparaître. L'archivage se fait depuis le panneau de modification.
 - La création et la modification se font dans un Offcanvas à droite, la liste reste visible derrière.
 

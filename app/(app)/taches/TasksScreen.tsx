@@ -3,12 +3,13 @@
 // glissant d'une colonne à l'autre, ou par son étiquette, au clavier comme au doigt.
 // Déplacement et suppression sont immédiats, avec un message qui propose « Annuler ».
 import { usePathname, useRouter } from "next/navigation";
-import { useOptimistic, useState, useTransition, type DragEvent, type FormEvent } from "react";
+import { useOptimistic, useState, useTransition, type FormEvent } from "react";
 import { addTask, deleteTask, moveTaskTo, renameTaskTo, type TaskActionError } from "@/app/actions/tasks";
 import { Alert } from "@/components/ods/Display";
 import { SelectField, TextField } from "@/components/ods/Form";
 import { Icon } from "@/components/ods/Icon";
 import { StatusBadge, TaskStatusMenu } from "@/components/ts/StatusBadge";
+import { useBoardDrag } from "@/components/ts/useBoardDrag";
 import { cx } from "@/lib/cx";
 import type { BoardProject, BoardTask } from "@/lib/data/tasks";
 import { dict, t } from "@/lib/i18n";
@@ -48,7 +49,10 @@ export function TasksScreen({ projects, project, tasks }: { projects: BoardProje
   const [draft, setDraft] = useState("");
   const [draftError, setDraftError] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: string; title: string; error?: string } | null>(null);
-  const [over, setOver] = useState<TaskStatus | null>(null);
+  const drag = useBoardDrag<TaskStatus>(project !== null && boardEditable(project), (id, status) => {
+    const task = view.find((x) => x.id === id);
+    if (task) move(task, status);
+  });
 
   if (!project) {
     return (
@@ -139,37 +143,11 @@ export function TasksScreen({ projects, project, tasks }: { projects: BoardProje
     });
   }
 
-  // Glisser-déposer (souris) : la carte porte son identifiant, la colonne survolée s'encadre.
-  const dropProps = (status: TaskStatus) =>
-    editable
-      ? {
-          onDragOver: (e: DragEvent) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-            if (over !== status) setOver(status);
-          },
-          onDragLeave: (e: DragEvent<HTMLElement>) => {
-            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(null);
-          },
-          onDrop: (e: DragEvent) => {
-            e.preventDefault();
-            setOver(null);
-            const task = view.find((x) => x.id === e.dataTransfer.getData("text/plain"));
-            if (task) move(task, status);
-          },
-        }
-      : {};
-
   const card = (x: BoardTask) => (
     <article
       key={x.id}
-      className={cx("ts-board-card", editable && "ts-task-drag")}
-      draggable={editable && editing?.id !== x.id}
-      onDragStart={(e) => {
-        e.dataTransfer.setData("text/plain", x.id);
-        e.dataTransfer.effectAllowed = "move";
-      }}
-      onDragEnd={() => setOver(null)}
+      className={cx("ts-board-card", editable && "ts-drag")}
+      {...drag.card(x.id, editing?.id !== x.id)}
     >
       {editing?.id === x.id ? (
         <form
@@ -273,7 +251,7 @@ export function TasksScreen({ projects, project, tasks }: { projects: BoardProje
         {TASK_STATUS_ORDER.map((s) => {
           const items = columnOf(view, s);
           return (
-            <section key={s} className={cx("ts-kanban-col", over === s && "is-over")} aria-label={columnLabel(s, items.length)} {...dropProps(s)}>
+            <section key={s} className={cx("ts-kanban-col", drag.over === s && "is-over")} aria-label={columnLabel(s, items.length)} {...drag.column(s)}>
               <h3 className="h6 ts-board-head">
                 <StatusBadge kind="task" value={s} />
                 <span className="small">{items.length}</span>

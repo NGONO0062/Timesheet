@@ -95,6 +95,19 @@ test("projets : création avec erreurs, statut avec « Annuler », archivage", a
   await expect(page.getByRole("status").filter({ hasText: "Changement annulé." })).toBeVisible();
   await expect(trigger()).toHaveAccessibleName(/Terminé/);
 
+  // Vue en colonnes : glisser la carte change le statut, avec le même « Annuler ».
+  await page.getByRole("button", { name: "Colonnes" }).click();
+  await expect(page).toHaveURL(/vue=colonnes/);
+  const card = page.locator("article", { hasText: "Tests d'usage appli mobile" });
+  await card.dragTo(page.getByRole("region", { name: /^En pause, 0 projet$/ }));
+  const dropped = page.getByRole("status").filter({ hasText: "« Tests d'usage appli mobile » est passé à « En pause »." });
+  await expect(dropped).toBeVisible();
+  await expect(page.getByRole("region", { name: /^En pause, 1 projet$/ })).toContainText("Tests d'usage appli mobile");
+  await dropped.getByRole("button", { name: "Annuler" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Changement annulé." })).toBeVisible();
+  await expect(page.getByRole("region", { name: /^Terminé, 1 projet$/ })).toContainText("Tests d'usage appli mobile");
+  await page.getByRole("button", { name: "Liste" }).click();
+
   // Archivage : le projet quitte la liste, l'interrupteur le fait revenir.
   await page.getByRole("button", { name: "Modifier Projet de test e2e" }).click();
   const edit = page.getByRole("dialog", { name: "Modifier le projet" });

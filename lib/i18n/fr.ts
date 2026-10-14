@@ -159,6 +159,7 @@ export const fr = {
     columnLabelOne: "{status}, {n} projet",
     columnLabelMany: "{status}, {n} projets",
     columnEmpty: "Aucun projet",
+    dragHint: "Faites glisser un projet vers une autre colonne, ou ouvrez son étiquette pour changer son statut.",
     emptyFilterTitle: "Aucun projet avec ce statut",
     emptyFilterAction: "Voir tous les projets",
     emptyTitle: "Aucun projet",

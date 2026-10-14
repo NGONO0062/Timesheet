@@ -4,13 +4,14 @@
 // change par l'étiquette, tout de suite, avec un message qui propose « Annuler ».
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { archiveProject, saveProjectPanel, setProjectStatus } from "@/app/actions/projects";
 import { Alert, Progress, Tag } from "@/components/ods/Display";
 import { Checkbox, FieldError, Switch } from "@/components/ods/Form";
 import { Icon, Mark } from "@/components/ods/Icon";
 import { Offcanvas } from "@/components/ods/Overlay";
 import { ProjectStatusMenu, StatusBadge } from "@/components/ts/StatusBadge";
+import { useBoardDrag } from "@/components/ts/useBoardDrag";
 import { cx } from "@/lib/cx";
 import { dict, t } from "@/lib/i18n";
 import {
@@ -62,8 +63,16 @@ export function ProjectsScreen(props: {
     return opened ? { project: opened } : null;
   });
   const [, start] = useTransition();
+  // Statut affiché tout de suite ; il revient aux données du serveur à la fin de l'action.
+  const [projects, showStatus] = useOptimistic(props.projects, (list, op: { id: string; status: ProjectStatus }) =>
+    list.map((x) => (x.id === op.id ? { ...x, status: op.status } : x)),
+  );
+  const drag = useBoardDrag<ProjectStatus>(props.view === "board", (id, status) => {
+    const project = projects.find((x) => x.id === id);
+    if (project && project.status !== status) changeStatus(project, status);
+  });
 
-  const visible = props.projects.filter((x) => props.showArchived || !x.archived).sort(compareProjects);
+  const visible = projects.filter((x) => props.showArchived || !x.archived).sort(compareProjects);
   const count = (s: ProjectStatus) => visible.filter((x) => x.status === s).length;
   const rows = props.filter === "ALL" ? visible : visible.filter((x) => x.status === props.filter);
 
@@ -80,6 +89,7 @@ export function ProjectsScreen(props: {
   function changeStatus(project: ProjectItem, status: ProjectStatus) {
     setError(null);
     start(async () => {
+      showStatus({ id: project.id, status });
       const r = await setProjectStatus(project.id, status);
       if (!r.ok) return setError(p.actionError);
       const previous = r.previous;
@@ -87,6 +97,7 @@ export function ProjectsScreen(props: {
         text: statusChangedMessage(project.name, status),
         undo: () =>
           start(async () => {
+            showStatus({ id: project.id, status: previous });
             const back = await setProjectStatus(project.id, previous);
             if (back.ok) setNotice({ text: p.undone });
             else setError(p.actionError);
@@ -190,18 +201,25 @@ export function ProjectsScreen(props: {
   );
 
   const board = (
+    <>
+    <p className="small text-secondary">{p.dragHint}</p>
     <div className="ts-board">
       {PROJECT_STATUS_ORDER.map((s) => {
         const items = visible.filter((x) => x.status === s);
         const label = statusLook("project", s).label;
         return (
-          <section key={s} className="ts-board-col" aria-label={t(items.length > 1 ? p.columnLabelMany : p.columnLabelOne, { status: label, n: items.length })}>
+          <section
+            key={s}
+            className={cx("ts-board-col", drag.over === s && "is-over")}
+            aria-label={t(items.length > 1 ? p.columnLabelMany : p.columnLabelOne, { status: label, n: items.length })}
+            {...drag.column(s)}
+          >
             <h2 className="h6 ts-board-head">
               <StatusBadge kind="project" value={s} />
               <span className="small">{items.length}</span>
             </h2>
             {items.map((x) => (
-              <article key={x.id} className="ts-board-card">
+              <article key={x.id} className="ts-board-card ts-drag" {...drag.card(x.id)}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                   <h3 className="h6">{x.name}</h3>
                   <span className="small text-secondary">
@@ -221,6 +239,7 @@ export function ProjectsScreen(props: {
         );
       })}
     </div>
+    </>
   );
 
   return (
