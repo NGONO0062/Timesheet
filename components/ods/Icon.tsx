@@ -34,6 +34,13 @@ const NAV_PATHS = {
     </>
   ),
   projects: <path d="M2 4h6l2 3h8v10H2z" />,
+  tasks: (
+    <>
+      <rect x="2" y="3" width="4" height="14" />
+      <rect x="8" y="3" width="4" height="9" />
+      <rect x="14" y="3" width="4" height="6" />
+    </>
+  ),
   reporting: <path d="M2 17h16M5 17v-6M10 17V4M15 17V8" />,
   division: (
     <>

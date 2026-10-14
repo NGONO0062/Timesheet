@@ -75,7 +75,7 @@ test.describe("navigation par rôle", () => {
   test("staff stagiaire : trois liens, lien courant marqué", async ({ page }) => {
     await login(page, "aicha.ndongo@exemple.com");
     await expect(page).toHaveURL(/\/tableau-de-bord$/);
-    await expect(nav(page).getByRole("link")).toHaveText(["Tableau de bord", "Saisie hebdomadaire", "Fiche de présence"]);
+    await expect(nav(page).getByRole("link")).toHaveText(["Tableau de bord", "Saisie hebdomadaire", "Fiche de présence", "Tâches"]);
     await expect(nav(page).getByRole("link", { name: "Tableau de bord" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByText("Aïcha Ndongo")).toBeVisible();
     expect(await axe(page)).toEqual([]);
@@ -86,13 +86,13 @@ test.describe("navigation par rôle", () => {
 
   test("manager qui saisit ses temps : liens Staff et liens Manager", async ({ page }) => {
     await login(page, "samuel.etoga@exemple.com");
-    await expect(nav(page).getByRole("link")).toHaveText(["Tableau de bord", "Saisie hebdomadaire", "Validation", "Projets", "Reporting"]);
+    await expect(nav(page).getByRole("link")).toHaveText(["Tableau de bord", "Saisie hebdomadaire", "Validation", "Projets", "Tâches", "Reporting"]);
   });
 
   test("owner : vue division d'abord", async ({ page }) => {
     await login(page, "brigitte.mbarga@exemple.com");
     await expect(page).toHaveURL(/\/division$/);
-    await expect(nav(page).getByRole("link")).toHaveText(["Vue division", "Validation", "Projets", "Reporting"]);
+    await expect(nav(page).getByRole("link")).toHaveText(["Vue division", "Validation", "Projets", "Tâches", "Reporting"]);
   });
 
   test("admin plateforme : toutes les divisions", async ({ page }) => {

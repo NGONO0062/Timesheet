@@ -7,19 +7,19 @@ const labels = (role: Role, isIntern = false) => navigationFor(viewer(role, isIn
 
 describe("navigation par permissions (§6)", () => {
   it("donne au stagiaire les trois liens Staff", () => {
-    expect(labels("STAFF", true)).toEqual(["Tableau de bord", "Saisie hebdomadaire", "Fiche de présence"]);
+    expect(labels("STAFF", true)).toEqual(["Tableau de bord", "Saisie hebdomadaire", "Fiche de présence", "Tâches"]);
   });
 
   it("masque la fiche de présence pour un staff non stagiaire", () => {
-    expect(labels("STAFF")).toEqual(["Tableau de bord", "Saisie hebdomadaire"]);
+    expect(labels("STAFF")).toEqual(["Tableau de bord", "Saisie hebdomadaire", "Tâches"]);
   });
 
   it("donne au manager qui saisit ses temps les liens Staff en plus des siens", () => {
-    expect(labels("MANAGER")).toEqual(["Tableau de bord", "Saisie hebdomadaire", "Validation", "Projets", "Reporting"]);
+    expect(labels("MANAGER")).toEqual(["Tableau de bord", "Saisie hebdomadaire", "Validation", "Projets", "Tâches", "Reporting"]);
   });
 
   it("suit la matrice pour l'owner", () => {
-    expect(labels("OWNER")).toEqual(["Vue division", "Validation", "Projets", "Reporting"]);
+    expect(labels("OWNER")).toEqual(["Vue division", "Validation", "Projets", "Tâches", "Reporting"]);
   });
 
   it("donne à l'admin plateforme les divisions et le journal", () => {
@@ -32,7 +32,7 @@ describe("navigation par permissions (§6)", () => {
       isIntern: false,
       permissions: [...effectivePermissions("MANAGER", [{ role: "MANAGER", permission: "ENTER_TIME", granted: false }])],
     };
-    expect(navigationFor(manager).map((i) => i.label)).toEqual(["Validation", "Projets", "Reporting"]);
+    expect(navigationFor(manager).map((i) => i.label)).toEqual(["Validation", "Projets", "Tâches", "Reporting"]);
     expect(homeFor(manager)).toBe("/validation");
   });
 

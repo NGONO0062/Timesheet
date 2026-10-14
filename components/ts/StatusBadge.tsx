@@ -4,7 +4,7 @@ import { Dropdown } from "@/components/ods/Dropdown";
 import { Icon } from "@/components/ods/Icon";
 import { cx } from "@/lib/cx";
 import { dict, t } from "@/lib/i18n";
-import { PROJECT_STATUS_ORDER, statusLook, type ProjectStatus, type StatusKind, type StatusValue } from "@/lib/status";
+import { PROJECT_STATUS_ORDER, statusLook, TASK_STATUS_ORDER, type ProjectStatus, type StatusKind, type StatusValue, type TaskStatus } from "@/lib/status";
 
 type Props<K extends StatusKind> = { kind: K; value: StatusValue[K]; params?: Record<string, string | number>; className?: string };
 
@@ -50,6 +50,47 @@ export function ProjectStatusMenu({ projectName, value, onChange, canManage, def
           className={cx("badge ts-st-btn", look.className)}
           type="button"
           aria-label={t(dict.status.statusOf, { name: projectName, status: look.label })}
+          {...p}
+        >
+          {look.label}
+          <Icon name="down" />
+        </button>
+      )}
+    />
+  );
+}
+
+/**
+ * Étiquette d'une carte du tableau Kanban (PROMPT.md §9.12). Elle ouvre les cinq
+ * colonnes, l'actuelle cochée : c'est le déplacement au clavier et au doigt, à côté
+ * du glisser-déposer. Tableau en lecture seule : un simple StatusBadge.
+ */
+export function TaskStatusMenu({ taskTitle, value, onChange, canMove }: {
+  taskTitle: string;
+  value: TaskStatus;
+  onChange: (next: TaskStatus) => void;
+  canMove: boolean;
+}) {
+  if (!canMove) return <StatusBadge kind="task" value={value} />;
+  const look = statusLook("task", value);
+  return (
+    <Dropdown
+      label={dict.tasks.moveMenu}
+      floating
+      items={TASK_STATUS_ORDER.map((s) => ({
+        key: s,
+        content: <StatusBadge kind="task" value={s} />,
+        current: s === value,
+        currentSuffix: dict.status.currentSuffix,
+        onSelect: () => {
+          if (s !== value) onChange(s);
+        },
+      }))}
+      trigger={(p) => (
+        <button
+          className={cx("badge ts-st-btn", look.className)}
+          type="button"
+          aria-label={t(dict.tasks.moveLabel, { title: taskTitle, status: look.label })}
           {...p}
         >
           {look.label}

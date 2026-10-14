@@ -5,11 +5,12 @@ import type { DayStatus, DisplayStatus } from "./timesheet/rules";
 
 export type ProjectStatus = "NOT_STARTED" | "IN_PROGRESS" | "ON_HOLD" | "DONE";
 export type AttendanceStatus = "GENERATED" | "SIGNED_BY_INTERN" | "SIGNED_BY_SUPERVISOR" | "SENT";
+export type TaskStatus = "BACKLOG" | "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
 
 export type DivisionStatus = "ACTIVE" | "ONBOARDING" | "SUSPENDED";
 export type AuditResult = "SUCCESS" | "FAILURE";
 
-export type StatusKind = "project" | "timesheet" | "day" | "attendance" | "division" | "audit";
+export type StatusKind = "project" | "timesheet" | "day" | "attendance" | "division" | "audit" | "task";
 
 export type StatusValue = {
   project: ProjectStatus;
@@ -18,6 +19,7 @@ export type StatusValue = {
   attendance: AttendanceStatus;
   division: DivisionStatus;
   audit: AuditResult;
+  task: TaskStatus;
 };
 
 type Look = { label: string; className: string };
@@ -67,6 +69,14 @@ const LOOKS: { [K in StatusKind]: Record<StatusValue[K], string> } = {
     SUCCESS: TONE.success,
     FAILURE: TONE.danger,
   },
+  // Colonnes du tableau Kanban (PROMPT.md §9.12) : le libellé dit l'état, la couleur suit.
+  task: {
+    BACKLOG: TONE.neutral,
+    TODO: TONE.neutral,
+    IN_PROGRESS: TONE.info,
+    REVIEW: TONE.warning,
+    DONE: TONE.success,
+  },
 };
 
 /** `params` : valeurs du libellé (« Onboarding · étape {step} sur 5 »). */
@@ -75,6 +85,9 @@ export function statusLook<K extends StatusKind>(kind: K, value: StatusValue[K],
   const classes = LOOKS[kind] as Record<StatusValue[K], string>;
   return { label: params ? t(labels[value], params) : labels[value], className: classes[value] };
 }
+
+/** Colonnes du tableau Kanban, de gauche à droite. */
+export const TASK_STATUS_ORDER: TaskStatus[] = ["BACKLOG", "TODO", "IN_PROGRESS", "REVIEW", "DONE"];
 
 /** Ordre d'affichage des statuts de projet (tri, colonnes, menu). */
 export const PROJECT_STATUS_ORDER: ProjectStatus[] = ["IN_PROGRESS", "NOT_STARTED", "ON_HOLD", "DONE"];

@@ -21,10 +21,13 @@ export function navigationFor(viewer: Pick<Viewer, "role" | "permissions" | "isI
     // Staff non stagiaire : pas de fiche de présence RH, lien masqué (§20).
     if (viewer.isIntern) items.push({ href: "/fiche-presence", label: "Fiche de présence", icon: "attendance" });
   }
+  // Tableau Kanban (§9.12) : après la saisie pour qui saisit, après Projets pour qui les gère.
+  const tasks: NavItem = { href: "/taches", label: "Tâches", icon: "tasks" };
+  if (can("ENTER_TIME") && !can("MANAGE_PROJECTS")) items.push(tasks);
   if (can("ADMINISTER_DIVISION")) items.push({ href: "/administration", label: "Administration", icon: "admin" });
   if (can("VIEW_DIVISION")) items.push({ href: "/division", label: "Vue division", icon: "division" });
   if (can("VALIDATE_TEAM")) items.push({ href: "/validation", label: "Validation", icon: "validation" });
-  if (can("MANAGE_PROJECTS")) items.push({ href: "/projets", label: "Projets", icon: "projects" });
+  if (can("MANAGE_PROJECTS")) items.push({ href: "/projets", label: "Projets", icon: "projects" }, tasks);
   if (can("VIEW_REPORTING")) items.push({ href: "/reporting", label: "Reporting", icon: "reporting" });
   return items;
 }

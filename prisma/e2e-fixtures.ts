@@ -118,6 +118,8 @@ export async function resetE2eFixtures(): Promise<void> {
 
     // Fiches : remises à leur état de départ à chaque exécution (lignes, entrées et événements suivent).
     await prisma.timesheet.deleteMany({ where: { divisionId: division.id } });
+    // Tableaux Kanban vidés (écran 15) : les tâches créées par les tests disparaissent.
+    await prisma.task.deleteMany({ where: { divisionId: division.id } });
     // Projets créés par les tests de l'écran Projets (activités et membres suivent).
     await prisma.project.deleteMany({ where: { divisionId: division.id, code: { notIn: ["CX-2026-00", "CX-2026-01", "CX-2026-04"] } } });
 

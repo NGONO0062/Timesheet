@@ -2,6 +2,7 @@
 // Écran 9 (09-Projets, 09-Projets-colonnes, 09-Projets-creation et prototype 09).
 // Filtre, affichage et projets archivés sont gardés dans l'adresse. Le statut se
 // change par l'étiquette, tout de suite, avec un message qui propose « Annuler ».
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { archiveProject, saveProjectPanel, setProjectStatus } from "@/app/actions/projects";
@@ -126,10 +127,16 @@ export function ProjectsScreen(props: {
     </>
   );
 
+  // « Modifier » ouvre le panneau ; « Voir les tâches » ouvre le tableau Kanban du projet (§9.12).
   const editButton = (x: ProjectItem) => (
-    <button className="btn btn-link" type="button" aria-label={t(p.editLabel, { name: x.name })} onClick={() => setPanel({ project: x })}>
-      {p.edit}
-    </button>
+    <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 10 }}>
+      <button className="btn btn-link" type="button" aria-label={t(p.editLabel, { name: x.name })} onClick={() => setPanel({ project: x })}>
+        {p.edit}
+      </button>
+      <Link className="btn btn-link" href={`/taches?projet=${x.id}`} aria-label={t(dict.tasks.seeTasksLabel, { name: x.name })}>
+        {dict.tasks.seeTasks}
+      </Link>
+    </span>
   );
 
   const list = rows.length === 0 ? (

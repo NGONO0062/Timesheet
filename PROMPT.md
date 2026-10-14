@@ -358,6 +358,21 @@ Une page à ancres : Utilisateurs, Rôles et permissions, Workflows, Règles de 
 - Sécurité : changement de mot de passe.
 - Préférences : langue (Français, English), mode de signature par défaut, reprise automatique des lignes de la semaine précédente.
 
+### 9.12 Tâches (tableau Kanban)
+
+Ajout du 13/10/2026 (jalon 9, `docs/questions-ouvertes.md`, point 83). La saisie des jours ne change pas : les tâches disent **ce que** chacun fait, la saisie dit **combien de jours**.
+
+- Un tableau par **projet**, pas par jour : une tâche dure souvent plusieurs jours et reste sur le tableau tant qu'elle avance.
+- Cinq colonnes, dans cet ordre : `Backlog`, `À faire`, `En cours`, `En revue`, `Terminée`. Chaque libellé passe par `<StatusBadge kind="task">`.
+- Qui voit un tableau : les membres du projet, et ceux qui gèrent le projet (manager responsable ou manager d'un membre, owner, admin de division). Personne d'une autre division.
+- Qui écrit : les mêmes. Ils créent une tâche, la renomment, la déplacent, la suppriment. Une tâche porte le nom de la personne qui l'a créée.
+- Création : un champ « Nouvelle tâche » sous le nom du projet, avec « Ajouter la tâche » (le seul bouton primaire de l'écran). La tâche arrive dans `Backlog`, en bas de la colonne.
+- Déplacement : glisser-déposer d'une colonne à l'autre, à la souris. Le même déplacement se fait au clavier et au doigt par l'étiquette de la carte, qui ouvre un menu des cinq colonnes (WCAG 2.2, critère 2.5.7). La carte arrive en bas de la colonne.
+- Déplacement et suppression sont immédiats, sans confirmation : un message le dit et propose « Annuler ».
+- Projet « Terminé » ou archivé : le tableau reste lisible, en lecture seule.
+- Route `/taches?projet=…` ; lien « Tâches » dans la navigation de qui saisit ses temps ou gère des projets, et lien « Voir les tâches » sur chaque projet de l'écran Projets.
+- Desktop (1024 px et plus) : cinq colonnes côte à côte. En dessous : les colonnes l'une sous l'autre, déplacement par l'étiquette.
+
 ## 10. Écrans et routes
 
 | # | Écran | Route | Maquette (`design/ecrans/`) |
@@ -376,6 +391,7 @@ Une page à ancres : Utilisateurs, Rôles et permissions, Workflows, Règles de 
 | 12 | Administration de division | `/administration` | `12-Admin-division` |
 | 13 | Administration plateforme | `/plateforme`, `/plateforme/divisions/nouvelle` | `13-Admin-plateforme`, `13-Onboarding-division` |
 | 14 | Paramètres | `/parametres` | `14-Parametres` |
+| 15 | Tâches (tableau Kanban) | `/taches` | non maquetté (§9.12) |
 
 Le bloc en pointillés « Prototype uniquement : entrer avec un profil » de l'écran de connexion ne doit pas exister en production. Garde-le derrière une variable d'environnement, pour la démonstration.
 
@@ -502,5 +518,6 @@ Avance par jalons. À la fin de chacun : lance les tests, compare tes écrans au
 6. **Administration de division et Paramètres.** Écrans 12 et 14.
 7. **Plateforme.** Écran 13, onboarding, journal d'audit.
 8. **Finitions.** États vide, chargement et erreur sur tous les écrans, passe d'accessibilité, vues mobiles manquantes, documentation (`README.md`, `docs/`).
+9. **Tâches.** Écran 15 : tableau Kanban par projet (§9.12), glisser-déposer et menu au clavier, liens depuis la navigation et l'écran Projets.
 
 Commence par me dire en quelques lignes ce que tu as compris, les points de la stack qui te posent un problème s'il y en a, puis lance le jalon 0.

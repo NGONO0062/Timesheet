@@ -74,6 +74,7 @@ async function main() {
     await completeProjects(existing.id, userIds);
     const projects = await prisma.project.findMany({ where: { divisionId: existing.id }, include: { activities: true } });
     const added = await seedTimesheets(existing.id, userIds, new Map(projects.map((p) => [p.code, p])));
+    await seedTasks(existing.id, userIds);
     const events = await seedPlatform(existing.id, userIds);
     console.log(added > 0 ? `${added} fiche(s) de temps de démonstration ajoutée(s).` : "Données de démonstration déjà à jour. Pour repartir de zéro : npm run db:reset.");
     if (events > 0) console.log(`Plateforme : ${events} événement(s) du journal d'audit ajouté(s).`);
@@ -175,6 +176,7 @@ async function main() {
   await completeProjects(division.id, ids);
   const allProjects = await prisma.project.findMany({ where: { divisionId: division.id }, include: { activities: true } });
   await seedTimesheets(division.id, ids, new Map(allProjects.map((p) => [p.code, p])));
+  await seedTasks(division.id, ids);
 
   // Admin plateforme : sans division.
   await prisma.user.create({
@@ -409,6 +411,35 @@ async function seedTimesheets(
     await prisma.timesheetEvent.create({ data: { timesheetId: ts.id, type: "CREATED", actorId: ts.userId, at: douala(`${mondayIso} 09:05`) } });
   }
   return added;
+}
+
+/**
+ * Tableau Kanban de « Refonte parcours souscription » (écran 15, PROMPT.md §9.12) :
+ * une tâche ou deux par colonne, créées par l'équipe de Samuel Etoga. Idempotent.
+ */
+async function seedTasks(divisionId: string, ids: Map<string, string>) {
+  const project = await prisma.project.findUnique({ where: { divisionId_code: { divisionId, code: "CX-2026-01" } } });
+  if (!project || (await prisma.task.count({ where: { projectId: project.id } })) > 0) return;
+  const tasks: Array<[title: string, status: "BACKLOG" | "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE", by: string]> = [
+    ["Benchmark des parcours concurrents", "BACKLOG", "Kevin Fotso"],
+    ["Préparer le guide d'entretien", "TODO", "Aïcha Ndongo"],
+    ["Recruter les testeurs", "TODO", "Laure Bikoï"],
+    ["Tests utilisateurs du parcours mobile", "IN_PROGRESS", "Aïcha Ndongo"],
+    ["Atelier de restitution", "IN_PROGRESS", "Kevin Fotso"],
+    ["Synthèse des irritants du formulaire", "REVIEW", "Laure Bikoï"],
+    ["Cartographie du parcours actuel", "DONE", "Ibrahim Njoya"],
+  ];
+  await prisma.task.createMany({
+    data: tasks.map(([title, status, by], i) => ({
+      divisionId,
+      projectId: project.id,
+      title,
+      status,
+      position: i,
+      createdById: ids.get(by)!,
+      createdAt: douala("2026-03-16 09:30"),
+    })),
+  });
 }
 
 /**

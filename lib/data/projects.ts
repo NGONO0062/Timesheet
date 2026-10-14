@@ -12,11 +12,15 @@ const CONSUMED: Array<"SUBMITTED" | "VALIDATED"> = ["SUBMITTED", "VALIDATED"];
 const fullName = (u: { firstName: string; lastName: string }) => `${u.firstName} ${u.lastName}`;
 const seesWholeDivision = (scope: DivisionScope) => scope.role === "OWNER" || scope.role === "DIVISION_ADMIN";
 
+/** Projets que le contexte gère, dans sa division (la permission est vérifiée par l'appelant). */
+export function managedProjectsWhere(scope: DivisionScope): Prisma.ProjectWhereInput {
+  if (seesWholeDivision(scope)) return {};
+  return { OR: [{ managerId: scope.userId }, { members: { some: { user: { managerId: scope.userId } } } }] };
+}
+
 function projectWhere(scope: DivisionScope): Prisma.ProjectWhereInput {
   assertPermission(scope, "MANAGE_PROJECTS");
-  const base: Prisma.ProjectWhereInput = { divisionId: scope.divisionId, isSystem: false };
-  if (seesWholeDivision(scope)) return base;
-  return { ...base, OR: [{ managerId: scope.userId }, { members: { some: { user: { managerId: scope.userId } } } }] };
+  return { divisionId: scope.divisionId, isSystem: false, ...managedProjectsWhere(scope) };
 }
 
 /** Personnes qu'on peut affecter : l'équipe du manager, ou toute la division pour owner et admin. */

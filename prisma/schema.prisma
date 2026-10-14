@@ -54,6 +54,15 @@ enum InternshipKind {
   GRADUATE
 }
 
+// Colonnes du tableau Kanban d'un projet (PROMPT.md §9.12).
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
 enum ProjectStatus {
   NOT_STARTED
   IN_PROGRESS
@@ -107,6 +116,7 @@ model Division {
   attendance   AttendanceSheet[]
   holidays     Holiday[]
   auditEntries AuditLog[]
+  tasks        Task[]
 }
 
 model DivisionSettings {
@@ -161,28 +171,28 @@ model Team {
 }
 
 model User {
-  id                   String    @id @default(cuid())
+  id                   String          @id @default(cuid())
   divisionId           String? // null pour l'admin plateforme
-  division             Division? @relation(fields: [divisionId], references: [id])
-  email                String    @unique
+  division             Division?       @relation(fields: [divisionId], references: [id])
+  email                String          @unique
   passwordHash         String?
   firstName            String
   lastName             String
   role                 Role
   managerId            String?
-  manager              User?     @relation("Reports", fields: [managerId], references: [id])
-  reports              User[]    @relation("Reports")
+  manager              User?           @relation("Reports", fields: [managerId], references: [id])
+  reports              User[]          @relation("Reports")
   teamId               String?
-  team                 Team?     @relation("TeamMembers", fields: [teamId], references: [id])
-  managedTeams         Team[]    @relation("TeamManager")
-  active               Boolean   @default(true)
-  usualArrival         String    @default("08:00")
-  usualDeparture       String    @default("17:00")
-  locale               String    @default("fr")
+  team                 Team?           @relation("TeamMembers", fields: [teamId], references: [id])
+  managedTeams         Team[]          @relation("TeamManager")
+  active               Boolean         @default(true)
+  usualArrival         String          @default("08:00")
+  usualDeparture       String          @default("17:00")
+  locale               String          @default("fr")
   defaultSignatureMode SignatureMethod @default(DRAWN)
-  copyPreviousWeek     Boolean   @default(false)
-  notificationPrefs    Json      @default("{}")
-  createdAt            DateTime  @default(now())
+  copyPreviousWeek     Boolean         @default(false)
+  notificationPrefs    Json            @default("{}")
+  createdAt            DateTime        @default(now())
 
   internship       Internship?
   memberships      ProjectMember[]
@@ -194,6 +204,7 @@ model User {
   signatures       Signature[]
   projectChanges   Project[]         @relation("ProjectStatusChanger")
   managedProjects  Project[]         @relation("ProjectManager")
+  createdTasks     Task[]            @relation("TaskCreator")
 
   @@index([divisionId])
   @@index([managerId])
@@ -231,6 +242,7 @@ model Project {
   activities Activity[]
   members    ProjectMember[]
   lines      TimesheetLine[]
+  tasks      Task[]
 
   @@unique([divisionId, code])
   @@index([divisionId, status])
@@ -316,21 +328,21 @@ model TimesheetEvent {
 }
 
 model AttendanceSheet {
-  id          String           @id @default(cuid())
-  divisionId  String
-  division    Division         @relation(fields: [divisionId], references: [id])
-  userId      String
-  user        User             @relation(fields: [userId], references: [id])
-  year        Int
-  month       Int
-  status      AttendanceStatus @default(GENERATED)
-  generatedAt DateTime         @default(now())
-  absenceDays Int              @default(0)
-  observation String?
-  pdfPath     String?
-  pdfSha256   String?
-  sentAt      DateTime?
-  sentTo      String?
+  id              String           @id @default(cuid())
+  divisionId      String
+  division        Division         @relation(fields: [divisionId], references: [id])
+  userId          String
+  user            User             @relation(fields: [userId], references: [id])
+  year            Int
+  month           Int
+  status          AttendanceStatus @default(GENERATED)
+  generatedAt     DateTime         @default(now())
+  absenceDays     Int              @default(0)
+  observation     String?
+  pdfPath         String?
+  pdfSha256       String?
+  sentAt          DateTime?
+  sentTo          String?
   // Renvoi au stagiaire par le superviseur : sa signature est annulée (PROMPT.md §9.8).
   rejectionReason String?
 
@@ -403,4 +415,24 @@ model PasswordToken {
   createdAt DateTime  @default(now())
 
   @@index([userId, kind])
+}
+
+// Tâche d'un projet, sur son tableau Kanban (PROMPT.md §9.12). Une suppression est
+// réversible (« Annuler ») : la tâche est marquée, pas effacée.
+model Task {
+  id          String     @id @default(cuid())
+  divisionId  String
+  division    Division   @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  status      TaskStatus @default(BACKLOG)
+  position    Int        @default(0)
+  createdById String
+  createdBy   User       @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime
+  deletedAt   DateTime?
+
+  @@index([projectId, status, position])
+  @@index([divisionId])
 }
