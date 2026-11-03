@@ -120,6 +120,49 @@ export default async function Page({ searchParams }: Props) {
               </table>
             </TableScroll>
           </section>
+
+          {view.phases && (
+            <section aria-labelledby="titre-phases" className="ts-section">
+              <h2 className="h3" id="titre-phases">{r.phasesTitle}</h2>
+              <p className="small text-secondary">{r.phasesNote}</p>
+              <TableScroll>
+                <table className="table">
+                  <caption className="visually-hidden">{t(r.phasesCaption, { period: view.periodLower })}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{r.colEntity.project}</th>
+                      <th scope="col">{r.colSub.project}</th>
+                      {view.phases.head.map((h) => (
+                        <th scope="col" className="num" key={h}>{h}</th>
+                      ))}
+                      <th scope="col" className="num">{r.colTotal}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {view.phases.rows.map((row) => (
+                      <tr key={row.key}>
+                        <th scope="row">{row.label}</th>
+                        <td>{row.sub}</td>
+                        {row.cells.map((c, i) => (
+                          <td className="num" key={i}>{c}</td>
+                        ))}
+                        <td className="num fw-bold">{row.total}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <th scope="row" colSpan={2}>{r.total}</th>
+                      {view.phases.foot.cells.map((c, i) => (
+                        <td className="num" key={i}>{c}</td>
+                      ))}
+                      <td className="num">{view.phases.foot.total}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </TableScroll>
+            </section>
+          )}
         </>
       )}
     </main>

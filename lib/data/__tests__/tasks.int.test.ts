@@ -69,7 +69,7 @@ describe("tableau Kanban d'un projet", () => {
     const r = await createTask(aicha, refonte, "Brouillon", NOW);
     created.push(r.id);
     await expect(renameTask(aicha, r.id, "   ")).rejects.toEqual(new TaskRuleError("invalid", "Saisissez le titre de la tâche."));
-    expect(await renameTask(aicha, r.id, "Titre final")).toEqual({ title: "Titre final", previous: "Brouillon" });
+    expect(await renameTask(aicha, r.id, "Titre final")).toEqual({ title: "Titre final", previous: "Brouillon", phase: null });
     await setTaskDeleted(aicha, r.id, true, NOW);
     expect((await getBoard(aicha, refonte)).some((x) => x.id === r.id)).toBe(false);
     await expect(moveTask(aicha, r.id, "DONE")).rejects.toEqual(new TaskRuleError("notFound"));

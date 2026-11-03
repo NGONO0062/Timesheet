@@ -3,7 +3,9 @@ import "server-only";
 // toute la division (personnes qui saisissent leurs temps) pour owner et admin.
 import type { Prisma } from "@prisma/client";
 import { effectivePermissions, type DivisionRole, type Permission } from "@/lib/permissions";
+import { zonedDay } from "@/lib/format";
 import type { IsoWeek } from "@/lib/iso-week";
+import type { PhaseProject } from "@/lib/reporting/phases";
 import type { ReportEntry, ReportPerson, SheetState } from "@/lib/reporting/report";
 import { sum } from "@/lib/timesheet/rules";
 import { assertPermission, prisma, type DivisionScope } from "./db";
@@ -39,10 +41,11 @@ export async function getReportData(scope: DivisionScope, people: ReportPerson[]
     prisma.timeEntry.findMany({
       where: { line: { timesheet: { divisionId: scope.divisionId, userId: { in: personIds }, ...weekFilter } } },
       select: {
+        date: true,
         hours: true,
         line: {
           select: {
-            project: { select: { id: true, code: true, name: true, _count: { select: { members: true } } } },
+            project: { select: { id: true, code: true, name: true, kind: true, _count: { select: { members: true } } } },
             activity: { select: { name: true } },
             timesheet: { select: { userId: true, isoYear: true, isoWeek: true } },
           },
@@ -57,6 +60,7 @@ export async function getReportData(scope: DivisionScope, people: ReportPerson[]
   ]);
   const entries: ReportEntry[] = rows.map((r) => ({
     week: { year: r.line.timesheet.isoYear, week: r.line.timesheet.isoWeek },
+    date: r.date,
     personId: r.line.timesheet.userId,
     projectId: r.line.project.id,
     projectCode: r.line.project.code,
@@ -72,5 +76,25 @@ export async function getReportData(scope: DivisionScope, people: ReportPerson[]
       return { personId: p.id, week: w, stored: s?.status ?? null, deadline: frames[i]!.deadline };
     }),
   );
-  return { entries, states, members, weekCapacity: frames.map((f) => sum(f.expected)) };
+  return { entries, states, members, weekCapacity: frames.map((f) => sum(f.expected)), phaseProjects: await phaseProjectsOf(scope, rows.map((r) => r.line.project)) };
+}
+
+/**
+ * Projets DMAIC parmi ceux qui ont des jours saisis, avec leurs entrées dans chaque
+ * phase, au jour de la division (jours par phase, PROMPT.md §9.5).
+ */
+async function phaseProjectsOf(scope: DivisionScope, projects: Array<{ id: string; code: string; name: string; kind: "STANDARD" | "DMAIC" }>): Promise<PhaseProject[]> {
+  const dmaic = new Map(projects.filter((p) => p.kind === "DMAIC").map((p) => [p.id, p]));
+  if (dmaic.size === 0) return [];
+  const changes = await prisma.projectPhaseChange.findMany({
+    where: { divisionId: scope.divisionId, projectId: { in: [...dmaic.keys()] } },
+    orderBy: [{ at: "asc" }, { id: "asc" }],
+    select: { projectId: true, phase: true, at: true },
+  });
+  return [...dmaic.values()].map((p) => ({
+    projectId: p.id,
+    code: p.code,
+    name: p.name,
+    changes: changes.filter((c) => c.projectId === p.id).map((c) => ({ phase: c.phase, day: zonedDay(c.at) })),
+  }));
 }

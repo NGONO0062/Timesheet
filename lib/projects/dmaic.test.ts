@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  DMAIC_PHASES, isDmaicPhase, nextPhase, phaseAfterKindChange, phaseChangedMessage, phaseLabel, phaseLine, phaseNumber, phaseStepText, previousPhase,
+  DMAIC_PHASES, isDmaicPhase, nextPhase, phaseAfterKindChange, phaseChangedMessage, phaseLabel, phaseLine, phaseNumber, phaseOn, phaseStepText, previousPhase,
 } from "./dmaic";
 import { checkProjectInput } from "./rules";
 
@@ -57,5 +57,34 @@ describe("type de projet", () => {
     expect(plain.ok && plain.value.kind).toBe("STANDARD");
     const dmaic = checkProjectInput({ ...base, kind: "DMAIC" });
     expect(dmaic.ok && dmaic.value.kind).toBe("DMAIC");
+  });
+});
+
+describe("phase d'un projet un jour donné", () => {
+  const day = (iso: string) => new Date(`${iso}T00:00:00Z`);
+  const changes = [
+    { phase: "DEFINE" as const, day: day("2026-02-02") },
+    { phase: "MEASURE" as const, day: day("2026-02-23") },
+    { phase: "ANALYZE" as const, day: day("2026-03-16") },
+  ];
+
+  it("prend la dernière phase entrée ce jour-là ou avant", () => {
+    expect(phaseOn(changes, day("2026-02-20"))).toBe("DEFINE");
+    expect(phaseOn(changes, day("2026-03-13"))).toBe("MEASURE");
+    expect(phaseOn(changes, day("2026-03-19"))).toBe("ANALYZE");
+  });
+
+  it("compte le jour d'un changement dans la nouvelle phase", () => {
+    expect(phaseOn(changes, day("2026-02-23"))).toBe("MEASURE");
+  });
+
+  it("n'a pas de phase avant la première entrée", () => {
+    expect(phaseOn(changes, day("2026-01-30"))).toBeNull();
+    expect(phaseOn([], day("2026-03-19"))).toBeNull();
+  });
+
+  it("garde la dernière entrée d'un même jour (« Annuler » le jour du changement)", () => {
+    const undone = [...changes, { phase: "IMPROVE" as const, day: day("2026-03-19") }, { phase: "ANALYZE" as const, day: day("2026-03-19") }];
+    expect(phaseOn(undone, day("2026-03-19"))).toBe("ANALYZE");
   });
 });

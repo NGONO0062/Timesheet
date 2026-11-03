@@ -53,7 +53,7 @@ test("projets de démonstration : liste, filtres et affichage dans l'adresse, co
 
 test("projets : création avec erreurs, statut avec « Annuler », archivage", async ({ page }) => {
   await open(page, MARTIN, "/projets", "Projets");
-  await expect(page.getByText("3 projets · 2 en cours")).toBeVisible();
+  await expect(page.getByText("4 projets · 2 en cours")).toBeVisible();
 
   // Panneau de création : erreurs sous les champs, focus sur la première.
   await page.getByRole("button", { name: "Nouveau projet" }).click();
@@ -83,7 +83,7 @@ test("projets : création avec erreurs, statut avec « Annuler », archivage", a
   await expect(panel).toBeHidden();
   await expect(page.getByRole("status").filter({ hasText: "Projet « Projet de test e2e » créé avec le statut « En cours »." })).toBeVisible();
   await expect(row(page, "Projet de test e2e")).toContainText("0 / 30 jours · 0 %");
-  await expect(page.getByText("4 projets · 3 en cours")).toBeVisible();
+  await expect(page.getByText("5 projets · 3 en cours")).toBeVisible();
 
   // Statut : changement immédiat, puis « Annuler ».
   const trigger = () => row(page, "Tests d'usage appli mobile").getByRole("button", { name: /^Statut de Tests d'usage appli mobile/ });
@@ -167,6 +167,10 @@ test("reporting : indicateurs, axes et périmètre dans l'adresse, exports CSV, 
   const detail = page.getByRole("table", { name: "Jours par projet du 2 au 20 mars 2026" });
   await expect(detail.locator("tbody").getByRole("rowheader")).toHaveCount(4);
   await expect(detail.locator("tfoot").getByRole("rowheader")).toHaveText("Total");
+  // Projet DMAIC : jours par phase (Mesurer jusqu'au 13 mars, Analyser depuis le 16).
+  const phases = page.getByRole("table", { name: "Jours saisis sur les projets DMAIC, par phase, du 2 au 20 mars 2026" });
+  await expect(phases.getByRole("columnheader")).toHaveText(["Projet", "Code", "Définir", "Mesurer", "Analyser", "Améliorer", "Contrôler", "Total"]);
+  await expect(phases.locator("tbody").getByRole("rowheader")).toHaveText(["Cartographie des irritants"]);
   expect(await axe(page)).toEqual([]);
 
   await page.getByRole("button", { name: "Personne" }).click();

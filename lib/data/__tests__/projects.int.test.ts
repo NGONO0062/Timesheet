@@ -3,6 +3,7 @@ import { effectivePermissions, type Role } from "@/lib/permissions";
 import type { ProjectInput } from "@/lib/projects/rules";
 import { prisma, type DivisionScope } from "../db";
 import { changeProjectPhase, listProjects, ProjectRuleError, saveProject } from "../projects";
+import { createTask, getBoard, listBoardProjects, renameTask } from "../tasks";
 
 // Projets DMAIC (PROMPT.md §9.4) : type, phase en cours, historique des phases. Les
 // projets créés le sont dans une division fixe, réutilisée (le journal d'audit, en ajout
@@ -107,6 +108,32 @@ describe("projet DMAIC", () => {
       await expect(changeProjectPhase(await scopeOf(email), r.id, "MEASURE", LATER, "Intrus")).rejects.toEqual(new ProjectRuleError("notFound"));
     }
     expect((await prisma.project.findUniqueOrThrow({ where: { id: r.id } })).phase).toBe("DEFINE");
+  });
+});
+
+describe("tâches d'un projet DMAIC", () => {
+  it("prennent la phase en cours, ou celle choisie, et la gardent quand le projet avance", async () => {
+    const r = await saveProject(manager, null, input({ name: "Projet aux tâches" }), NOW, "Max Manager");
+    await changeProjectPhase(manager, r.id, "MEASURE", LATER, "Max Manager");
+    const board = (await listBoardProjects(manager)).find((p) => p.id === r.id);
+    expect(board).toMatchObject({ kind: "DMAIC", phase: "MEASURE" });
+
+    const current = await createTask(manager, r.id, "Plan de collecte", LATER);
+    const chosen = await createTask(manager, r.id, "Pareto des causes", LATER, "ANALYZE");
+    await changeProjectPhase(manager, r.id, "ANALYZE", LATER, "Max Manager");
+    const phases = new Map((await getBoard(manager, r.id)).map((x) => [x.id, x.phase]));
+    expect([phases.get(current.id), phases.get(chosen.id)]).toEqual(["MEASURE", "ANALYZE"]);
+
+    // Modification : le titre seul garde la phase ; une phase choisie la remplace.
+    expect(await renameTask(manager, current.id, "Plan de collecte des données")).toMatchObject({ phase: "MEASURE" });
+    expect(await renameTask(manager, current.id, "Plan de collecte des données", "DEFINE")).toMatchObject({ phase: "DEFINE" });
+  });
+
+  it("n'ont pas de phase sur un projet standard, même si une phase est envoyée", async () => {
+    const r = await saveProject(manager, null, input({ name: "Projet standard aux tâches", kind: "STANDARD" }), NOW, "Max Manager");
+    const task = await createTask(manager, r.id, "Tâche ordinaire", LATER, "CONTROL");
+    expect((await getBoard(manager, r.id)).find((x) => x.id === task.id)?.phase).toBeNull();
+    expect(await renameTask(manager, task.id, "Tâche ordinaire", "CONTROL")).toMatchObject({ phase: null });
   });
 });
 

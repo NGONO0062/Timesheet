@@ -95,3 +95,39 @@ test("projet terminé en lecture seule, projet hors portée introuvable", async 
   await expect(page.locator(".btn-primary:visible")).toHaveCount(0);
   expect((await page.goto("/taches?projet=inconnu"))?.status()).toBe(404);
 });
+
+test("projet DMAIC : phase de chaque tâche, filtre par phase gardé dans l'adresse", async ({ page }) => {
+  test.skip(isMobile(page), "Vérifié sur desktop");
+  await openBoard(page, "CX-2026-03 · Cartographie des irritants");
+  await expect(page.getByText("DMAIC · Analyser (3 sur 5)")).toBeVisible();
+  const filter = page.getByRole("list", { name: "Filtrer par phase" });
+  await expect(filter.getByRole("button", { name: "Toutes les phases (0)" })).toHaveAttribute("aria-pressed", "true");
+
+  // Par défaut, la phase en cours ; une autre phase se choisit à la création.
+  const phase = page.getByLabel("Phase", { exact: true });
+  await expect(phase).toHaveValue("ANALYZE");
+  await page.getByLabel("Nouvelle tâche").fill("Pareto des réclamations");
+  await page.getByRole("button", { name: "Ajouter la tâche" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Tâche « Pareto des réclamations » ajoutée dans Backlog." })).toBeVisible();
+  await expect(page.locator("article", { hasText: "Pareto des réclamations" })).toContainText("Phase : Analyser");
+  await phase.selectOption({ label: "Mesurer" });
+  await page.getByLabel("Nouvelle tâche").fill("Relevé des délais");
+  await page.getByRole("button", { name: "Ajouter la tâche" }).click();
+  await expect(page.locator("article", { hasText: "Relevé des délais" })).toContainText("Phase : Mesurer");
+  expect(await axe(page)).toEqual([]);
+
+  // Filtre : seules les tâches de la phase choisie.
+  await filter.getByRole("button", { name: "Mesurer (1)" }).click();
+  await expect(page).toHaveURL(/phase=MEASURE/);
+  await expect(column(page, /^Backlog, 1 tâche$/).getByRole("heading", { name: "Relevé des délais" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pareto des réclamations" })).toHaveCount(0);
+
+  // Modifier : titre et phase ; la tâche quitte le filtre « Mesurer ».
+  await page.getByRole("button", { name: "Modifier la tâche « Relevé des délais »" }).click();
+  await page.locator("article", { hasText: "Titre de la tâche" }).getByLabel("Phase", { exact: true }).selectOption({ label: "Analyser" });
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Tâche « Relevé des délais » enregistrée." })).toBeVisible();
+  await expect(filter.getByRole("button", { name: "Mesurer (0)" })).toBeVisible();
+  await filter.getByRole("button", { name: "Analyser (2)" }).click();
+  await expect(column(page, /^Backlog, 2 tâches$/)).toContainText("Relevé des délais");
+});

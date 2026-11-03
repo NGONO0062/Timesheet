@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { bottomPosition, boardEditable, checkTaskTitle, columnLabel, columnOf, isTaskStatus, movedMessage, moveLocally, readOnlyReason, TASK_TITLE_MAX } from "./rules";
+import {
+  bottomPosition, boardEditable, checkTaskTitle, columnLabel, columnOf, isTaskStatus, matchesPhase, movedMessage, moveLocally, parsePhaseFilter, phaseFilterOptions,
+  phaseFilterParam, readOnlyReason, TASK_TITLE_MAX,
+} from "./rules";
 
 describe("titre d'une tâche", () => {
   it("retire les espaces superflus", () => {
@@ -53,5 +56,38 @@ describe("colonnes et déplacements", () => {
     expect(movedMessage("Maquette", "DONE")).toBe("« Maquette » déplacée dans « Terminée ».");
     expect(isTaskStatus("REVIEW")).toBe(true);
     expect(isTaskStatus("ARCHIVED")).toBe(false);
+  });
+});
+
+describe("filtre par phase d'un projet DMAIC", () => {
+  const tasks = [{ phase: "DEFINE" as const }, { phase: "ANALYZE" as const }, { phase: "ANALYZE" as const }, { phase: null }];
+
+  it("lit et écrit le filtre dans l'adresse", () => {
+    expect(parsePhaseFilter(undefined)).toBe("ALL");
+    expect(parsePhaseFilter("ANALYZE")).toBe("ANALYZE");
+    expect(parsePhaseFilter("aucune")).toBe("NONE");
+    expect(parsePhaseFilter("n'importe quoi")).toBe("ALL");
+    expect(phaseFilterParam("ALL")).toBeNull();
+    expect(phaseFilterParam("NONE")).toBe("aucune");
+    expect(phaseFilterParam("MEASURE")).toBe("MEASURE");
+  });
+
+  it("garde les tâches de la phase choisie, ou celles sans phase", () => {
+    expect(tasks.filter((x) => matchesPhase(x, "ALL"))).toHaveLength(4);
+    expect(tasks.filter((x) => matchesPhase(x, "ANALYZE"))).toHaveLength(2);
+    expect(tasks.filter((x) => matchesPhase(x, "NONE"))).toHaveLength(1);
+  });
+
+  it("compte les tâches de chaque phase ; « Sans phase » seulement s'il y en a", () => {
+    expect(phaseFilterOptions(tasks).map((o) => o.label)).toEqual([
+      "Toutes les phases (4)",
+      "Définir (1)",
+      "Mesurer (0)",
+      "Analyser (2)",
+      "Améliorer (0)",
+      "Contrôler (0)",
+      "Sans phase (1)",
+    ]);
+    expect(phaseFilterOptions(tasks.slice(0, 3)).map((o) => o.value)).toEqual(["ALL", "DEFINE", "MEASURE", "ANALYZE", "IMPROVE", "CONTROL"]);
   });
 });

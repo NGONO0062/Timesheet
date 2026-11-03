@@ -4,6 +4,7 @@ import "server-only";
 // le gèrent (« Gérer les projets », même portée que l'écran Projets). Jamais par une
 // autre division.
 import type { Prisma } from "@prisma/client";
+import type { DmaicPhase, ProjectKind } from "@/lib/projects/dmaic";
 import type { ProjectStatus, TaskStatus } from "@/lib/status";
 import { boardEditable, bottomPosition, checkTaskTitle } from "@/lib/tasks/rules";
 import { AccessDenied, assertScope, prisma, type DivisionScope } from "./db";
@@ -32,22 +33,31 @@ function boardProjectsWhere(scope: DivisionScope): Prisma.ProjectWhereInput {
   return { ...base, OR: or };
 }
 
-export type BoardProject = { id: string; code: string; name: string; status: ProjectStatus; archived: boolean };
+export type BoardProject = {
+  id: string;
+  code: string;
+  name: string;
+  status: ProjectStatus;
+  archived: boolean;
+  kind: ProjectKind;
+  /** Phase en cours d'un projet DMAIC, null sinon. */
+  phase: DmaicPhase | null;
+};
 
 /** Projets ouverts au tableau : en cours d'abord, puis par code ; archivés à la fin. */
 export async function listBoardProjects(scope: DivisionScope): Promise<BoardProject[]> {
   const projects = await prisma.project.findMany({
     where: boardProjectsWhere(scope),
-    select: { id: true, code: true, name: true, status: true, archivedAt: true },
+    select: { id: true, code: true, name: true, status: true, archivedAt: true, kind: true, phase: true },
     orderBy: { code: "asc" },
   });
   const rank = (p: { status: ProjectStatus; archivedAt: Date | null }) => (p.archivedAt ? 2 : p.status === "IN_PROGRESS" ? 0 : 1);
   return projects
     .sort((a, b) => rank(a) - rank(b))
-    .map((p) => ({ id: p.id, code: p.code, name: p.name, status: p.status, archived: p.archivedAt !== null }));
+    .map((p) => ({ id: p.id, code: p.code, name: p.name, status: p.status, archived: p.archivedAt !== null, kind: p.kind, phase: p.kind === "DMAIC" ? p.phase : null }));
 }
 
-export type BoardTask = { id: string; title: string; status: TaskStatus; position: number; createdBy: string };
+export type BoardTask = { id: string; title: string; status: TaskStatus; position: number; createdBy: string; phase: DmaicPhase | null };
 
 /** Cartes du tableau d'un projet de la portée, hors tâches supprimées. */
 export async function getBoard(scope: DivisionScope, projectId: string): Promise<BoardTask[]> {
@@ -56,13 +66,23 @@ export async function getBoard(scope: DivisionScope, projectId: string): Promise
   const tasks = await prisma.task.findMany({
     where: { projectId: project.id, divisionId: scope.divisionId, deletedAt: null },
     orderBy: [{ position: "asc" }, { createdAt: "asc" }],
-    select: { id: true, title: true, status: true, position: true, createdBy: { select: { firstName: true, lastName: true } } },
+    select: { id: true, title: true, status: true, position: true, phase: true, createdBy: { select: { firstName: true, lastName: true } } },
   });
-  return tasks.map((x) => ({ id: x.id, title: x.title, status: x.status, position: x.position, createdBy: `${x.createdBy.firstName} ${x.createdBy.lastName}` }));
+  return tasks.map((x) => ({
+    id: x.id,
+    title: x.title,
+    status: x.status,
+    position: x.position,
+    createdBy: `${x.createdBy.firstName} ${x.createdBy.lastName}`,
+    phase: x.phase,
+  }));
 }
 
 async function editableProject(scope: DivisionScope, projectId: string) {
-  const project = await prisma.project.findFirst({ where: { id: projectId, ...boardProjectsWhere(scope) }, select: { id: true, status: true, archivedAt: true } });
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, ...boardProjectsWhere(scope) },
+    select: { id: true, status: true, archivedAt: true, kind: true, phase: true },
+  });
   if (!project) throw new TaskRuleError("notFound");
   if (!boardEditable({ status: project.status, archived: project.archivedAt !== null })) throw new TaskRuleError("readOnly");
   return project;
@@ -72,11 +92,11 @@ async function editableProject(scope: DivisionScope, projectId: string) {
 async function editableTask(scope: DivisionScope, taskId: string, withDeleted = false) {
   const task = await prisma.task.findFirst({
     where: { id: taskId, divisionId: scope.divisionId, ...(withDeleted ? {} : { deletedAt: null }), project: boardProjectsWhere(scope) },
-    select: { id: true, projectId: true, title: true, status: true, position: true },
+    select: { id: true, projectId: true, title: true, status: true, position: true, phase: true },
   });
   if (!task) throw new TaskRuleError("notFound");
-  await editableProject(scope, task.projectId);
-  return task;
+  const project = await editableProject(scope, task.projectId);
+  return { ...task, project };
 }
 
 async function bottomOf(projectId: string, status: TaskStatus, exceptId?: string) {
@@ -84,8 +104,17 @@ async function bottomOf(projectId: string, status: TaskStatus, exceptId?: string
   return bottomPosition(rows.map((r) => r.position));
 }
 
-/** Nouvelle tâche, en bas de la colonne Backlog. */
-export async function createTask(scope: DivisionScope, projectId: string, rawTitle: string, now: Date) {
+/**
+ * Phase d'une tâche : seulement sur un projet DMAIC (ailleurs, aucune). Sans choix,
+ * la phase en cours du projet.
+ */
+function taskPhase(project: { kind: ProjectKind; phase: DmaicPhase | null }, chosen: DmaicPhase | undefined): DmaicPhase | null {
+  if (project.kind !== "DMAIC") return null;
+  return chosen ?? project.phase;
+}
+
+/** Nouvelle tâche, en bas de la colonne Backlog ; sur un projet DMAIC, dans la phase choisie ou la phase en cours. */
+export async function createTask(scope: DivisionScope, projectId: string, rawTitle: string, now: Date, phase?: DmaicPhase) {
   const checked = checkTaskTitle(rawTitle);
   if (!checked.ok) throw new TaskRuleError("invalid", checked.error);
   const project = await editableProject(scope, projectId);
@@ -94,6 +123,7 @@ export async function createTask(scope: DivisionScope, projectId: string, rawTit
       divisionId: scope.divisionId,
       projectId: project.id,
       title: checked.value,
+      phase: taskPhase(project, phase),
       status: "BACKLOG",
       position: await bottomOf(project.id, "BACKLOG"),
       createdById: scope.userId,
@@ -114,12 +144,14 @@ export async function moveTask(scope: DivisionScope, taskId: string, status: Tas
   return { title: task.title, previous: { status: task.status, position: task.position } };
 }
 
-export async function renameTask(scope: DivisionScope, taskId: string, rawTitle: string) {
+/** Titre, et phase sur un projet DMAIC (sans `phase`, elle ne change pas). */
+export async function renameTask(scope: DivisionScope, taskId: string, rawTitle: string, phase?: DmaicPhase) {
   const checked = checkTaskTitle(rawTitle);
   if (!checked.ok) throw new TaskRuleError("invalid", checked.error);
   const task = await editableTask(scope, taskId);
-  await prisma.task.update({ where: { id: task.id }, data: { title: checked.value } });
-  return { title: checked.value, previous: task.title };
+  const nextPhase = task.project.kind === "DMAIC" ? (phase ?? task.phase) : task.phase;
+  await prisma.task.update({ where: { id: task.id }, data: { title: checked.value, phase: nextPhase } });
+  return { title: checked.value, previous: task.title, phase: nextPhase };
 }
 
 /** Suppression réversible : la tâche est marquée, « Annuler » la remet à sa place. */

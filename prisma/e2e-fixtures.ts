@@ -94,7 +94,8 @@ export async function resetE2eFixtures(): Promise<void> {
         return prisma.project.update({
           where: { id: existing.id },
           include: { activities: true },
-          data: { name, status, archivedAt: null },
+          // Type et phase changés par le test DMAIC de l'écran Projets : projet standard.
+          data: { name, status, archivedAt: null, kind: "STANDARD", phase: null },
         });
       }
       return prisma.project.create({
@@ -122,6 +123,33 @@ export async function resetE2eFixtures(): Promise<void> {
     await prisma.task.deleteMany({ where: { divisionId: division.id } });
     // Projets créés par les tests de l'écran Projets (activités et membres suivent).
     await prisma.project.deleteMany({ where: { divisionId: division.id, code: { notIn: ["CX-2026-00", "CX-2026-01", "CX-2026-04"] } } });
+    await prisma.projectPhaseChange.deleteMany({ where: { divisionId: division.id } });
+
+    // Projet DMAIC du tableau des tâches (PROMPT.md §9.4) : recréé à chaque exécution,
+    // en phase « Analyser », avec David seul membre. « À démarrer » : il n'entre pas
+    // dans la saisie des temps des autres tests.
+    await prisma.project.create({
+      data: {
+        divisionId: division.id,
+        code: "CX-2026-03",
+        name: "Cartographie des irritants",
+        status: "NOT_STARTED",
+        managerId: manager.id,
+        startDate: new Date("2026-02-02T00:00:00Z"),
+        endDate: new Date("2026-05-29T00:00:00Z"),
+        kind: "DMAIC",
+        phase: "ANALYZE",
+        activities: { create: [{ name: "Atelier" }] },
+        members: { create: [{ userId: staff.david.id }] },
+        phaseChanges: {
+          create: [
+            { divisionId: division.id, phase: "DEFINE", at: new Date("2026-02-02T08:00:00Z") },
+            { divisionId: division.id, phase: "MEASURE", at: new Date("2026-02-23T08:00:00Z") },
+            { divisionId: division.id, phase: "ANALYZE", at: new Date("2026-03-16T08:00:00Z") },
+          ],
+        },
+      },
+    });
 
     // Jours du lundi au vendredi : 1 = journée entière, null = cellule vide.
     const entries = (week: 11 | 12, days: Array<number | null>, flaggedDay?: number) =>

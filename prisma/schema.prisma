@@ -439,16 +439,18 @@ model PasswordToken {
 // Tâche d'un projet, sur son tableau Kanban (PROMPT.md §9.12). Une suppression est
 // réversible (« Annuler ») : la tâche est marquée, pas effacée.
 model Task {
-  id          String     @id @default(cuid())
+  id          String      @id @default(cuid())
   divisionId  String
-  division    Division   @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  division    Division    @relation(fields: [divisionId], references: [id], onDelete: Cascade)
   projectId   String
-  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title       String
-  status      TaskStatus @default(BACKLOG)
-  position    Int        @default(0)
+  status      TaskStatus  @default(BACKLOG)
+  // Phase DMAIC de la tâche (projet DMAIC seulement) : la phase en cours à sa création, modifiable.
+  phase       DmaicPhase?
+  position    Int         @default(0)
   createdById String
-  createdBy   User       @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy   User        @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
   createdAt   DateTime
   deletedAt   DateTime?
 

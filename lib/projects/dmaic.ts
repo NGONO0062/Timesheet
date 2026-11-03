@@ -59,3 +59,18 @@ export function phaseAfterKindChange(
   if (before?.kind === "DMAIC" && before.phase !== null) return { phase: before.phase, entered: null };
   return { phase: "DEFINE", entered: "DEFINE" };
 }
+
+/** Entrée dans une phase, au jour près (jour de la division). */
+export type PhaseChange = { phase: DmaicPhase; day: Date };
+
+/**
+ * Phase d'un projet un jour donné : la dernière entrée dans une phase ce jour-là
+ * ou avant. Le jour d'un changement compte dans la nouvelle phase. Avant la
+ * première entrée (projet devenu DMAIC en cours de route), aucune phase.
+ * `changes` est dans l'ordre où les entrées ont été faites.
+ */
+export function phaseOn(changes: readonly PhaseChange[], day: Date): DmaicPhase | null {
+  let phase: DmaicPhase | null = null;
+  for (const c of changes) if (c.day.getTime() <= day.getTime()) phase = c.phase;
+  return phase;
+}

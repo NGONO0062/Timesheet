@@ -7,12 +7,14 @@ import { now } from "@/lib/clock";
 import { AccessDenied } from "@/lib/data/db";
 import { createTask, moveTask, renameTask, setTaskDeleted, TaskRuleError } from "@/lib/data/tasks";
 import { getViewer, scopeOf } from "@/lib/data/viewer";
+import { DMAIC_PHASES, type DmaicPhase } from "@/lib/projects/dmaic";
 import { TASK_STATUS_ORDER, type TaskStatus } from "@/lib/status";
 
 const id = z.string().min(1).max(64);
 const title = z.string().max(1000);
 const status = z.enum(TASK_STATUS_ORDER as [TaskStatus, ...TaskStatus[]]);
 const position = z.number().int().min(0).max(1_000_000);
+const phase = z.enum(DMAIC_PHASES as [DmaicPhase, ...DmaicPhase[]]).optional();
 
 export type TaskActionError = "session" | "notFound" | "readOnly" | "unknown";
 type Failure = { ok: false; error: TaskActionError } | { ok: false; field: string };
@@ -31,11 +33,12 @@ function failure(e: unknown): Failure {
   return { ok: false, error: "unknown" };
 }
 
-export async function addTask(projectId: string, raw: string): Promise<{ ok: true; id: string; title: string } | Failure> {
+/** Nouvelle tâche ; `chosen` : phase choisie sur un projet DMAIC (la phase en cours sinon). */
+export async function addTask(projectId: string, raw: string, chosen?: DmaicPhase): Promise<{ ok: true; id: string; title: string } | Failure> {
   const s = await scope();
-  if (!s || !id.safeParse(projectId).success || !title.safeParse(raw).success) return { ok: false, error: "session" };
+  if (!s || !id.safeParse(projectId).success || !title.safeParse(raw).success || !phase.safeParse(chosen).success) return { ok: false, error: "session" };
   try {
-    const r = await createTask(s, projectId, raw, now());
+    const r = await createTask(s, projectId, raw, now(), chosen);
     refresh();
     return { ok: true, ...r };
   } catch (e) {
@@ -58,11 +61,12 @@ export async function moveTaskTo(taskId: string, next: TaskStatus, at?: number) 
   }
 }
 
-export async function renameTaskTo(taskId: string, raw: string) {
+/** Titre, et phase sur un projet DMAIC. */
+export async function renameTaskTo(taskId: string, raw: string, chosen?: DmaicPhase) {
   const s = await scope();
-  if (!s || !id.safeParse(taskId).success || !title.safeParse(raw).success) return { ok: false as const, error: "session" as const };
+  if (!s || !id.safeParse(taskId).success || !title.safeParse(raw).success || !phase.safeParse(chosen).success) return { ok: false as const, error: "session" as const };
   try {
-    const r = await renameTask(s, taskId, raw);
+    const r = await renameTask(s, taskId, raw, chosen);
     refresh();
     return { ok: true as const, ...r };
   } catch (e) {

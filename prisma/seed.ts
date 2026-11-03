@@ -426,10 +426,10 @@ async function seedTimesheets(
  * Tableau Kanban de « Refonte parcours souscription » (écran 15, PROMPT.md §9.12) :
  * une tâche ou deux par colonne, créées par l'équipe de Samuel Etoga. Idempotent.
  */
+type TaskSeed = [title: string, status: "BACKLOG" | "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE", by: string, phase?: DmaicPhase];
+
 async function seedTasks(divisionId: string, ids: Map<string, string>) {
-  const project = await prisma.project.findUnique({ where: { divisionId_code: { divisionId, code: "CX-2026-01" } } });
-  if (!project || (await prisma.task.count({ where: { projectId: project.id } })) > 0) return;
-  const tasks: Array<[title: string, status: "BACKLOG" | "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE", by: string]> = [
+  const tasks: TaskSeed[] = [
     ["Benchmark des parcours concurrents", "BACKLOG", "Kevin Fotso"],
     ["Préparer le guide d'entretien", "TODO", "Aïcha Ndongo"],
     ["Recruter les testeurs", "TODO", "Laure Bikoï"],
@@ -438,12 +438,30 @@ async function seedTasks(divisionId: string, ids: Map<string, string>) {
     ["Synthèse des irritants du formulaire", "REVIEW", "Laure Bikoï"],
     ["Cartographie du parcours actuel", "DONE", "Ibrahim Njoya"],
   ];
+  await seedBoard(divisionId, ids, "CX-2026-01", tasks);
+  // Projet DMAIC : une phase par tâche (Définir et Mesurer faites, Analyser en cours).
+  await seedBoard(divisionId, ids, "CX-2026-03", [
+    ["Charte du projet", "DONE", "Aïcha Ndongo", "DEFINE"],
+    ["SIPOC du parcours réclamation", "DONE", "Kevin Fotso", "DEFINE"],
+    ["Plan de collecte des irritants", "DONE", "Laure Bikoï", "MEASURE"],
+    ["Mesure de la situation de départ", "DONE", "Sandrine Mvondo", "MEASURE"],
+    ["Diagramme d'Ishikawa des irritants", "IN_PROGRESS", "Aïcha Ndongo", "ANALYZE"],
+    ["Pareto des motifs de réclamation", "TODO", "Yannick Essomba", "ANALYZE"],
+    ["5 pourquoi sur les délais de réponse", "BACKLOG", "Kevin Fotso", "ANALYZE"],
+  ]);
+}
+
+/** Tâches d'un projet, une seule fois (le tableau doit être vide). */
+async function seedBoard(divisionId: string, ids: Map<string, string>, code: string, tasks: TaskSeed[]) {
+  const project = await prisma.project.findUnique({ where: { divisionId_code: { divisionId, code } } });
+  if (!project || (await prisma.task.count({ where: { projectId: project.id } })) > 0) return;
   await prisma.task.createMany({
-    data: tasks.map(([title, status, by], i) => ({
+    data: tasks.map(([title, status, by, phase], i) => ({
       divisionId,
       projectId: project.id,
       title,
       status,
+      phase: phase ?? null,
       position: i,
       createdById: ids.get(by)!,
       createdAt: douala("2026-03-16 09:30"),

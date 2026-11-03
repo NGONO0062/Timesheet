@@ -5,11 +5,12 @@ import { notFound } from "next/navigation";
 import { getBoard, listBoardProjects } from "@/lib/data/tasks";
 import { requireViewer, scopeOf } from "@/lib/data/viewer";
 import { dict } from "@/lib/i18n";
+import { parsePhaseFilter } from "@/lib/tasks/rules";
 import { TasksScreen } from "./TasksScreen";
 
 export const metadata: Metadata = { title: dict.tasks.title };
 
-type Props = { searchParams: Promise<{ projet?: string }> };
+type Props = { searchParams: Promise<{ projet?: string; phase?: string }> };
 
 export default async function Page({ searchParams }: Props) {
   const viewer = await requireViewer();
@@ -21,5 +22,5 @@ export default async function Page({ searchParams }: Props) {
   if (sp.projet && !projects.some((p) => p.id === sp.projet)) notFound();
   const project = projects.find((p) => p.id === sp.projet) ?? projects[0] ?? null;
   const tasks = project ? await getBoard(scope, project.id) : [];
-  return <TasksScreen key={project?.id ?? "aucun"} projects={projects} project={project} tasks={tasks} />;
+  return <TasksScreen key={project?.id ?? "aucun"} projects={projects} project={project} tasks={tasks} phaseFilter={parsePhaseFilter(sp.phase)} />;
 }

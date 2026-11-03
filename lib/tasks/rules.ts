@@ -1,6 +1,7 @@
 // Règles du tableau Kanban (PROMPT.md §9.12). Pures : la couche de données les
 // applique côté serveur, l'interface les affiche.
 import { dict, t } from "../i18n";
+import { DMAIC_PHASES, isDmaicPhase, phaseLabel, type DmaicPhase } from "../projects/dmaic";
 import { statusLook, TASK_STATUS_ORDER, type ProjectStatus, type TaskStatus } from "../status";
 
 export const TASK_TITLE_MAX = 140;
@@ -60,4 +61,38 @@ export function movedMessage(title: string, status: TaskStatus): string {
 
 export function isTaskStatus(value: string): value is TaskStatus {
   return (TASK_STATUS_ORDER as string[]).includes(value);
+}
+
+/** Filtre « Phase » d'un tableau DMAIC : toutes, une phase, ou les tâches sans phase. */
+export type PhaseFilter = "ALL" | "NONE" | DmaicPhase;
+
+/** Filtre lu dans l'adresse (`?phase=ANALYZE`, `?phase=aucune`) ; « toutes » sinon. */
+export function parsePhaseFilter(raw: string | undefined): PhaseFilter {
+  if (raw === "aucune") return "NONE";
+  return isDmaicPhase(raw) ? raw : "ALL";
+}
+
+export function phaseFilterParam(filter: PhaseFilter): string | null {
+  return filter === "ALL" ? null : filter === "NONE" ? "aucune" : filter;
+}
+
+export function matchesPhase(task: { phase: DmaicPhase | null }, filter: PhaseFilter): boolean {
+  if (filter === "ALL") return true;
+  if (filter === "NONE") return task.phase === null;
+  return task.phase === filter;
+}
+
+/**
+ * Boutons du filtre, avec leur compte : « Toutes les phases (7) », une par phase,
+ * puis « Sans phase (n) » seulement s'il y a des tâches sans phase (créées avant
+ * que le projet devienne DMAIC).
+ */
+export function phaseFilterOptions(tasks: ReadonlyArray<{ phase: DmaicPhase | null }>): Array<{ value: PhaseFilter; label: string }> {
+  const count = (f: PhaseFilter) => tasks.filter((x) => matchesPhase(x, f)).length;
+  const none = count("NONE");
+  return [
+    { value: "ALL" as PhaseFilter, label: t(dict.tasks.phaseAll, { n: tasks.length }) },
+    ...DMAIC_PHASES.map((ph) => ({ value: ph as PhaseFilter, label: t(dict.tasks.phaseOption, { phase: phaseLabel(ph), n: count(ph) }) })),
+    ...(none > 0 ? [{ value: "NONE" as PhaseFilter, label: t(dict.tasks.phaseNone, { n: none }) }] : []),
+  ];
 }

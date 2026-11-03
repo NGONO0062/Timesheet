@@ -16,6 +16,8 @@ export const OTHERS_KEY = "__autres__";
 
 export type ReportEntry = {
   week: IsoWeek;
+  /** Jour saisi (minuit UTC du jour de la division). */
+  date: Date;
   personId: string;
   projectId: string;
   projectCode: string;

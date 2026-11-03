@@ -301,6 +301,7 @@ L'écran se lit de haut en bas, du plus urgent au moins urgent.
 
 - Axe d'analyse : Projet, Personne ou Activité. Période de semaine à semaine. Périmètre : toute l'équipe ou une personne.
 - Indicateurs : jours saisis sur la capacité (personnes × semaines × jours ouvrés), taux de remplissage, fiches validées sur le total attendu.
+- **Jours par phase DMAIC** (03/11/2026, point 85), sous le tableau de détail quand le périmètre a des jours sur un projet DMAIC : une ligne par projet DMAIC, une colonne par phase, le total. Un jour saisi compte dans la phase où était le projet ce jour-là (le jour d'un changement compte dans la nouvelle phase) ; les jours saisis avant que le projet devienne DMAIC vont dans une colonne « Avant DMAIC », affichée seulement si elle n'est pas vide. Repris dans les exports CSV, Excel (sous le détail, après une ligne vide) et PDF.
 - Heures par projet en barres, une couleur par projet. Heures par semaine en colonnes empilées par projet, avec les mêmes couleurs, le total écrit au-dessus et une légende (colonne évidée pour la semaine en cours de validation). Tableau de détail avec la part de chaque projet.
 - Export CSV, Excel, PDF.
 
@@ -372,6 +373,7 @@ Ajout du 13/10/2026 (jalon 9, `docs/questions-ouvertes.md`, point 83). La saisie
 - Qui voit un tableau : les membres du projet, et ceux qui gèrent le projet (manager responsable ou manager d'un membre, owner, admin de division). Personne d'une autre division.
 - Qui écrit : les mêmes. Ils créent une tâche, la renomment, la déplacent, la suppriment. Une tâche porte le nom de la personne qui l'a créée.
 - Création : un champ « Nouvelle tâche » sous le nom du projet, avec « Ajouter la tâche » (le seul bouton primaire de l'écran). La tâche arrive dans `Backlog`, en bas de la colonne.
+- **Projet DMAIC** (03/11/2026, point 85) : la phase du projet s'écrit sous son nom (« DMAIC · Analyser (3 sur 5) »). Chaque tâche a une phase, écrite sur la carte (« Phase : Analyser ») : un champ « Phase » sous « Nouvelle tâche » propose la phase en cours du projet, et « Modifier » (à la place de « Renommer ») change le titre et la phase. Un filtre « Toutes les phases / Définir / … / Contrôler », chaque bouton avec son compte, garde la phase dans l'adresse (`?phase=ANALYZE`) ; « Sans phase » s'ajoute s'il reste des tâches créées avant que le projet devienne DMAIC. Une tâche ajoutée dans une phase masquée par le filtre lève le filtre.
 - Déplacement : glisser-déposer d'une colonne à l'autre, à la souris. Le même déplacement se fait au clavier et au doigt par l'étiquette de la carte, qui ouvre un menu des cinq colonnes (WCAG 2.2, critère 2.5.7). La carte arrive en bas de la colonne.
 - Déplacement et suppression sont immédiats, sans confirmation : un message le dit et propose « Annuler ».
 - Projet « Terminé » ou archivé : le tableau reste lisible, en lecture seule.

@@ -23,7 +23,32 @@ export function reportRows(view: ReportView): Cell[][] {
     Math.round(row.raw.share * 1000) / 10,
   ]);
   const foot: Cell[] = [r.total, ...(sub ? [null] : []), ...(count ? [null] : []), ...view.table.foot.raw.byWeek, view.table.foot.raw.total, 100];
-  return [head, ...body, foot];
+  return [head, ...body, foot, ...phaseRows(view)];
+}
+
+/** Jours par phase DMAIC, sous le tableau de détail après une ligne vide ; rien sans projet DMAIC. */
+function phaseRows(view: ReportView): Cell[][] {
+  const p = view.phases;
+  if (!p) return [];
+  return [
+    [],
+    [r.phasesTitle],
+    [r.colEntity.project, r.colSub.project, ...p.head, r.colTotal],
+    ...p.rows.map((row): Cell[] => [row.label, row.sub, ...row.raw.cells, row.raw.total]),
+    [r.total, null, ...p.foot.raw.cells, p.foot.raw.total],
+  ];
+}
+
+/** Même tableau dans le PDF. */
+function phasesHtml(view: ReportView, th: (s: string, num?: boolean) => string, td: (s: string | number, num?: boolean) => string): string {
+  const p = view.phases;
+  if (!p) return "";
+  const rows = p.rows.map((row) => `<tr>${th(row.label)}${td(row.sub)}${row.cells.map((c) => td(c, true)).join("")}${td(row.total, true)}</tr>`).join("");
+  return `<table class="detail"><caption>${esc(r.phasesTitle)}</caption>
+<thead><tr>${th(r.colEntity.project)}${th(r.colSub.project)}${p.head.map((h) => th(h, true)).join("")}${th(r.colTotal, true)}</tr></thead>
+<tbody>${rows}</tbody>
+<tfoot><tr>${th(r.total)}<td></td>${p.foot.cells.map((c) => td(c, true)).join("")}${td(p.foot.total, true)}</tr></tfoot></table>
+<p class="muted">${esc(r.phasesNote)}</p>`;
 }
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -63,6 +88,7 @@ ${documentHeadHtml({ issuer: [doc.issuer, t(doc.division, { name: meta.division 
 <thead><tr>${th(r.colEntity[axis])}${sub ? th(sub) : ""}${count ? th(count, true) : ""}${view.table.head.map((h) => th(h, true)).join("")}${th(r.colTotal, true)}${th(r.colShare, true)}</tr></thead>
 <tbody>${rows}</tbody>
 <tfoot><tr>${th(r.total)}${sub ? "<td></td>" : ""}${count ? "<td></td>" : ""}${view.table.foot.cells.map((c) => td(c, true)).join("")}${td(view.table.foot.total, true)}${td(view.table.foot.share, true)}</tr></tfoot></table>
+${phasesHtml(view, th, td)}
 ${summaryHtml([[r.fill, view.texts.fill], [r.validated, view.texts.validated], [r.entered, view.table.foot.total]])}
 </body></html>`;
 }

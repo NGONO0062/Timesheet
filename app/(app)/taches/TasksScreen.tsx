@@ -2,6 +2,7 @@
 // Écran 15 : tableau Kanban d'un projet (PROMPT.md §9.12). Une carte se déplace en la
 // glissant d'une colonne à l'autre, ou par son étiquette, au clavier comme au doigt.
 // Déplacement et suppression sont immédiats, avec un message qui propose « Annuler ».
+// Projet DMAIC : chaque tâche a une phase, et le tableau se filtre par phase.
 import { usePathname, useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition, type FormEvent } from "react";
 import { addTask, deleteTask, moveTaskTo, renameTaskTo, type TaskActionError } from "@/app/actions/tasks";
@@ -13,8 +14,11 @@ import { useBoardDrag } from "@/components/ts/useBoardDrag";
 import { cx } from "@/lib/cx";
 import type { BoardProject, BoardTask } from "@/lib/data/tasks";
 import { dict, t } from "@/lib/i18n";
+import { DMAIC_PHASES, phaseLabel, phaseLine, type DmaicPhase } from "@/lib/projects/dmaic";
 import { TASK_STATUS_ORDER, type TaskStatus } from "@/lib/status";
-import { boardEditable, columnLabel, columnOf, movedMessage, moveLocally, readOnlyReason } from "@/lib/tasks/rules";
+import {
+  boardEditable, columnLabel, columnOf, matchesPhase, movedMessage, moveLocally, phaseFilterOptions, phaseFilterParam, readOnlyReason, type PhaseFilter,
+} from "@/lib/tasks/rules";
 
 const k = dict.tasks;
 
@@ -22,7 +26,7 @@ type Notice = { text: string; undo?: () => void };
 type Op =
   | { kind: "add"; task: BoardTask }
   | { kind: "move"; id: string; status: TaskStatus; position?: number }
-  | { kind: "rename"; id: string; title: string }
+  | { kind: "rename"; id: string; title: string; phase: DmaicPhase | null }
   | { kind: "delete"; id: string };
 
 function reduce(state: BoardTask[], op: Op): BoardTask[] {
@@ -32,13 +36,19 @@ function reduce(state: BoardTask[], op: Op): BoardTask[] {
     case "move":
       return moveLocally(state, op.id, op.status, op.position);
     case "rename":
-      return state.map((x) => (x.id === op.id ? { ...x, title: op.title } : x));
+      return state.map((x) => (x.id === op.id ? { ...x, title: op.title, phase: op.phase } : x));
     case "delete":
       return state.filter((x) => x.id !== op.id);
   }
 }
 
-export function TasksScreen({ projects, project, tasks }: { projects: BoardProject[]; project: BoardProject | null; tasks: BoardTask[] }) {
+export function TasksScreen({ projects, project, tasks, phaseFilter = "ALL" }: {
+  projects: BoardProject[];
+  project: BoardProject | null;
+  tasks: BoardTask[];
+  /** Filtre « Phase » d'un projet DMAIC, gardé dans l'adresse. */
+  phaseFilter?: PhaseFilter;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   // Vue tout de suite à jour ; elle revient aux données du serveur à la fin de chaque action.
@@ -48,7 +58,8 @@ export function TasksScreen({ projects, project, tasks }: { projects: BoardProje
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [draftError, setDraftError] = useState<string | null>(null);
-  const [editing, setEditing] = useState<{ id: string; title: string; error?: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; title: string; phase: DmaicPhase | null; error?: string } | null>(null);
+  const [draftPhase, setDraftPhase] = useState<DmaicPhase | null>(project?.kind === "DMAIC" ? project.phase : null);
   const drag = useBoardDrag<TaskStatus>(project !== null && boardEditable(project), (id, status) => {
     const task = view.find((x) => x.id === id);
     if (task) move(task, status);
@@ -68,16 +79,29 @@ export function TasksScreen({ projects, project, tasks }: { projects: BoardProje
 
   const editable = boardEditable(project);
   const reason = readOnlyReason(project);
+  const dmaic = project.kind === "DMAIC" && project.phase !== null;
+  const filter: PhaseFilter = dmaic ? phaseFilter : "ALL";
+  const shown = view.filter((x) => matchesPhase(x, filter));
+
+  function setFilter(next: PhaseFilter) {
+    const q = new URLSearchParams({ projet: project!.id });
+    const value = phaseFilterParam(next);
+    if (value) q.set("phase", value);
+    router.replace(`${pathname}?${q.toString()}`, { scroll: false });
+  }
 
   const fail = (r: { error: TaskActionError } | { field: string }) => setError("field" in r ? r.field : k.actionError);
 
   function add(e: FormEvent) {
     e.preventDefault();
     const title = draft;
+    const phase = dmaic ? draftPhase : null;
     setError(null);
+    // Une tâche ajoutée dans une phase masquée par le filtre resterait invisible : le filtre est levé.
+    if (!matchesPhase({ phase }, filter)) setFilter("ALL");
     start(async () => {
-      apply({ kind: "add", task: { id: `nouvelle-${Date.now()}`, title: title.trim(), status: "BACKLOG", position: Number.MAX_SAFE_INTEGER, createdBy: "" } });
-      const r = await addTask(project!.id, title);
+      apply({ kind: "add", task: { id: `nouvelle-${Date.now()}`, title: title.trim(), status: "BACKLOG", position: Number.MAX_SAFE_INTEGER, createdBy: "", phase } });
+      const r = await addTask(project!.id, title, phase ?? undefined);
       if (!r.ok) {
         if ("field" in r) setDraftError(r.field);
         else setError(k.actionError);
@@ -110,20 +134,28 @@ export function TasksScreen({ projects, project, tasks }: { projects: BoardProje
     });
   }
 
-  function rename(task: BoardTask, title: string) {
+  function rename(task: BoardTask, title: string, phase: DmaicPhase | null) {
     setError(null);
     start(async () => {
-      apply({ kind: "rename", id: task.id, title: title.trim() });
-      const r = await renameTaskTo(task.id, title);
+      apply({ kind: "rename", id: task.id, title: title.trim(), phase });
+      const r = await renameTaskTo(task.id, title, phase ?? undefined);
       if (!r.ok) {
-        if ("field" in r) setEditing({ id: task.id, title, error: r.field });
+        if ("field" in r) setEditing({ id: task.id, title, phase, error: r.field });
         else setError(k.actionError);
         return;
       }
       setEditing(null);
-      setNotice({ text: t(k.renamed, { title: r.title }) });
+      setNotice({ text: t(dmaic ? k.updated : k.renamed, { title: r.title }) });
     });
   }
+
+  const phaseSelect = (value: DmaicPhase | null, onChange: (p: DmaicPhase) => void, hint?: string) => (
+    <SelectField label={k.phase} hint={hint} value={value ?? project.phase!} onChange={(e) => onChange(e.target.value as DmaicPhase)}>
+      {DMAIC_PHASES.map((ph) => (
+        <option key={ph} value={ph}>{phaseLabel(ph)}</option>
+      ))}
+    </SelectField>
+  );
 
   function remove(task: BoardTask) {
     setError(null);
@@ -154,10 +186,11 @@ export function TasksScreen({ projects, project, tasks }: { projects: BoardProje
           style={{ display: "flex", flexDirection: "column", gap: 10 }}
           onSubmit={(e) => {
             e.preventDefault();
-            rename(x, editing.title);
+            rename(x, editing.title, editing.phase);
           }}
         >
-          <TextField label={k.titleLabel} value={editing.title} error={editing.error} autoFocus onChange={(e) => setEditing({ id: x.id, title: e.target.value })} />
+          <TextField label={k.titleLabel} value={editing.title} error={editing.error} autoFocus onChange={(e) => setEditing({ ...editing, title: e.target.value, error: undefined })} />
+          {dmaic && phaseSelect(editing.phase, (ph) => setEditing({ ...editing, phase: ph }))}
           <div className="ts-head-start" style={{ gap: 10 }}>
             <button className="btn" type="submit">{k.save}</button>
             <button className="btn btn-link" type="button" onClick={() => setEditing(null)}>{k.cancel}</button>
@@ -166,6 +199,7 @@ export function TasksScreen({ projects, project, tasks }: { projects: BoardProje
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           <h4 className="h6">{x.title}</h4>
+          {dmaic && x.phase && <span className="small">{t(k.phaseOnCard, { phase: phaseLabel(x.phase) })}</span>}
           {x.createdBy && <span className="small text-secondary">{t(k.by, { name: x.createdBy })}</span>}
         </div>
       )}
@@ -173,8 +207,13 @@ export function TasksScreen({ projects, project, tasks }: { projects: BoardProje
         <TaskStatusMenu taskTitle={x.title} value={x.status} canMove={editable} onChange={(s) => move(x, s)} />
         {editable && editing?.id !== x.id && (
           <>
-            <button className="btn btn-link" type="button" aria-label={t(k.renameLabel, { title: x.title })} onClick={() => setEditing({ id: x.id, title: x.title })}>
-              {k.rename}
+            <button
+              className="btn btn-link"
+              type="button"
+              aria-label={t(dmaic ? k.editLabel : k.renameLabel, { title: x.title })}
+              onClick={() => setEditing({ id: x.id, title: x.title, phase: x.phase })}
+            >
+              {dmaic ? k.edit : k.rename}
             </button>
             <button className="btn btn-link" type="button" aria-label={t(k.deleteLabel, { title: x.title })} onClick={() => remove(x)}>
               {k.delete}
@@ -200,9 +239,12 @@ export function TasksScreen({ projects, project, tasks }: { projects: BoardProje
             ))}
           </SelectField>
         </div>
-        <div className="ts-head-start" style={{ gap: 10 }}>
-          <h2 className="h4">{project.name}</h2>
-          <StatusBadge kind="project" value={project.status} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          <div className="ts-head-start" style={{ gap: 10 }}>
+            <h2 className="h4">{project.name}</h2>
+            <StatusBadge kind="project" value={project.status} />
+          </div>
+          {dmaic && <p className="small">{phaseLine(project.kind, project.phase)}</p>}
         </div>
         {editable && (
           <form className="ts-task-new" onSubmit={add} noValidate>
@@ -217,6 +259,7 @@ export function TasksScreen({ projects, project, tasks }: { projects: BoardProje
                 if (draftError) setDraftError(null);
               }}
             />
+            {dmaic && phaseSelect(draftPhase, setDraftPhase, k.phaseHint)}
             <button className="btn btn-primary" type="submit">
               <Icon name="plus" />
               {k.add}
@@ -246,10 +289,21 @@ export function TasksScreen({ projects, project, tasks }: { projects: BoardProje
         </Alert>
       )}
 
+      {dmaic && (
+        <ul className="nav nav-pills" aria-label={k.phaseFilter}>
+          {phaseFilterOptions(view).map((o) => (
+            <li key={o.value}>
+              <button className={cx("nav-link", filter === o.value && "active")} type="button" aria-pressed={filter === o.value} onClick={() => setFilter(o.value)}>
+                {o.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       {editable && <p className="small text-secondary">{k.dragHint}</p>}
       <div className="ts-kanban" role="group" aria-label={t(k.boardLabel, { name: project.name })}>
         {TASK_STATUS_ORDER.map((s) => {
-          const items = columnOf(view, s);
+          const items = columnOf(shown, s);
           return (
             <section key={s} className={cx("ts-kanban-col", drag.over === s && "is-over")} aria-label={columnLabel(s, items.length)} {...drag.column(s)}>
               <h3 className="h6 ts-board-head">

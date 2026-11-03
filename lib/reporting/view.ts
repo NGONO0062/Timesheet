@@ -3,6 +3,8 @@
 import { formatFromTo, formatDays, formatRange } from "../format";
 import { dict, t } from "../i18n";
 import { addDays, compareWeeks, isValidIsoWeek, mondayOf, shiftWeek, type IsoWeek } from "../iso-week";
+import { DMAIC_PHASES, phaseLabel } from "../projects/dmaic";
+import { daysByPhase, type PhaseProject } from "./phases";
 import {
   AXES, assignSeries, computeKpis, formatShare, groupEntities, kpiTexts, OTHERS_KEY, type Axis, type ReportEntry, type ReportPerson,
   type SeriesClass, type SheetState,
@@ -55,6 +57,8 @@ export function buildReportView(input: {
   states: SheetState[];
   members: Map<string, number>;
   weekCapacity: number[];
+  /** Projets DMAIC qui ont des jours saisis, avec l'historique de leurs phases. */
+  phaseProjects?: PhaseProject[];
   now: Date;
 }) {
   const { params, current } = input;
@@ -135,6 +139,37 @@ export function buildReportView(input: {
         raw: { byWeek: e.byWeek, total: e.total, share: grand > 0 ? e.total / grand : 0 },
       })),
       foot: { cells: weekTotals.map((h) => formatDays(h)), total: formatDays(grand), share: formatShare(grand, grand), raw: { byWeek: weekTotals, total: grand } },
+    },
+    phases: phaseTable(entries, input.phaseProjects ?? []),
+  };
+}
+
+/**
+ * Jours par phase DMAIC, sur la période et le périmètre de l'écran : une ligne par
+ * projet DMAIC, une colonne par phase. La colonne « Avant DMAIC » n'apparaît que
+ * si un projet a des jours saisis avant de devenir DMAIC. Null sans projet DMAIC.
+ */
+function phaseTable(entries: ReportEntry[], projects: PhaseProject[]) {
+  const rows = daysByPhase(entries, projects);
+  if (rows.length === 0) return null;
+  const showBefore = rows.some((x) => x.before > 0);
+  const sumOf = (pick: (x: (typeof rows)[number]) => number) => round(rows.reduce((a, x) => a + pick(x), 0));
+  const foot = { before: sumOf((x) => x.before), byPhase: DMAIC_PHASES.map((_, i) => sumOf((x) => x.byPhase[i]!)), total: sumOf((x) => x.total) };
+  return {
+    showBefore,
+    head: [...(showBefore ? [r.phasesBefore] : []), ...DMAIC_PHASES.map(phaseLabel)],
+    rows: rows.map((x) => ({
+      key: x.projectId,
+      label: x.name,
+      sub: x.code,
+      cells: [...(showBefore ? [x.before] : []), ...x.byPhase].map((h) => formatDays(h)),
+      total: formatDays(x.total),
+      raw: { cells: [...(showBefore ? [x.before] : []), ...x.byPhase], total: x.total },
+    })),
+    foot: {
+      cells: [...(showBefore ? [foot.before] : []), ...foot.byPhase].map((h) => formatDays(h)),
+      total: formatDays(foot.total),
+      raw: { cells: [...(showBefore ? [foot.before] : []), ...foot.byPhase], total: foot.total },
     },
   };
 }
