@@ -4,24 +4,28 @@
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { now } from "@/lib/clock";
-import { changeProjectStatus, ProjectRuleError, saveProject, setProjectArchived } from "@/lib/data/projects";
+import { changeProjectPhase, changeProjectStatus, ProjectRuleError, saveProject, setProjectArchived } from "@/lib/data/projects";
 import { getViewer, scopeOf } from "@/lib/data/viewer";
+import type { DmaicPhase } from "@/lib/projects/dmaic";
 import type { ProjectFieldErrors } from "@/lib/projects/rules";
 import type { ProjectStatus } from "@/lib/status";
 
 const id = z.string().min(1).max(64);
 const status = z.enum(["NOT_STARTED", "IN_PROGRESS", "ON_HOLD", "DONE"]);
+const kind = z.enum(["STANDARD", "DMAIC"]);
+const phase = z.enum(["DEFINE", "MEASURE", "ANALYZE", "IMPROVE", "CONTROL"]);
 const project = z.object({
   name: z.string().max(200),
   start: z.string().max(20),
   end: z.string().max(20),
   status,
+  kind: kind.optional(),
   budget: z.string().max(20),
   activities: z.array(z.string().max(200)).max(50),
   memberIds: z.array(id).max(500),
 });
 
-export type ProjectActionError = "session" | "notFound" | "members" | "unknown";
+export type ProjectActionError = "session" | "notFound" | "members" | "notDmaic" | "unknown";
 
 async function context() {
   const viewer = await getViewer();
@@ -30,7 +34,7 @@ async function context() {
 }
 
 function failure(e: unknown): { ok: false; error: ProjectActionError } {
-  if (e instanceof ProjectRuleError && (e.code === "notFound" || e.code === "members")) return { ok: false, error: e.code };
+  if (e instanceof ProjectRuleError && (e.code === "notFound" || e.code === "members" || e.code === "notDmaic")) return { ok: false, error: e.code };
   console.error(e);
   return { ok: false, error: "unknown" };
 }
@@ -41,6 +45,19 @@ export async function setProjectStatus(projectId: string, next: ProjectStatus) {
   if (!ctx || !id.safeParse(projectId).success || !status.safeParse(next).success) return { ok: false as const, error: "session" as const };
   try {
     const r = await changeProjectStatus(ctx.scope, projectId, next, now(), ctx.label);
+    refresh();
+    return { ok: true as const, name: r.name, previous: r.previous };
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+/** Changement de phase d'un projet DMAIC, immédiat ; renvoie l'ancienne phase pour « Annuler ». */
+export async function setProjectPhase(projectId: string, next: DmaicPhase) {
+  const ctx = await context();
+  if (!ctx || !id.safeParse(projectId).success || !phase.safeParse(next).success) return { ok: false as const, error: "session" as const };
+  try {
+    const r = await changeProjectPhase(ctx.scope, projectId, next, now(), ctx.label);
     refresh();
     return { ok: true as const, name: r.name, previous: r.previous };
   } catch (e) {

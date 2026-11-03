@@ -5,15 +5,20 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
-import { archiveProject, saveProjectPanel, setProjectStatus } from "@/app/actions/projects";
+import { archiveProject, saveProjectPanel, setProjectPhase, setProjectStatus } from "@/app/actions/projects";
 import { Alert, Progress, Tag } from "@/components/ods/Display";
 import { Checkbox, FieldError, Switch } from "@/components/ods/Form";
 import { Icon, Mark } from "@/components/ods/Icon";
+import { SteppedProcess } from "@/components/ods/Navigation";
 import { Offcanvas } from "@/components/ods/Overlay";
 import { ProjectStatusMenu, StatusBadge } from "@/components/ts/StatusBadge";
 import { useBoardDrag } from "@/components/ts/useBoardDrag";
 import { cx } from "@/lib/cx";
 import { dict, t } from "@/lib/i18n";
+import {
+  DMAIC_PHASES, nextPhase, PROJECT_KINDS, phaseChangedMessage, phaseLabel, phaseLine, phaseStepText, previousPhase,
+  type DmaicPhase, type ProjectKind,
+} from "@/lib/projects/dmaic";
 import {
   budgetUsage, checkProjectInput, compareProjects, consumedText, endDatePassed, projectPeriodLabel, projectSummary, statusChangedMessage,
   type ProjectFieldErrors, type ProjectInput,
@@ -28,6 +33,8 @@ export type ProjectItem = {
   code: string;
   name: string;
   status: ProjectStatus;
+  kind: ProjectKind;
+  phase: DmaicPhase | null;
   startDate: string;
   endDate: string | null;
   start: string;
@@ -187,6 +194,12 @@ export function ProjectsScreen(props: {
                 <span className="small text-secondary" style={{ fontWeight: 400 }}>
                   {x.archived ? `${x.code} · ${p.archived}` : x.code}
                 </span>
+                {phaseLine(x.kind, x.phase) && (
+                  <>
+                    <br />
+                    <span className="small" style={{ fontWeight: 400 }}>{phaseLine(x.kind, x.phase)}</span>
+                  </>
+                )}
               </th>
               <td>{statusCell(x)}</td>
               <td style={{ whiteSpace: "nowrap" }}>{period(x)}</td>
@@ -225,6 +238,7 @@ export function ProjectsScreen(props: {
                   <span className="small text-secondary">
                     {x.code} · {projectPeriodLabel(new Date(x.startDate), x.endDate ? new Date(x.endDate) : null)}
                   </span>
+                  {phaseLine(x.kind, x.phase) && <span className="small">{phaseLine(x.kind, x.phase)}</span>}
                 </div>
                 {hoursCell(x)}
                 <span className="small">{t(x.memberIds.length > 1 ? p.membersMany : p.membersOne, { n: x.memberIds.length })}</span>
@@ -328,7 +342,7 @@ export function ProjectsScreen(props: {
   );
 }
 
-const EMPTY: ProjectInput = { name: "", start: "", end: "", status: "NOT_STARTED", budget: "", activities: [], memberIds: [] };
+const EMPTY: ProjectInput = { name: "", start: "", end: "", status: "NOT_STARTED", kind: "STANDARD", budget: "", activities: [], memberIds: [] };
 
 /** Panneau de création et de modification (09-Projets-creation). */
 function ProjectPanel({ project, team, onClose, onSaved }: {
@@ -339,13 +353,37 @@ function ProjectPanel({ project, team, onClose, onSaved }: {
 }) {
   const [form, setForm] = useState<ProjectInput>(() =>
     project
-      ? { name: project.name, start: project.start, end: project.end, status: project.status, budget: project.budgetHours === null ? "" : String(project.budgetHours), activities: project.activities, memberIds: project.memberIds }
+      ? { name: project.name, start: project.start, end: project.end, status: project.status, kind: project.kind, budget: project.budgetHours === null ? "" : String(project.budgetHours), activities: project.activities, memberIds: project.memberIds }
       : EMPTY,
   );
   const [activity, setActivity] = useState("");
   const [errors, setErrors] = useState<ProjectFieldErrors & { activityInUse?: string; activity?: string; global?: string }>({});
   const [pending, start] = useTransition();
   const set = <K extends keyof ProjectInput>(k: K, v: ProjectInput[K]) => setForm((f) => ({ ...f, [k]: v }));
+  // Phase d'un projet DMAIC déjà enregistré : changée tout de suite, avec « Annuler » dans le panneau.
+  const [phase, setPhase] = useState<DmaicPhase | null>(project?.kind === "DMAIC" ? project.phase : null);
+  const [phaseNotice, setPhaseNotice] = useState<Notice | null>(null);
+
+  function changePhase(next: DmaicPhase) {
+    if (!project) return;
+    setErrors((e) => ({ ...e, global: undefined }));
+    start(async () => {
+      const r = await setProjectPhase(project.id, next);
+      if (!r.ok) return setErrors((e) => ({ ...e, global: p.actionError }));
+      setPhase(next);
+      const previous = r.previous;
+      setPhaseNotice({
+        text: phaseChangedMessage(r.name, next),
+        undo: () =>
+          start(async () => {
+            const back = await setProjectPhase(project.id, previous);
+            if (!back.ok) return setErrors((e) => ({ ...e, global: p.actionError }));
+            setPhase(previous);
+            setPhaseNotice({ text: p.undone });
+          }),
+      });
+    });
+  }
 
   function addActivity() {
     const name = activity.trim();
@@ -482,6 +520,18 @@ function ProjectPanel({ project, team, onClose, onSaved }: {
         <p className="form-text" id="p-statut-aide">{p.statusHint}</p>
       </div>
       <div>
+        <label className="form-label" htmlFor="p-type">{p.kind}</label>
+        <select className="form-select" id="p-type" aria-describedby="p-type-aide" value={form.kind} onChange={(e) => set("kind", e.target.value as ProjectKind)}>
+          {PROJECT_KINDS.map((k) => (
+            <option key={k} value={k}>{p.kinds[k]}</option>
+          ))}
+        </select>
+        <p className="form-text" id="p-type-aide">{kindHint(project?.kind ?? null, form.kind ?? "STANDARD")}</p>
+      </div>
+      {phase && form.kind === "DMAIC" && (
+        <PhaseField phase={phase} pending={pending} notice={phaseNotice} onChange={changePhase} onCloseNotice={() => setPhaseNotice(null)} />
+      )}
+      <div>
         <label className="form-label" htmlFor="p-budget">{p.budget}</label>
         <div className="input-group" style={{ maxWidth: 200 }}>
           <input
@@ -544,5 +594,56 @@ function ProjectPanel({ project, team, onClose, onSaved }: {
         ))}
       </fieldset>
     </Offcanvas>
+  );
+}
+
+/** Aide sous « Type de projet » : ce que le changement de type fera à l'enregistrement. */
+function kindHint(saved: ProjectKind | null, chosen: ProjectKind): string {
+  if (chosen === "DMAIC" && saved !== "DMAIC") return `${p.kindHint} ${p.kindToDmaic}`;
+  if (chosen === "STANDARD" && saved === "DMAIC") return p.kindToStandard;
+  return p.kindHint;
+}
+
+/** Phase d'un projet DMAIC dans le panneau : étape en cours, phase précédente et suivante. */
+function PhaseField({ phase, pending, notice, onChange, onCloseNotice }: {
+  phase: DmaicPhase;
+  pending: boolean;
+  notice: Notice | null;
+  onChange: (next: DmaicPhase) => void;
+  onCloseNotice: () => void;
+}) {
+  const before = previousPhase(phase);
+  const after = nextPhase(phase);
+  return (
+    <section style={{ display: "flex", flexDirection: "column", gap: 10 }} aria-labelledby="p-phase-titre">
+      <h3 className="h6" id="p-phase-titre">{p.phaseTitle}</h3>
+      <SteppedProcess className="ts-steps-current" steps={DMAIC_PHASES.map(phaseLabel)} current={DMAIC_PHASES.indexOf(phase)} label={p.phaseStepsLabel} />
+      <p className="small fw-bold">{phaseStepText(phase)}</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+        {before && (
+          <button className="btn" type="button" disabled={pending} onClick={() => onChange(before)}>
+            <Icon name="left" />
+            {t(p.phasePrevious, { phase: phaseLabel(before) })}
+          </button>
+        )}
+        {after && (
+          <button className="btn" type="button" disabled={pending} onClick={() => onChange(after)}>
+            {t(p.phaseNext, { phase: phaseLabel(after) })}
+            <Icon name="right" />
+          </button>
+        )}
+      </div>
+      <p className="form-text" style={{ marginTop: 0 }}>{p.phaseHint}</p>
+      {notice && (
+        <Alert
+          tone="success"
+          role="status"
+          onClose={onCloseNotice}
+          action={notice.undo ? <button className="btn btn-link" type="button" onClick={() => { const u = notice.undo; onCloseNotice(); u?.(); }}>{dict.form.undo}</button> : undefined}
+        >
+          <p>{notice.text}</p>
+        </Alert>
+      )}
+    </section>
   );
 }

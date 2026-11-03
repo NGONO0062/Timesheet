@@ -289,6 +289,11 @@ L'écran se lit de haut en bas, du plus urgent au moins urgent.
 - Deux affichages, par un Button group « Liste / Colonnes » :
   - **Liste** : tableau filtrable par statut (pills « Tous », « En cours », « À démarrer », « En pause », « Terminés », chacune avec son compte). Tri par statut puis par code.
   - **Colonnes** : une colonne par statut, une carte par projet. Une carte se glisse d'une colonne à l'autre à la souris (point 84) ; le statut se change aussi par l'étiquette, au clavier comme à la souris. Même message, avec « Annuler ». Sous 1024 px, seul l'affichage en liste est proposé. Le choix d'affichage est gardé dans l'URL (`?vue=colonnes`).
+- **Type de projet** (ajout du 03/11/2026, `docs/questions-ouvertes.md`, point 85) : « Standard » (par défaut) ou « DMAIC ». Un projet DMAIC suit cinq phases, dans l'ordre : Définir, Mesurer, Analyser, Améliorer, Contrôler (`DEFINE` à `CONTROL`).
+  - Il naît dans « Définir » ; un projet standard qui devient DMAIC aussi. Redevenu standard, il perd sa phase en cours, pas son historique.
+  - La phase s'écrit sous le code du projet, dans la liste et sur les cartes : « DMAIC · Analyser (3 sur 5) ». Ce n'est pas une étiquette : le statut reste la seule étiquette du projet.
+  - Elle se change dans le panneau de modification (« Phase DMAIC ») : étape en cours, « Revenir à la phase « … » » et « Passer à la phase « … » ». Mêmes rôles que pour le statut. Le changement est immédiat, sans confirmation ; un message dans le panneau le dit et propose « Annuler ». Il ne change pas la saisie des temps.
+  - Chaque entrée dans une phase est datée (`ProjectPhaseChange`, horloge de l'application) et écrite au journal d'audit (« Changement de phase DMAIC »). Cet historique servira à compter les jours passés dans chaque phase.
 - Les projets archivés sont masqués. Un interrupteur « Afficher les projets archivés » les fait réapparaître. L'archivage se fait depuis le panneau de modification.
 - La création et la modification se font dans un Offcanvas à droite, la liste reste visible derrière.
 

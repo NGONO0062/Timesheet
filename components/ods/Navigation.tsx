@@ -61,9 +61,9 @@ export function Pagination({ page, pageCount, href, label = dict.nav.pagination 
 }
 
 /** Stepped process ODS. `current` : index de l'étape en cours (0 = première). */
-export function SteppedProcess({ steps, current, label }: { steps: string[]; current: number; label: string }) {
+export function SteppedProcess({ steps, current, label, className }: { steps: string[]; current: number; label: string; className?: string }) {
   return (
-    <ol className="stepped-process" aria-label={label}>
+    <ol className={cx("stepped-process", className)} aria-label={label}>
       {steps.map((step, i) => (
         <li key={step} className={cx(i < current && "is-done", i === current && "is-current")} aria-current={i === current ? "step" : undefined}>
           {step}

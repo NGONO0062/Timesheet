@@ -783,6 +783,11 @@ button.dropdown-item{width:100%;border:0;background:none;font-family:inherit;fon
   .ts-week-nav>.dropdown{flex:1;min-width:0}
   .ts-week-label{min-width:0;width:100%}
 }
+/* Stepped process dans un espace étroit (phase DMAIC dans le panneau d'un projet) :
+   seule l'étape en cours, comme sur mobile ; « Phase n sur 5 » est écrit dessous. */
+.ts-steps-current li:not(.is-current){display:none}
+.ts-steps-current li.is-current{clip-path:none;padding-left:20px}
+.ts-steps-current li::before{content:none}
 /* Stepped process : sur mobile, seule l'étape en cours ; « Étape n sur N » est écrit dessous. */
 @media (max-width:767.98px){
   .stepped-process li:not(.is-current){display:none}

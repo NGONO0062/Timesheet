@@ -3,6 +3,7 @@ import "server-only";
 // responsable ou qui comptent un de ses rattachés ; owner et admin de division
 // voient tous les projets de la division. Jamais ceux d'une autre division.
 import type { Prisma } from "@prisma/client";
+import { phaseAfterKindChange, type DmaicPhase, type ProjectKind } from "@/lib/projects/dmaic";
 import { checkProjectInput, nextProjectCode, type ProjectInput } from "@/lib/projects/rules";
 import type { ProjectStatus } from "@/lib/status";
 import { appendAudit } from "./audit";
@@ -42,6 +43,8 @@ export type ProjectRow = {
   code: string;
   name: string;
   status: ProjectStatus;
+  kind: ProjectKind;
+  phase: DmaicPhase | null;
   startDate: Date;
   endDate: Date | null;
   budgetHours: number | null;
@@ -77,6 +80,8 @@ export async function listProjects(scope: DivisionScope): Promise<{ projects: Pr
       code: p.code,
       name: p.name,
       status: p.status,
+      kind: p.kind,
+      phase: p.phase,
       startDate: p.startDate,
       endDate: p.endDate,
       budgetHours: p.budgetHours === null ? null : Number(p.budgetHours),
@@ -92,7 +97,7 @@ export async function listProjects(scope: DivisionScope): Promise<{ projects: Pr
 
 export class ProjectRuleError extends Error {
   constructor(
-    public readonly code: "invalid" | "notFound" | "members" | "activityInUse",
+    public readonly code: "invalid" | "notFound" | "members" | "activityInUse" | "notDmaic",
     public readonly detail: Record<string, string> = {},
   ) {
     super(`Règle de projet : ${code}`);
@@ -127,6 +132,33 @@ export async function changeProjectStatus(scope: DivisionScope, id: string, stat
   return { name: project.name, previous: project.status };
 }
 
+/**
+ * Changement de phase d'un projet DMAIC : immédiat, sans confirmation, comme le
+ * statut. Renvoie l'ancienne phase, pour « Annuler ». L'entrée dans la phase est
+ * datée dans l'historique (jours par phase) et écrite au journal d'audit.
+ */
+export async function changeProjectPhase(scope: DivisionScope, id: string, phase: DmaicPhase, now: Date, actorLabel: string) {
+  return prisma.$transaction(async (tx) => {
+    const project = await findInScope(scope, id, tx);
+    if (project.kind !== "DMAIC" || project.phase === null) throw new ProjectRuleError("notDmaic");
+    const previous = project.phase;
+    if (previous !== phase) {
+      await tx.project.update({ where: { id: project.id }, data: { phase } });
+      await tx.projectPhaseChange.create({ data: { divisionId: scope.divisionId, projectId: project.id, phase, at: now, changedById: scope.userId } });
+      await appendAudit({
+        actorId: scope.userId,
+        actorLabel,
+        divisionId: scope.divisionId,
+        action: "PROJECT_PHASE_CHANGED",
+        objectLabel: `${project.code} · ${project.name}`,
+        result: "SUCCESS",
+        metadata: { from: previous, to: phase },
+      });
+    }
+    return { name: project.name, previous };
+  });
+}
+
 /** Création ou modification depuis le panneau. Le code est attribué à la création. */
 export async function saveProject(scope: DivisionScope, id: string | null, input: ProjectInput, now: Date, actorLabel: string) {
   const checked = checkProjectInput(input);
@@ -140,6 +172,7 @@ export async function saveProject(scope: DivisionScope, id: string | null, input
     const prefix = (division.department ?? division.slug.slice(0, 3)).toUpperCase();
     const year = v.startDate.getUTCFullYear();
     const codes = await prisma.project.findMany({ where: { divisionId: scope.divisionId, code: { startsWith: `${prefix}-${year}-` } }, select: { code: true } });
+    const phase = phaseAfterKindChange(null, v.kind);
     const created = await prisma.project.create({
       data: {
         divisionId: scope.divisionId,
@@ -152,11 +185,22 @@ export async function saveProject(scope: DivisionScope, id: string | null, input
         statusChangedAt: now,
         statusChangedById: scope.userId,
         managerId: scope.userId,
+        kind: v.kind,
+        phase: phase.phase,
         activities: { create: v.activities.map((name) => ({ name })) },
         members: { create: v.memberIds.map((userId) => ({ userId })) },
+        ...(phase.entered ? { phaseChanges: { create: { divisionId: scope.divisionId, phase: phase.entered, at: now, changedById: scope.userId } } } : {}),
       },
     });
-    await appendAudit({ actorId: scope.userId, actorLabel, divisionId: scope.divisionId, action: "PROJECT_CREATED", objectLabel: `${created.code} · ${created.name}`, result: "SUCCESS", metadata: { status: v.status } });
+    await appendAudit({
+      actorId: scope.userId,
+      actorLabel,
+      divisionId: scope.divisionId,
+      action: "PROJECT_CREATED",
+      objectLabel: `${created.code} · ${created.name}`,
+      result: "SUCCESS",
+      metadata: { status: v.status, kind: v.kind },
+    });
     return { id: created.id, name: created.name, code: created.code };
   }
 
@@ -174,6 +218,11 @@ export async function saveProject(scope: DivisionScope, id: string | null, input
     const current = new Set(project.members.map((m) => m.userId));
     await tx.projectMember.createMany({ data: v.memberIds.filter((m) => !current.has(m)).map((userId) => ({ projectId: project.id, userId })) });
     const statusChanged = project.status !== v.status;
+    // Type : un projet qui devient DMAIC entre dans « Définir » ; l'historique des phases reste.
+    const phase = phaseAfterKindChange(project, v.kind);
+    if (phase.entered) {
+      await tx.projectPhaseChange.create({ data: { divisionId: scope.divisionId, projectId: project.id, phase: phase.entered, at: now, changedById: scope.userId } });
+    }
     await tx.project.update({
       where: { id: project.id },
       data: {
@@ -182,6 +231,8 @@ export async function saveProject(scope: DivisionScope, id: string | null, input
         endDate: v.endDate,
         budgetHours: v.budgetHours,
         status: v.status,
+        kind: v.kind,
+        phase: phase.phase,
         ...(statusChanged ? { statusChangedAt: now, statusChangedById: scope.userId } : {}),
       },
     });
@@ -192,7 +243,10 @@ export async function saveProject(scope: DivisionScope, id: string | null, input
       action: statusChanged ? "PROJECT_STATUS_CHANGED" : "PROJECT_UPDATED",
       objectLabel: `${project.code} · ${v.name}`,
       result: "SUCCESS",
-      metadata: statusChanged ? { from: project.status, to: v.status } : {},
+      metadata: {
+        ...(statusChanged ? { from: project.status, to: v.status } : {}),
+        ...(project.kind !== v.kind ? { kindFrom: project.kind, kindTo: v.kind } : {}),
+      },
     });
     return { id: project.id, name: v.name, code: project.code };
   });

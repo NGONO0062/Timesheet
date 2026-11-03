@@ -3,6 +3,7 @@
 import { formatDate, formatDays, formatNumber, formatPercent, formatRange, parseFrDate } from "../format";
 import { dict, t } from "../i18n";
 import { statusLook, type ProjectStatus } from "../status";
+import { PROJECT_KINDS, type ProjectKind } from "./dmaic";
 
 export type ProjectDates = { startDate: Date; endDate: Date | null };
 
@@ -102,6 +103,8 @@ export type ProjectInput = {
   start: string;
   end: string;
   status: ProjectStatus;
+  /** Type de projet ; « Standard » si absent. */
+  kind?: ProjectKind;
   budget: string;
   activities: string[];
   memberIds: string[];
@@ -114,6 +117,7 @@ export type CleanProject = {
   startDate: Date;
   endDate: Date | null;
   status: ProjectStatus;
+  kind: ProjectKind;
   budgetHours: number | null;
   activities: string[];
   memberIds: string[];
@@ -136,6 +140,15 @@ export function checkProjectInput(input: ProjectInput): { ok: true; value: Clean
   if (Object.keys(errors).length > 0) return { ok: false, errors };
   return {
     ok: true,
-    value: { name, startDate: startDate!, endDate, status: input.status, budgetHours, activities, memberIds: [...new Set(input.memberIds)] },
+    value: {
+      name,
+      startDate: startDate!,
+      endDate,
+      status: input.status,
+      kind: input.kind && PROJECT_KINDS.includes(input.kind) ? input.kind : "STANDARD",
+      budgetHours,
+      activities,
+      memberIds: [...new Set(input.memberIds)],
+    },
   };
 }

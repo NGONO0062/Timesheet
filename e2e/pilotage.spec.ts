@@ -31,6 +31,7 @@ test("projets de démonstration : liste, filtres et affichage dans l'adresse, co
   await expect(row(page, "Veille et formation")).toContainText("Toute l'année 2026");
   await expect(row(page, "Refonte parcours souscription")).toContainText("Budget dépassé de 9 jours");
   await expect(row(page, "Refonte FAQ en ligne").getByRole("button", { name: "Statut de Refonte FAQ en ligne : En pause. Modifier" })).toBeVisible();
+  await expect(row(page, "Cartographie des irritants")).toContainText("DMAIC · Analyser (3 sur 5)");
   expect(await axe(page)).toEqual([]);
 
   await page.getByRole("button", { name: "En cours (4)" }).click();
@@ -121,6 +122,38 @@ test("projets : création avec erreurs, statut avec « Annuler », archivage", a
   await expect(page).toHaveURL(/archives=1/);
   await expect(archived).toBeChecked();
   await expect(row(page, "Projet de test e2e")).toContainText("Archivé");
+});
+
+test("projets DMAIC : type de projet, phase changée tout de suite avec « Annuler »", async ({ page }) => {
+  // Le projet du test précédent, archivé, devient DMAIC : aucun projet de plus dans la division de test.
+  await open(page, MARTIN, "/projets?archives=1", "Projets");
+  await page.getByRole("button", { name: "Modifier Projet de test e2e" }).click();
+  const edit = page.getByRole("dialog", { name: "Modifier le projet" });
+  await expect(edit.getByLabel("Type de projet")).toHaveValue("STANDARD");
+  await expect(edit.getByRole("region", { name: "Phase DMAIC" })).toHaveCount(0);
+  await edit.getByLabel("Type de projet").selectOption({ label: "DMAIC" });
+  await expect(edit.getByText("Le projet commencera par la phase « Définir ».")).toBeVisible();
+  await edit.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(edit).toBeHidden();
+  await expect(row(page, "Projet de test e2e")).toContainText("DMAIC · Définir (1 sur 5)");
+
+  await page.getByRole("button", { name: "Modifier Projet de test e2e" }).click();
+  const phase = edit.getByRole("region", { name: "Phase DMAIC" });
+  await expect(phase).toContainText("Phase 1 sur 5 : Définir");
+  await expect(phase.getByRole("list", { name: "Phases du projet DMAIC" }).locator("[aria-current='step']")).toHaveText("Définir");
+  await expect(phase.getByRole("button", { name: /^Revenir/ })).toHaveCount(0);
+  await phase.getByRole("button", { name: "Passer à la phase « Mesurer »" }).click();
+  const notice = phase.getByRole("status").filter({ hasText: "« Projet de test e2e » est passé à la phase « Mesurer »." });
+  await expect(notice).toBeVisible();
+  await expect(phase).toContainText("Phase 2 sur 5 : Mesurer");
+  expect(await axe(page)).toEqual([]);
+  await notice.getByRole("button", { name: "Annuler" }).click();
+  await expect(phase.getByRole("status").filter({ hasText: "Changement annulé." })).toBeVisible();
+  await expect(phase).toContainText("Phase 1 sur 5 : Définir");
+  await phase.getByRole("button", { name: "Passer à la phase « Mesurer »" }).click();
+  await expect(phase.getByRole("button", { name: "Revenir à la phase « Définir »" })).toBeVisible();
+  await edit.getByRole("button", { name: "Fermer le panneau" }).click();
+  await expect(row(page, "Projet de test e2e")).toContainText("DMAIC · Mesurer (2 sur 5)");
 });
 
 test("reporting : indicateurs, axes et périmètre dans l'adresse, exports CSV, Excel et PDF", async ({ page }) => {

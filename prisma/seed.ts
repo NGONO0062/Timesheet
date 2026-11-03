@@ -1,7 +1,7 @@
 // Données de démonstration (PROMPT.md §18) : elles reproduisent les maquettes,
 // pour comparer écran par écran. Tous les noms sont fictifs, adresses en @exemple.com.
 // Lancement : npm run db:seed (ou npm run db:reset pour repartir d'une base vide).
-import prismaClient, { type ProjectStatus, type Role } from "@prisma/client";
+import prismaClient, { type DmaicPhase, type ProjectStatus, type Role } from "@prisma/client";
 import { argon2id } from "hash-wasm";
 
 // @prisma/client est un module CommonJS : import par défaut sous Node en ESM.
@@ -52,6 +52,8 @@ type ProjectSeed = {
   status: ProjectStatus;
   activities: string[];
   members: string[];
+  /** Projet DMAIC : date d'entrée dans chaque phase, jusqu'à la phase en cours (la dernière). */
+  dmaic?: Array<[phase: DmaicPhase, since: string]>;
 };
 
 // Projets de l'équipe de Samuel Etoga (planche 09-Projets).
@@ -59,7 +61,7 @@ const PROJECTS: ProjectSeed[] = [
   { code: "CX-2026-00", name: "Veille et formation", start: "2026-01-01", end: "2026-12-31", budget: null, status: "IN_PROGRESS", activities: ["Formation"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Ibrahim Njoya", "Sandrine Mvondo", "Yannick Essomba"] },
   { code: "CX-2026-01", name: "Refonte parcours souscription", start: "2026-01-05", end: "2026-06-26", budget: 120, status: "IN_PROGRESS", activities: ["Tests utilisateurs", "Atelier"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Ibrahim Njoya"] },
   { code: "CX-2026-02", name: "Baromètre NPS T1 2026", start: "2026-01-05", end: "2026-03-27", budget: 50, status: "IN_PROGRESS", activities: ["Analyse"], members: ["Aïcha Ndongo", "Sandrine Mvondo", "Yannick Essomba"] },
-  { code: "CX-2026-03", name: "Cartographie des irritants", start: "2026-02-02", end: "2026-05-29", budget: 75, status: "IN_PROGRESS", activities: ["Atelier", "Rédaction"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Sandrine Mvondo", "Yannick Essomba"] },
+  { code: "CX-2026-03", name: "Cartographie des irritants", start: "2026-02-02", end: "2026-05-29", budget: 75, status: "IN_PROGRESS", activities: ["Atelier", "Rédaction"], members: ["Aïcha Ndongo", "Kevin Fotso", "Laure Bikoï", "Sandrine Mvondo", "Yannick Essomba"], dmaic: [["DEFINE", "2026-02-02"], ["MEASURE", "2026-02-23"], ["ANALYZE", "2026-03-16"]] },
   { code: "CX-2026-04", name: "Tests d'usage appli mobile", start: "2026-01-12", end: "2026-02-27", budget: 40, status: "DONE", activities: ["Tests utilisateurs"], members: ["Kevin Fotso", "Ibrahim Njoya", "Sandrine Mvondo", "Yannick Essomba"] },
   { code: "CX-2026-05", name: "Refonte FAQ en ligne", start: "2026-02-02", end: "2026-04-30", budget: 38, status: "ON_HOLD", activities: ["Rédaction"], members: ["Kevin Fotso", "Laure Bikoï"] },
   { code: "CX-2026-06", name: "Enquête boutiques T2 2026", start: "2026-04-06", end: "2026-06-26", budget: 30, status: "NOT_STARTED", activities: ["Enquête", "Analyse"], members: ["Aïcha Ndongo", "Ibrahim Njoya", "Yannick Essomba"] },
@@ -154,6 +156,13 @@ async function main() {
         statusChangedById: samuel,
         activities: { create: p.activities.map((name) => ({ name })) },
         members: { create: p.members.map((m) => ({ userId: ids.get(m)! })) },
+        ...(p.dmaic
+          ? {
+              kind: "DMAIC" as const,
+              phase: p.dmaic.at(-1)?.[0],
+              phaseChanges: { create: p.dmaic.map(([phase, since]) => ({ divisionId: division.id, phase, at: d(since), changedById: samuel })) },
+            }
+          : {}),
       },
     });
     projects.set(p.code, project);

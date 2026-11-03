@@ -70,6 +70,20 @@ enum ProjectStatus {
   DONE
 }
 
+// Type de projet (PROMPT.md §9.4) : un projet DMAIC suit les cinq phases ci-dessous.
+enum ProjectKind {
+  STANDARD
+  DMAIC
+}
+
+enum DmaicPhase {
+  DEFINE
+  MEASURE
+  ANALYZE
+  IMPROVE
+  CONTROL
+}
+
 enum TimesheetStatus {
   DRAFT
   SUBMITTED
@@ -117,6 +131,7 @@ model Division {
   holidays     Holiday[]
   auditEntries AuditLog[]
   tasks        Task[]
+  phaseChanges ProjectPhaseChange[]
 }
 
 model DivisionSettings {
@@ -196,15 +211,16 @@ model User {
 
   internship       Internship?
   memberships      ProjectMember[]
-  timesheets       Timesheet[]       @relation("TimesheetOwner")
-  decidedSheets    Timesheet[]       @relation("TimesheetDecider")
+  timesheets       Timesheet[]          @relation("TimesheetOwner")
+  decidedSheets    Timesheet[]          @relation("TimesheetDecider")
   timesheetEvents  TimesheetEvent[]
   attendanceSheets AttendanceSheet[]
   passwordTokens   PasswordToken[]
   signatures       Signature[]
-  projectChanges   Project[]         @relation("ProjectStatusChanger")
-  managedProjects  Project[]         @relation("ProjectManager")
-  createdTasks     Task[]            @relation("TaskCreator")
+  projectChanges   Project[]            @relation("ProjectStatusChanger")
+  managedProjects  Project[]            @relation("ProjectManager")
+  createdTasks     Task[]               @relation("TaskCreator")
+  phaseChanges     ProjectPhaseChange[]
 
   @@index([divisionId])
   @@index([managerId])
@@ -238,11 +254,14 @@ model Project {
   isSystem          Boolean       @default(false) // activité système « Absence » (PROMPT.md §20)
   managerId         String? // responsable : le manager qui pilote le projet
   manager           User?         @relation("ProjectManager", fields: [managerId], references: [id])
+  kind              ProjectKind   @default(STANDARD)
+  phase             DmaicPhase? // phase en cours d'un projet DMAIC, null sinon
 
-  activities Activity[]
-  members    ProjectMember[]
-  lines      TimesheetLine[]
-  tasks      Task[]
+  activities   Activity[]
+  members      ProjectMember[]
+  lines        TimesheetLine[]
+  tasks        Task[]
+  phaseChanges ProjectPhaseChange[]
 
   @@unique([divisionId, code])
   @@index([divisionId, status])
@@ -434,5 +453,22 @@ model Task {
   deletedAt   DateTime?
 
   @@index([projectId, status, position])
+  @@index([divisionId])
+}
+
+// Historique des phases d'un projet DMAIC : chaque entrée dans une phase, datée sur
+// l'horloge de l'application. Sert à compter les jours passés dans chaque phase.
+model ProjectPhaseChange {
+  id          String     @id @default(cuid())
+  divisionId  String
+  division    Division   @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase       DmaicPhase
+  at          DateTime
+  changedById String?
+  changedBy   User?      @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([projectId, at])
   @@index([divisionId])
 }
