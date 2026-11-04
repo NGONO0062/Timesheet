@@ -156,6 +156,125 @@ test("projets DMAIC : type de projet, phase changée tout de suite avec « Annul
   await expect(row(page, "Projet de test e2e")).toContainText("DMAIC · Mesurer (2 sur 5)");
 });
 
+test("suivi DMAIC : sponsor, revue de passage, livrables et indicateur", async ({ page }) => {
+  // Le projet DMAIC du test précédent, en phase « Mesurer ». Martin en devient le sponsor :
+  // il demande la revue, puis la décide (un sponsor peut aussi gérer le projet).
+  await open(page, MARTIN, "/projets?archives=1", "Projets");
+  await page.getByRole("button", { name: "Modifier Projet de test e2e" }).click();
+  const edit = page.getByRole("dialog", { name: "Modifier le projet" });
+  await expect(edit.getByLabel("Sponsor")).toHaveValue("");
+  await edit.getByLabel("Sponsor").selectOption({ label: "Martin Valideur" });
+  await edit.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(edit).toBeHidden();
+  await page.getByRole("button", { name: "Modifier Projet de test e2e" }).click();
+  const phase = edit.getByRole("region", { name: "Phase DMAIC" });
+  await expect(phase.getByRole("button", { name: /^Passer à la phase/ })).toHaveCount(0);
+  await expect(phase).toContainText("Avec un sponsor, on entre dans la phase « Analyser » par une revue de passage.");
+  await phase.getByRole("link", { name: "Suivi DMAIC" }).click();
+
+  await expect(page.getByRole("heading", { level: 1, name: "Projet de test e2e" })).toBeVisible();
+  await expect(page.getByText("Phase 2 sur 5 : Mesurer")).toBeVisible();
+  // Projet archivé au test précédent : le suivi se lit sans se modifier.
+  await expect(page.getByText("Ce projet est archivé : son suivi reste lisible, il ne se modifie plus.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Demander la revue de passage" })).toHaveCount(0);
+  expect(await axe(page)).toEqual([]);
+
+  await page.getByRole("navigation", { name: "Fil d'Ariane" }).getByRole("link", { name: "Projets" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Projets" })).toBeVisible();
+  await page.goto("/projets?archives=1");
+  await page.getByRole("button", { name: "Modifier Projet de test e2e" }).click();
+  await edit.getByRole("button", { name: "Sortir des archives" }).click();
+  await expect(edit).toBeHidden();
+  await page.getByRole("link", { name: "Suivi DMAIC de Projet de test e2e" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Projet de test e2e" })).toBeVisible();
+  await expect(page.locator("main[aria-busy]")).toHaveCount(0);
+  const review = page.getByRole("region", { name: "Revue de passage" });
+  await expect(review).toContainText("Aucune revue demandée pour la phase « Mesurer ».");
+  await expect(review).toContainText("Livrables de la phase : 0 sur 3.");
+
+  // Livrable coché tout de suite, avec « Annuler ».
+  const deliverables = page.getByRole("region", { name: "Livrables types" });
+  await deliverables.getByLabel("Plan de collecte des données").check();
+  const done = page.getByRole("status").filter({ hasText: "Livrable « Plan de collecte des données » marqué comme fait." });
+  await expect(done).toBeVisible();
+  await expect(deliverables.getByRole("group", { name: /^Mesurer · 1 sur 3/ })).toBeVisible();
+  await done.getByRole("button", { name: "Annuler" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Changement annulé." })).toBeVisible();
+  await expect(deliverables.getByLabel("Plan de collecte des données")).not.toBeChecked();
+  await deliverables.getByLabel("Performance de départ mesurée").check();
+  await expect(review).toContainText("Livrables de la phase : 1 sur 3.");
+
+  // Indicateur : erreurs sous les champs, puis l'écart comblé.
+  const indicator = page.getByRole("region", { name: "Indicateur du projet" });
+  await indicator.getByLabel("Valeur de départ").fill("douze");
+  await indicator.getByRole("button", { name: "Enregistrer l'indicateur" }).click();
+  await expect(indicator.getByText("Saisissez le nom de l'indicateur.")).toBeVisible();
+  await expect(indicator.getByLabel("Indicateur", { exact: true })).toBeFocused();
+  await indicator.getByLabel("Indicateur", { exact: true }).fill("Délai de réponse");
+  await indicator.getByLabel("Unité").fill("jours");
+  await indicator.getByLabel("Valeur de départ").fill("12");
+  await indicator.getByLabel("Cible").fill("4");
+  await indicator.getByLabel("Valeur atteinte").fill("8");
+  await indicator.getByRole("button", { name: "Enregistrer l'indicateur" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Indicateur enregistré." })).toBeVisible();
+  await expect(indicator).toContainText("Objectif : baisser de 12\u00a0jours à 4\u00a0jours.");
+  await expect(indicator).toContainText("50\u00a0% de l'écart comblé");
+  await expect(indicator.getByRole("progressbar", { name: "Écart comblé, Délai de réponse" })).toHaveAttribute("aria-valuenow", "50");
+
+  // Revue demandée : un seul bouton primaire, puis la décision du sponsor.
+  await expect(page.locator(".btn-primary:visible")).toHaveCount(1);
+  await review.getByLabel("Message au sponsor").fill("Mesure faite sur un mois.");
+  await review.getByRole("button", { name: "Demander la revue de passage" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Revue de passage de la phase « Mesurer » demandée. Martin Valideur est prévenu par e-mail." })).toBeVisible();
+  await expect(review).toContainText("Elle attend la décision de Martin Valideur.");
+  await expect(page.locator(".btn-primary:visible")).toHaveCount(1);
+  await expect(page).toHaveTitle(/^Suivi DMAIC/);
+  expect(await axe(page)).toEqual([]);
+
+  await review.getByLabel("Demander des compléments").check();
+  await review.getByRole("button", { name: "Enregistrer la décision" }).click();
+  await expect(review.getByText("Dites quels compléments vous attendez.")).toBeVisible();
+  await expect(review.getByLabel("Compléments attendus")).toBeFocused();
+  await review.getByLabel("Compléments attendus").fill("Ajoutez la validation du système de mesure.");
+  await review.getByRole("button", { name: "Enregistrer la décision" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Compléments demandés. Martin Valideur est prévenu par e-mail." })).toBeVisible();
+  await expect(review).toContainText("« Ajoutez la validation du système de mesure. »");
+  await expect(review.getByRole("table", { name: "Revues de passage du projet" }).getByRole("row")).toHaveCount(2);
+
+  await review.getByRole("button", { name: "Demander de nouveau la revue" }).click();
+  await expect(review.getByLabel("Accorder le passage")).toBeChecked();
+  await expect(review).toContainText("Le projet entre tout de suite dans la phase « Analyser ».");
+  await review.getByRole("button", { name: "Enregistrer la décision" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Passage accordé : « Projet de test e2e » entre dans la phase « Analyser »." })).toBeVisible();
+  await expect(page.getByText("Phase 3 sur 5 : Analyser")).toBeVisible();
+  await expect(review).toContainText("Aucune revue demandée pour la phase « Analyser ».");
+
+  await page.goto("/projets");
+  await expect(row(page, "Projet de test e2e")).toContainText("DMAIC · Analyser (3 sur 5)");
+});
+
+test("suivi DMAIC de démonstration : le sponsor lit l'historique des revues ; hors portée, 404", async ({ page }) => {
+  await open(page, OWNER, "/projets", "Projets");
+  await page.getByRole("link", { name: "Suivi DMAIC de Cartographie des irritants" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Cartographie des irritants" })).toBeVisible();
+  await expect(page.locator("main[aria-busy]")).toHaveCount(0);
+  await expect(page.getByText("Sponsor : Brigitte Mbarga")).toBeVisible();
+  const review = page.getByRole("region", { name: "Revue de passage" });
+  await expect(review).toContainText("Aucune revue demandée pour la phase « Analyser ».");
+  await expect(review.getByRole("table", { name: "Revues de passage du projet" }).getByRole("row")).toHaveCount(4);
+  await expect(review).toContainText("Compléments demandés par Brigitte Mbarga, le 11 mars 2026");
+  await expect(page.getByRole("region", { name: "Livrables types" }).getByRole("group", { name: /^Définir · 3 sur 3/ })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Indicateur du projet" })).toContainText("Départ 12\u00a0jours · Cible 5\u00a0jours · Atteint 11\u00a0jours");
+  expect(await axe(page)).toEqual([]);
+  const url = page.url();
+
+  // Un manager de la division de test n'atteint pas ce projet.
+  await page.context().clearCookies();
+  await login(page, MARTIN);
+  await expect(page).not.toHaveURL(/\/connexion/);
+  expect((await page.goto(new URL(url).pathname))?.status()).toBe(404);
+});
+
 test("reporting : indicateurs, axes et périmètre dans l'adresse, exports CSV, Excel et PDF", async ({ page }) => {
   await open(page, SAMUEL, "/reporting?de=2026-10&a=2026-12", "Reporting");
   await expect(page.getByLabel("De la semaine")).toHaveValue("2026-10");

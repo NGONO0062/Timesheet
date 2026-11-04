@@ -105,6 +105,8 @@ export type ProjectInput = {
   status: ProjectStatus;
   /** Type de projet ; « Standard » si absent. */
   kind?: ProjectKind;
+  /** Sponsor d'un projet DMAIC (revues de passage) ; absent : inchangé, null : aucun. */
+  sponsorId?: string | null;
   budget: string;
   activities: string[];
   memberIds: string[];
@@ -118,6 +120,8 @@ export type CleanProject = {
   endDate: Date | null;
   status: ProjectStatus;
   kind: ProjectKind;
+  /** undefined : inchangé ; toujours null pour un projet standard. */
+  sponsorId: string | null | undefined;
   budgetHours: number | null;
   activities: string[];
   memberIds: string[];
@@ -138,6 +142,7 @@ export function checkProjectInput(input: ProjectInput): { ok: true; value: Clean
   const activities = [...new Set(input.activities.map((a) => a.trim()).filter(Boolean))];
   if (activities.length === 0 || activities.some((a) => a.length > 80)) errors.activities = dict.project.errors.activities;
   if (Object.keys(errors).length > 0) return { ok: false, errors };
+  const kind = input.kind && PROJECT_KINDS.includes(input.kind) ? input.kind : "STANDARD";
   return {
     ok: true,
     value: {
@@ -145,7 +150,8 @@ export function checkProjectInput(input: ProjectInput): { ok: true; value: Clean
       startDate: startDate!,
       endDate,
       status: input.status,
-      kind: input.kind && PROJECT_KINDS.includes(input.kind) ? input.kind : "STANDARD",
+      kind,
+      sponsorId: kind === "STANDARD" ? null : input.sponsorId === undefined ? undefined : input.sponsorId || null,
       budgetHours,
       activities,
       memberIds: [...new Set(input.memberIds)],

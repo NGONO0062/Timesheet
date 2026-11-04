@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { wantsNotification } from "../notifications";
-import { attendanceHrMail, invitationMail, rejectedMail, reminderMail, resetMail, validatedMail } from "./templates";
+import { attendanceHrMail, invitationMail, rejectedMail, reminderMail, resetMail, tollgateDecisionMail, tollgateRequestMail, validatedMail } from "./templates";
 
 const ref = { week: 12, range: "16–20 mars 2026", url: "http://localhost:3000/saisie/2026/12" };
 
@@ -56,5 +56,28 @@ describe("e-mails", () => {
     expect(wantsNotification({}, "validated")).toBe(true);
     expect(wantsNotification(null, "rejected")).toBe(true);
     expect(wantsNotification({ rejected: false }, "rejected")).toBe(false);
+  });
+
+  const gate = { firstName: "Brigitte", project: "CX-2026-03 · Cartographie des irritants", phase: "Analyser", url: "http://localhost:3000/projets/p1/dmaic" };
+
+  it("demande la revue de passage au sponsor, avec le message et le lien du suivi", () => {
+    const m = tollgateRequestMail({ ...gate, to: "b@exemple.com", requester: "Samuel Etoga", done: 2, total: 3, note: "Causes <vérifiées>" });
+    expect(m.subject).toBe("Revue de passage demandée · CX-2026-03 · Cartographie des irritants");
+    expect(m.text).toContain("Samuel Etoga demande la revue de passage de la phase « Analyser » du projet CX-2026-03 · Cartographie des irritants, dont vous êtes sponsor. Livrables de la phase : 2 sur 3.");
+    expect(m.text).toContain("Message : « Causes <vérifiées> »");
+    expect(m.text).toContain("Ouvrir le suivi DMAIC : http://localhost:3000/projets/p1/dmaic");
+    expect(m.html).toContain("Causes &lt;vérifiées&gt;");
+  });
+
+  it("annonce la décision du sponsor : passage accordé, démarche close ou compléments", () => {
+    const base = { ...gate, to: "s@exemple.com", firstName: "Samuel", sponsor: "Brigitte Mbarga" };
+    const ok = tollgateDecisionMail({ ...base, approved: true, next: "Améliorer", comment: null });
+    expect(ok.subject).toBe("Passage accordé · CX-2026-03 · Cartographie des irritants");
+    expect(ok.text).toContain("Le projet entre dans la phase « Améliorer ».");
+    const closed = tollgateDecisionMail({ ...base, phase: "Contrôler", approved: true, next: null, comment: null });
+    expect(closed.text).toContain("la démarche DMAIC est close");
+    const changes = tollgateDecisionMail({ ...base, approved: false, next: null, comment: "Vérifier sur 3 mois" });
+    expect(changes.subject).toBe("Compléments demandés · CX-2026-03 · Cartographie des irritants");
+    expect(changes.text).toContain("Compléments attendus : « Vérifier sur 3 mois »");
   });
 });

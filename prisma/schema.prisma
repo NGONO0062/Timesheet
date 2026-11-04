@@ -84,6 +84,12 @@ enum DmaicPhase {
   CONTROL
 }
 
+enum TollgateStatus {
+  REQUESTED
+  APPROVED
+  CHANGES_REQUESTED
+}
+
 enum TimesheetStatus {
   DRAFT
   SUBMITTED
@@ -132,6 +138,8 @@ model Division {
   auditEntries AuditLog[]
   tasks        Task[]
   phaseChanges ProjectPhaseChange[]
+  deliverables ProjectDeliverable[]
+  tollgates    ProjectTollgate[]
 }
 
 model DivisionSettings {
@@ -209,18 +217,22 @@ model User {
   notificationPrefs    Json            @default("{}")
   createdAt            DateTime        @default(now())
 
-  internship       Internship?
-  memberships      ProjectMember[]
-  timesheets       Timesheet[]          @relation("TimesheetOwner")
-  decidedSheets    Timesheet[]          @relation("TimesheetDecider")
-  timesheetEvents  TimesheetEvent[]
-  attendanceSheets AttendanceSheet[]
-  passwordTokens   PasswordToken[]
-  signatures       Signature[]
-  projectChanges   Project[]            @relation("ProjectStatusChanger")
-  managedProjects  Project[]            @relation("ProjectManager")
-  createdTasks     Task[]               @relation("TaskCreator")
-  phaseChanges     ProjectPhaseChange[]
+  internship        Internship?
+  memberships       ProjectMember[]
+  timesheets        Timesheet[]          @relation("TimesheetOwner")
+  decidedSheets     Timesheet[]          @relation("TimesheetDecider")
+  timesheetEvents   TimesheetEvent[]
+  attendanceSheets  AttendanceSheet[]
+  passwordTokens    PasswordToken[]
+  signatures        Signature[]
+  projectChanges    Project[]            @relation("ProjectStatusChanger")
+  managedProjects   Project[]            @relation("ProjectManager")
+  createdTasks      Task[]               @relation("TaskCreator")
+  phaseChanges      ProjectPhaseChange[]
+  sponsoredProjects Project[]            @relation("ProjectSponsor")
+  deliverablesDone  ProjectDeliverable[] @relation("DeliverableDoneBy")
+  tollgateRequests  ProjectTollgate[]    @relation("TollgateRequester")
+  tollgateDecisions ProjectTollgate[]    @relation("TollgateDecider")
 
   @@index([divisionId])
   @@index([managerId])
@@ -256,12 +268,22 @@ model Project {
   manager           User?         @relation("ProjectManager", fields: [managerId], references: [id])
   kind              ProjectKind   @default(STANDARD)
   phase             DmaicPhase? // phase en cours d'un projet DMAIC, null sinon
+  // Projet DMAIC, lot 3 : sponsor (revues de passage) et indicateur du projet.
+  sponsorId         String?
+  sponsor           User?         @relation("ProjectSponsor", fields: [sponsorId], references: [id], onDelete: SetNull)
+  kpiName           String?
+  kpiUnit           String?
+  kpiBaseline       Decimal?      @db.Decimal(14, 2)
+  kpiTarget         Decimal?      @db.Decimal(14, 2)
+  kpiCurrent        Decimal?      @db.Decimal(14, 2)
 
   activities   Activity[]
   members      ProjectMember[]
   lines        TimesheetLine[]
   tasks        Task[]
   phaseChanges ProjectPhaseChange[]
+  deliverables ProjectDeliverable[]
+  tollgates    ProjectTollgate[]
 
   @@unique([divisionId, code])
   @@index([divisionId, status])
@@ -472,5 +494,45 @@ model ProjectPhaseChange {
   changedBy   User?      @relation(fields: [changedById], references: [id], onDelete: SetNull)
 
   @@index([projectId, at])
+  @@index([divisionId])
+}
+
+// Livrable type d'une phase DMAIC coché pour un projet (clé du catalogue de
+// lib/projects/deliverables.ts). Une ligne par livrable fait ; décoché, la ligne disparaît.
+model ProjectDeliverable {
+  id         String   @id @default(cuid())
+  divisionId String
+  division   Division @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  key        String
+  doneAt     DateTime
+  doneById   String?
+  doneBy     User?    @relation("DeliverableDoneBy", fields: [doneById], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, key])
+  @@index([divisionId])
+}
+
+// Revue de passage (tollgate) d'une phase DMAIC : demandée par qui gère le projet,
+// décidée par le sponsor. Accordée, le projet entre dans la phase suivante.
+model ProjectTollgate {
+  id            String         @id @default(cuid())
+  divisionId    String
+  division      Division       @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  projectId     String
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase         DmaicPhase
+  status        TollgateStatus @default(REQUESTED)
+  requestedById String?
+  requestedBy   User?          @relation("TollgateRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  requestedAt   DateTime
+  note          String?
+  decidedById   String?
+  decidedBy     User?          @relation("TollgateDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt     DateTime?
+  comment       String?
+
+  @@index([projectId, phase, requestedAt])
   @@index([divisionId])
 }

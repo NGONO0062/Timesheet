@@ -95,7 +95,7 @@ export async function resetE2eFixtures(): Promise<void> {
           where: { id: existing.id },
           include: { activities: true },
           // Type et phase changés par le test DMAIC de l'écran Projets : projet standard.
-          data: { name, status, archivedAt: null, kind: "STANDARD", phase: null },
+          data: { name, status, archivedAt: null, kind: "STANDARD", phase: null, sponsorId: null, kpiName: null, kpiUnit: null, kpiBaseline: null, kpiTarget: null, kpiCurrent: null },
         });
       }
       return prisma.project.create({

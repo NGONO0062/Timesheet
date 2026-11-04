@@ -23,6 +23,7 @@ import {
   budgetUsage, checkProjectInput, compareProjects, consumedText, endDatePassed, projectPeriodLabel, projectSummary, statusChangedMessage,
   type ProjectFieldErrors, type ProjectInput,
 } from "@/lib/projects/rules";
+import { canMoveDirectly, type TollgateStatus } from "@/lib/projects/tollgate";
 import { PROJECT_STATUS_ORDER, statusLook, type ProjectStatus } from "@/lib/status";
 import { TableScroll } from "@/components/ods/TableScroll";
 
@@ -35,6 +36,9 @@ export type ProjectItem = {
   status: ProjectStatus;
   kind: ProjectKind;
   phase: DmaicPhase | null;
+  sponsorId: string | null;
+  tollgatePending: boolean;
+  tollgates: Array<{ phase: DmaicPhase; status: TollgateStatus; requestedAt: string }>;
   startDate: string;
   endDate: string | null;
   start: string;
@@ -57,6 +61,8 @@ export function ProjectsScreen(props: {
   openId?: string | null;
   today: string;
   team: Array<{ id: string; name: string }>;
+  /** Sponsors possibles d'un projet DMAIC : managers et owners actifs de la division. */
+  sponsors: Array<{ id: string; name: string }>;
   projects: ProjectItem[];
 }) {
   const router = useRouter();
@@ -154,6 +160,11 @@ export function ProjectsScreen(props: {
       <Link className="btn btn-link" href={`/taches?projet=${x.id}`} aria-label={t(dict.tasks.seeTasksLabel, { name: x.name })}>
         {dict.tasks.seeTasks}
       </Link>
+      {x.kind === "DMAIC" && (
+        <Link className="btn btn-link" href={`/projets/${x.id}/dmaic`} aria-label={t(dict.dmaic.openLabel, { name: x.name })}>
+          {dict.dmaic.open}
+        </Link>
+      )}
     </span>
   );
 
@@ -200,6 +211,15 @@ export function ProjectsScreen(props: {
                     <span className="small" style={{ fontWeight: 400 }}>{phaseLine(x.kind, x.phase)}</span>
                   </>
                 )}
+                {x.tollgatePending && (
+                  <>
+                    <br />
+                    <span className="small" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                      <Mark tone="info" />
+                      {p.tollgatePending}
+                    </span>
+                  </>
+                )}
               </th>
               <td>{statusCell(x)}</td>
               <td style={{ whiteSpace: "nowrap" }}>{period(x)}</td>
@@ -239,6 +259,12 @@ export function ProjectsScreen(props: {
                     {x.code} · {projectPeriodLabel(new Date(x.startDate), x.endDate ? new Date(x.endDate) : null)}
                   </span>
                   {phaseLine(x.kind, x.phase) && <span className="small">{phaseLine(x.kind, x.phase)}</span>}
+                  {x.tollgatePending && (
+                    <span className="small fw-bold" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <Mark tone="info" />
+                      {p.tollgatePending}
+                    </span>
+                  )}
                 </div>
                 {hoursCell(x)}
                 <span className="small">{t(x.memberIds.length > 1 ? p.membersMany : p.membersOne, { n: x.memberIds.length })}</span>
@@ -326,6 +352,7 @@ export function ProjectsScreen(props: {
           key={panel.project?.id ?? "nouveau"}
           project={panel.project}
           team={props.team}
+          sponsors={props.sponsors}
           onClose={() => {
             setPanel(null);
             if (props.openId) go({ projet: null });
@@ -342,18 +369,19 @@ export function ProjectsScreen(props: {
   );
 }
 
-const EMPTY: ProjectInput = { name: "", start: "", end: "", status: "NOT_STARTED", kind: "STANDARD", budget: "", activities: [], memberIds: [] };
+const EMPTY: ProjectInput = { name: "", start: "", end: "", status: "NOT_STARTED", kind: "STANDARD", sponsorId: null, budget: "", activities: [], memberIds: [] };
 
 /** Panneau de création et de modification (09-Projets-creation). */
-function ProjectPanel({ project, team, onClose, onSaved }: {
+function ProjectPanel({ project, team, sponsors, onClose, onSaved }: {
   project: ProjectItem | null;
   team: Array<{ id: string; name: string }>;
+  sponsors: Array<{ id: string; name: string }>;
   onClose: () => void;
   onSaved: (text: string, undo?: () => void) => void;
 }) {
   const [form, setForm] = useState<ProjectInput>(() =>
     project
-      ? { name: project.name, start: project.start, end: project.end, status: project.status, kind: project.kind, budget: project.budgetHours === null ? "" : String(project.budgetHours), activities: project.activities, memberIds: project.memberIds }
+      ? { name: project.name, start: project.start, end: project.end, status: project.status, kind: project.kind, sponsorId: project.sponsorId, budget: project.budgetHours === null ? "" : String(project.budgetHours), activities: project.activities, memberIds: project.memberIds }
       : EMPTY,
   );
   const [activity, setActivity] = useState("");
@@ -369,7 +397,7 @@ function ProjectPanel({ project, team, onClose, onSaved }: {
     setErrors((e) => ({ ...e, global: undefined }));
     start(async () => {
       const r = await setProjectPhase(project.id, next);
-      if (!r.ok) return setErrors((e) => ({ ...e, global: p.actionError }));
+      if (!r.ok) return setErrors((e) => ({ ...e, global: r.error === "tollgate" ? p.errors.tollgate : p.actionError }));
       setPhase(next);
       const previous = r.previous;
       setPhaseNotice({
@@ -410,7 +438,7 @@ function ProjectPanel({ project, team, onClose, onSaved }: {
       } else if ("fields" in r) {
         setErrors(r.fields.activityInUse ? { activityInUse: t(p.errors.activityInUse, { name: r.fields.activityInUse }) } : r.fields);
       } else {
-        setErrors({ global: r.error === "members" ? p.errors.members : r.error === "notFound" ? p.errors.notFound : p.actionError });
+        setErrors({ global: r.error === "members" ? p.errors.members : r.error === "notFound" ? p.errors.notFound : r.error === "sponsor" ? p.errors.sponsor : p.actionError });
       }
     });
   }
@@ -529,7 +557,27 @@ function ProjectPanel({ project, team, onClose, onSaved }: {
         <p className="form-text" id="p-type-aide">{kindHint(project?.kind ?? null, form.kind ?? "STANDARD")}</p>
       </div>
       {phase && form.kind === "DMAIC" && (
-        <PhaseField phase={phase} pending={pending} notice={phaseNotice} onChange={changePhase} onCloseNotice={() => setPhaseNotice(null)} />
+        <PhaseField
+          phase={phase}
+          pending={pending}
+          notice={phaseNotice}
+          canAdvance={(to) => canMoveDirectly(project!.sponsorId !== null, project!.tollgates.map((g) => ({ ...g, requestedAt: new Date(g.requestedAt) })), phase, to)}
+          followUpHref={`/projets/${project!.id}/dmaic`}
+          onChange={changePhase}
+          onCloseNotice={() => setPhaseNotice(null)}
+        />
+      )}
+      {form.kind === "DMAIC" && (
+        <div>
+          <label className="form-label" htmlFor="p-sponsor">{dict.dmaic.sponsor}</label>
+          <select className="form-select" id="p-sponsor" aria-describedby="p-sponsor-aide" value={form.sponsorId ?? ""} onChange={(e) => set("sponsorId", e.target.value || null)}>
+            <option value="">{p.sponsorNone}</option>
+            {sponsors.map((u) => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
+          </select>
+          <p className="form-text" id="p-sponsor-aide">{dict.dmaic.sponsorHint}</p>
+        </div>
       )}
       <div>
         <label className="form-label" htmlFor="p-budget">{p.budget}</label>
@@ -605,10 +653,13 @@ function kindHint(saved: ProjectKind | null, chosen: ProjectKind): string {
 }
 
 /** Phase d'un projet DMAIC dans le panneau : étape en cours, phase précédente et suivante. */
-function PhaseField({ phase, pending, notice, onChange, onCloseNotice }: {
+function PhaseField({ phase, pending, notice, canAdvance, followUpHref, onChange, onCloseNotice }: {
   phase: DmaicPhase;
   pending: boolean;
   notice: Notice | null;
+  /** Avec un sponsor, la phase suivante s'ouvre par la revue de passage. */
+  canAdvance: (to: DmaicPhase) => boolean;
+  followUpHref: string;
   onChange: (next: DmaicPhase) => void;
   onCloseNotice: () => void;
 }) {
@@ -626,7 +677,7 @@ function PhaseField({ phase, pending, notice, onChange, onCloseNotice }: {
             {t(p.phasePrevious, { phase: phaseLabel(before) })}
           </button>
         )}
-        {after && (
+        {after && canAdvance(after) && (
           <button className="btn" type="button" disabled={pending} onClick={() => onChange(after)}>
             {t(p.phaseNext, { phase: phaseLabel(after) })}
             <Icon name="right" />
@@ -634,6 +685,11 @@ function PhaseField({ phase, pending, notice, onChange, onCloseNotice }: {
         )}
       </div>
       <p className="form-text" style={{ marginTop: 0 }}>{p.phaseHint}</p>
+      {after && !canAdvance(after) && (
+        <p className="small">
+          {t(p.phaseByTollgate, { phase: phaseLabel(after) })} <Link href={followUpHref}>{dict.dmaic.open}</Link>
+        </p>
+      )}
       {notice && (
         <Alert
           tone="success"

@@ -5,6 +5,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { phaseAfterKindChange, type DmaicPhase, type ProjectKind } from "@/lib/projects/dmaic";
 import { checkProjectInput, nextProjectCode, type ProjectInput } from "@/lib/projects/rules";
+import { canMoveDirectly, latestTollgate } from "@/lib/projects/tollgate";
 import type { ProjectStatus } from "@/lib/status";
 import { appendAudit } from "./audit";
 import { assertPermission, prisma, type DivisionScope } from "./db";
@@ -38,6 +39,16 @@ async function assignable(scope: DivisionScope) {
   });
 }
 
+/** Sponsors possibles d'un projet DMAIC : managers et owners actifs de la division. */
+export async function sponsorCandidates(scope: DivisionScope, db: Prisma.TransactionClient = prisma) {
+  const users = await db.user.findMany({
+    where: { divisionId: scope.divisionId, active: true, role: { in: ["MANAGER", "OWNER"] } },
+    select: { id: true, firstName: true, lastName: true },
+    orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+  });
+  return users.map((u) => ({ id: u.id, name: fullName(u) }));
+}
+
 export type ProjectRow = {
   id: string;
   code: string;
@@ -45,6 +56,10 @@ export type ProjectRow = {
   status: ProjectStatus;
   kind: ProjectKind;
   phase: DmaicPhase | null;
+  sponsorId: string | null;
+  /** Une revue de passage attend la décision du sponsor. */
+  tollgatePending: boolean;
+  tollgates: Array<{ phase: DmaicPhase; status: "REQUESTED" | "APPROVED" | "CHANGES_REQUESTED"; requestedAt: Date }>;
   startDate: Date;
   endDate: Date | null;
   budgetHours: number | null;
@@ -56,17 +71,19 @@ export type ProjectRow = {
 };
 
 /** Projets de la portée, archivés compris, avec leurs heures consommées (fiches soumises ou validées). */
-export async function listProjects(scope: DivisionScope): Promise<{ projects: ProjectRow[]; team: Array<{ id: string; name: string }> }> {
-  const [projects, team] = await Promise.all([
+export async function listProjects(scope: DivisionScope): Promise<{ projects: ProjectRow[]; team: Array<{ id: string; name: string }>; sponsors: Array<{ id: string; name: string }> }> {
+  const [projects, team, sponsors] = await Promise.all([
     prisma.project.findMany({
       where: projectWhere(scope),
       include: {
         members: { select: { userId: true } },
         activities: { orderBy: { name: "asc" }, select: { name: true } },
         manager: { select: { firstName: true, lastName: true } },
+        tollgates: { select: { phase: true, status: true, requestedAt: true } },
       },
     }),
     assignable(scope),
+    sponsorCandidates(scope),
   ]);
   const entries = await prisma.timeEntry.findMany({
     where: { line: { projectId: { in: projects.map((p) => p.id) }, timesheet: { divisionId: scope.divisionId, status: { in: CONSUMED } } } },
@@ -82,6 +99,9 @@ export async function listProjects(scope: DivisionScope): Promise<{ projects: Pr
       status: p.status,
       kind: p.kind,
       phase: p.phase,
+      sponsorId: p.sponsorId,
+      tollgatePending: p.kind === "DMAIC" && p.phase !== null && latestTollgate(p.tollgates, p.phase)?.status === "REQUESTED",
+      tollgates: p.tollgates,
       startDate: p.startDate,
       endDate: p.endDate,
       budgetHours: p.budgetHours === null ? null : Number(p.budgetHours),
@@ -92,12 +112,13 @@ export async function listProjects(scope: DivisionScope): Promise<{ projects: Pr
       manager: p.manager ? fullName(p.manager) : null,
     })),
     team: team.map((u) => ({ id: u.id, name: fullName(u) })),
+    sponsors,
   };
 }
 
 export class ProjectRuleError extends Error {
   constructor(
-    public readonly code: "invalid" | "notFound" | "members" | "activityInUse" | "notDmaic",
+    public readonly code: "invalid" | "notFound" | "members" | "activityInUse" | "notDmaic" | "tollgate" | "sponsor",
     public readonly detail: Record<string, string> = {},
   ) {
     super(`Règle de projet : ${code}`);
@@ -142,6 +163,9 @@ export async function changeProjectPhase(scope: DivisionScope, id: string, phase
     const project = await findInScope(scope, id, tx);
     if (project.kind !== "DMAIC" || project.phase === null) throw new ProjectRuleError("notDmaic");
     const previous = project.phase;
+    // Avec un sponsor, on n'entre dans la phase suivante que par la revue de passage.
+    const tollgates = await tx.projectTollgate.findMany({ where: { projectId: project.id }, select: { phase: true, status: true, requestedAt: true } });
+    if (!canMoveDirectly(project.sponsorId !== null, tollgates, previous, phase)) throw new ProjectRuleError("tollgate");
     if (previous !== phase) {
       await tx.project.update({ where: { id: project.id }, data: { phase } });
       await tx.projectPhaseChange.create({ data: { divisionId: scope.divisionId, projectId: project.id, phase, at: now, changedById: scope.userId } });
@@ -166,6 +190,7 @@ export async function saveProject(scope: DivisionScope, id: string | null, input
   const v = checked.value;
   const team = new Set((await assignable(scope)).map((u) => u.id));
   if (v.memberIds.some((m) => !team.has(m))) throw new ProjectRuleError("members");
+  if (v.sponsorId && !(await sponsorCandidates(scope)).some((u) => u.id === v.sponsorId)) throw new ProjectRuleError("sponsor");
 
   if (id === null) {
     const division = await prisma.division.findUniqueOrThrow({ where: { id: scope.divisionId }, select: { department: true, slug: true } });
@@ -187,6 +212,7 @@ export async function saveProject(scope: DivisionScope, id: string | null, input
         managerId: scope.userId,
         kind: v.kind,
         phase: phase.phase,
+        sponsorId: v.sponsorId ?? null,
         activities: { create: v.activities.map((name) => ({ name })) },
         members: { create: v.memberIds.map((userId) => ({ userId })) },
         ...(phase.entered ? { phaseChanges: { create: { divisionId: scope.divisionId, phase: phase.entered, at: now, changedById: scope.userId } } } : {}),
@@ -233,6 +259,7 @@ export async function saveProject(scope: DivisionScope, id: string | null, input
         status: v.status,
         kind: v.kind,
         phase: phase.phase,
+        ...(v.sponsorId !== undefined ? { sponsorId: v.sponsorId } : {}),
         ...(statusChanged ? { statusChangedAt: now, statusChangedById: scope.userId } : {}),
       },
     });
@@ -246,6 +273,7 @@ export async function saveProject(scope: DivisionScope, id: string | null, input
       metadata: {
         ...(statusChanged ? { from: project.status, to: v.status } : {}),
         ...(project.kind !== v.kind ? { kindFrom: project.kind, kindTo: v.kind } : {}),
+        ...(v.sponsorId !== undefined && v.sponsorId !== project.sponsorId ? { sponsorFrom: project.sponsorId, sponsorTo: v.sponsorId } : {}),
       },
     });
     return { id: project.id, name: v.name, code: project.code };

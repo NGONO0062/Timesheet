@@ -81,6 +81,9 @@ test("mobile : colonnes l'une sous l'autre, déplacement par l'étiquette", asyn
   await page.getByLabel("Nouvelle tâche").fill("Lire le rapport annuel");
   await page.getByRole("button", { name: "Ajouter la tâche" }).click();
   await expect(column(page, /^Backlog, 1 tâche$/).getByRole("heading", { name: "Lire le rapport annuel" })).toBeVisible();
+  // La carte affichée tout de suite est remplacée par celle du serveur à la fin de l'action :
+  // un menu ouvert sur la première disparaîtrait avec elle.
+  await expect(page.getByRole("status").filter({ hasText: "Tâche « Lire le rapport annuel » ajoutée dans Backlog." })).toBeVisible();
   await page.getByRole("button", { name: "Colonne de « Lire le rapport annuel » : Backlog. Déplacer" }).click();
   await page.getByRole("list", { name: "Déplacer vers" }).getByRole("button", { name: "Terminée" }).click();
   await expect(column(page, /^Terminée, 1 tâche$/).getByRole("heading", { name: "Lire le rapport annuel" })).toBeVisible();

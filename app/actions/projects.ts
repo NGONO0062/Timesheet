@@ -20,12 +20,13 @@ const project = z.object({
   end: z.string().max(20),
   status,
   kind: kind.optional(),
+  sponsorId: id.nullable().optional(),
   budget: z.string().max(20),
   activities: z.array(z.string().max(200)).max(50),
   memberIds: z.array(id).max(500),
 });
 
-export type ProjectActionError = "session" | "notFound" | "members" | "notDmaic" | "unknown";
+export type ProjectActionError = "session" | "notFound" | "members" | "notDmaic" | "tollgate" | "sponsor" | "unknown";
 
 async function context() {
   const viewer = await getViewer();
@@ -34,7 +35,7 @@ async function context() {
 }
 
 function failure(e: unknown): { ok: false; error: ProjectActionError } {
-  if (e instanceof ProjectRuleError && (e.code === "notFound" || e.code === "members" || e.code === "notDmaic")) return { ok: false, error: e.code };
+  if (e instanceof ProjectRuleError && (e.code === "notFound" || e.code === "members" || e.code === "notDmaic" || e.code === "tollgate" || e.code === "sponsor")) return { ok: false, error: e.code };
   console.error(e);
   return { ok: false, error: "unknown" };
 }

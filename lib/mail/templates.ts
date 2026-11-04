@@ -162,3 +162,37 @@ export function attendanceHrMail(input: { to: string; name: string; month: strin
     attachments: [{ filename: input.fileName, content: Buffer.from(input.pdf), contentType: "application/pdf" }],
   };
 }
+
+type TollgateRef = { to: string; firstName: string; project: string; phase: string; url: string };
+
+/** Revue de passage demandée : au sponsor du projet DMAIC. */
+export function tollgateRequestMail(input: TollgateRef & { requester: string; done: number; total: number; note: string | null }): Mail {
+  return compose(
+    input.to,
+    t(dict.mail.tollgateRequestSubject, { project: input.project }),
+    input.firstName,
+    [
+      t(dict.mail.tollgateRequestBody, { requester: input.requester, phase: input.phase, project: input.project, done: input.done, total: input.total }),
+      ...(input.note ? [t(dict.mail.tollgateNote, { note: input.note })] : []),
+    ],
+    input.url,
+    dict.mail.tollgateLink,
+  );
+}
+
+/** Décision du sponsor : à qui a demandé la revue. `next` null : démarche close. */
+export function tollgateDecisionMail(input: TollgateRef & { sponsor: string; approved: boolean; next: string | null; comment: string | null }): Mail {
+  const { project, phase, sponsor } = input;
+  const paragraphs = input.approved
+    ? [input.next === null ? t(dict.mail.tollgateClosedBody, { sponsor, project }) : t(dict.mail.tollgateApprovedBody, { sponsor, phase, project, next: input.next })]
+    : [t(dict.mail.tollgateChangesBody, { sponsor, phase, project })];
+  if (input.comment) paragraphs.push(t(dict.mail.tollgateComment, { comment: input.comment }));
+  return compose(
+    input.to,
+    t(input.approved ? dict.mail.tollgateApprovedSubject : dict.mail.tollgateChangesSubject, { project }),
+    input.firstName,
+    paragraphs,
+    input.url,
+    dict.mail.tollgateLink,
+  );
+}

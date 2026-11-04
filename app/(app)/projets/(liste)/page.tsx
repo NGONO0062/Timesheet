@@ -15,7 +15,7 @@ type Props = { searchParams: Promise<{ vue?: string; statut?: string; archives?:
 
 export default async function Page({ searchParams }: Props) {
   const viewer = await requirePermission("MANAGE_PROJECTS");
-  const { projects, team } = await listProjects(scopeOf(viewer));
+  const { projects, team, sponsors } = await listProjects(scopeOf(viewer));
   const sp = await searchParams;
   return (
     <ProjectsScreen
@@ -25,10 +25,12 @@ export default async function Page({ searchParams }: Props) {
       openId={projects.some((p) => p.id === sp.projet) ? sp.projet! : null}
       today={todayInDivision(now()).toISOString()}
       team={team}
+      sponsors={sponsors}
       projects={projects.map((p) => ({
         ...p,
         startDate: p.startDate.toISOString(),
         endDate: p.endDate?.toISOString() ?? null,
+        tollgates: p.tollgates.map((g) => ({ ...g, requestedAt: g.requestedAt.toISOString() })),
         start: formatFrDate(p.startDate),
         end: p.endDate ? formatFrDate(p.endDate) : "",
       }))}

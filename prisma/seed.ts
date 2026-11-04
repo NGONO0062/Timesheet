@@ -186,6 +186,7 @@ async function main() {
   const allProjects = await prisma.project.findMany({ where: { divisionId: division.id }, include: { activities: true } });
   await seedTimesheets(division.id, ids, new Map(allProjects.map((p) => [p.code, p])));
   await seedTasks(division.id, ids);
+  await seedDmaicFollowUp(division.id, ids);
 
   // Admin plateforme : sans division.
   await prisma.user.create({
@@ -585,3 +586,28 @@ main()
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());
+
+// Suivi DMAIC de « Cartographie des irritants » (PROMPT.md §9.4, lot 3) : Brigitte Mbarga
+// sponsor ; « Définir » accordée du premier coup, « Mesurer » après des compléments ;
+// livrables des deux premières phases faits ; indicateur encore loin de sa cible.
+async function seedDmaicFollowUp(divisionId: string, ids: Map<string, string>) {
+  const samuel = ids.get("Samuel Etoga")!;
+  const brigitte = ids.get("Brigitte Mbarga")!;
+  const project = await prisma.project.update({
+    where: { divisionId_code: { divisionId, code: "CX-2026-03" } },
+    data: { sponsorId: brigitte, kpiName: "Délai moyen de traitement des réclamations", kpiUnit: "jours", kpiBaseline: 12, kpiTarget: 5, kpiCurrent: 11 },
+  });
+  const at = (day: string, time: string) => new Date(`${day}T${time}:00+01:00`);
+  const gate = (phase: DmaicPhase, requested: string, decided: string, status: "APPROVED" | "CHANGES_REQUESTED", note: string | null, comment: string | null) => ({
+    divisionId, projectId: project.id, phase, status, requestedById: samuel, requestedAt: at(requested, "16:30"), note, decidedById: brigitte, decidedAt: at(decided, "09:15"), comment,
+  });
+  await prisma.projectTollgate.createMany({
+    data: [
+      gate("DEFINE", "2026-02-20", "2026-02-23", "APPROVED", "Charte signée, SIPOC et voix du client validés en atelier.", null),
+      gate("MEASURE", "2026-03-10", "2026-03-11", "CHANGES_REQUESTED", null, "Vérifiez le système de mesure sur un mois complet avant de conclure."),
+      gate("MEASURE", "2026-03-13", "2026-03-16", "APPROVED", "Mesure refaite sur février : 12 jours en moyenne.", null),
+    ],
+  });
+  const done = ["DEFINE_CHARTER", "DEFINE_SIPOC", "DEFINE_VOC", "MEASURE_PLAN", "MEASURE_MSA", "MEASURE_BASELINE", "ANALYZE_CAUSES"];
+  await prisma.projectDeliverable.createMany({ data: done.map((key) => ({ divisionId, projectId: project.id, key, doneAt: at("2026-03-16", "10:00"), doneById: samuel })) });
+}
