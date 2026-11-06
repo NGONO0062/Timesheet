@@ -62,7 +62,7 @@ export function C1Page() {
         <Exemple title="Saisie future interdite par la division" note="Flèche suivante désactivée : fond gris plein, icône blanche, sans transparence.">
           <Live initial={W12} allowFutureWeeks={false} />
         </Exemple>
-        <Exemple title="États : survol, actif, focus" note="Survol par inversion de contraste, actif en orange de marque, focus en double anneau noir et blanc.">
+        <Exemple title="États : survol, actif, focus" note="Survol par inversion de contraste, appui en orange de marque (le temps du clic), focus en double anneau noir et blanc. Dans la liste ouverte, la semaine courante est marquée par un trait orange et une coche, sans aplat.">
           <div className="flex flex-wrap items-start gap-20">
             {STATES.map(([label, look, disabled]) => (
               <div key={label} className="flex flex-col items-start gap-10">

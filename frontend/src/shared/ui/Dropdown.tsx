@@ -71,7 +71,8 @@ export function Dropdown({ children, buttonClassName, buttonLabel, items, label,
             </>
           );
           // Élément courant : coche, trait orange et gras ; pas d'aplat.
-          const className = cx(ITEM, item.current && "accent-mark font-bold");
+          // Graisse posée une seule fois : un lien (« Semaines plus anciennes ») serait sinon en gras par défaut.
+          const className = cx(ITEM, item.current ? "accent-mark font-bold" : "font-normal");
           return (
             <MenuItem key={item.key}>
               {item.href ? (
