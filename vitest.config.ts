@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     include: ["**/*.test.ts", "**/*.test.tsx"],
     // .claude/ : dossier local de Claude Code (worktrees), jamais testé.
-    exclude: ["node_modules/**", ".next/**", ".claude/**", "e2e/**", "design/**", "**/*.int.test.ts"],
+    exclude: ["node_modules/**", ".next/**", ".claude/**", "e2e/**", "design/**", "frontend/**", "backend/**", "**/*.int.test.ts"],
     environment: "node",
     env: { TZ: "UTC" },
   },

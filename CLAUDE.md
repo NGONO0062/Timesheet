@@ -17,10 +17,17 @@ Application interne Orange Cameroun : projets, temps de travail, fiche de prése
 - Statuts : uniquement les libellés de la planche `C4-Etiquettes-statut`, via un composant unique. Une seule étiquette par objet.
 - Un seul bouton primaire par écran. Action réversible : pas de confirmation, un message avec « Annuler ».
 - Pas de logo. Le mot « TimeSheet », « Time » en `#f16e00`, « Sheet » en blanc sur fond noir.
-- Pas de Tailwind, pas de bibliothèque de composants tierce, pas de bibliothèque de graphiques.
+- Pas de bibliothèque de graphiques. Application actuelle : pas de Tailwind ni de bibliothèque de composants tierce. Réécriture (`frontend/`) : Tailwind et HeadlessUI, thème limité aux valeurs ci-dessus (`docs/reecriture.md`).
 - Chaque requête passe par la couche d'accès aux données, avec `divisionId`. Aucune donnée ne traverse d'une division à l'autre.
 - Interface en français. Libellés repris des maquettes mot pour mot.
 - Aucune donnée réelle ni secret dans le dépôt.
+
+## Réécriture en cours (décision du 6 novembre 2026)
+
+- Plan, stack et jalons : `docs/reecriture.md`. L'application Next.js (racine) reste la référence fonctionnelle jusqu'au jalon 9.
+- Backend `backend/` : .NET 10, Craftsman, CQRS avec MediatR 12 (pas 13 et plus : licence payante), EF Core sur PostgreSQL. `dotnet build TimeSheet.slnx`, `dotnet test TimeSheet.slnx` (bases de test recréées sur le PostgreSQL local, `TIMESHEET_TEST_DB`), `dotnet run --project TimeSheet.Api/src/TimeSheet.Api`.
+- Frontend `frontend/` : Vite, React 19, React Router 7, TanStack Query, Zustand, Tailwind 4, HeadlessUI, Feature-Sliced Design. `npm run dev` (port 5173, `/api` relayé vers le port 5000), `npm run check`.
+- Poste sans Docker : Node, .NET, PostgreSQL et Mailpit portables dans le profil (`backend/README.md`).
 
 ## Méthode
 

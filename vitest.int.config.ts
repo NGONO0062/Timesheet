@@ -13,7 +13,7 @@ export default defineConfig({
   },
   test: {
     include: ["**/*.int.test.ts"],
-    exclude: ["node_modules/**", ".next/**", ".claude/**"],
+    exclude: ["node_modules/**", ".next/**", ".claude/**", "frontend/**", "backend/**"],
     environment: "node",
     fileParallelism: false,
     testTimeout: 30_000,

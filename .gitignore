@@ -12,3 +12,15 @@ storage/
 
 # Claude Code (worktrees locaux)
 .claude/
+
+# .NET (backend/)
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# Frontend (build Vite)
+frontend/dist/
+# Documentation XML produite à la compilation (Swagger)
+backend/**/TimeSheet.Api.WebApi.xml
