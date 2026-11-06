@@ -46,7 +46,8 @@ export async function consumeToken(token: string, kind: TokenKind, password: str
   const passwordHash = await hashPassword(password);
   const { count } = await prisma.passwordToken.updateMany({ where: { id: row.id, usedAt: null }, data: { usedAt: now } });
   if (count === 0) return false;
-  await prisma.user.update({ where: { id: row.userId }, data: { passwordHash } });
+  // Toute session ouverte avec l'ancien mot de passe est fermée.
+  await prisma.user.update({ where: { id: row.userId }, data: { passwordHash, sessionVersion: { increment: 1 } } });
   await appendAudit({
     actorId: row.userId,
     actorLabel: `${row.user.firstName} ${row.user.lastName}`,

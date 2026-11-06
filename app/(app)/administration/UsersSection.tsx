@@ -53,7 +53,7 @@ const NO_INTERNSHIP: InternshipInput = { kind: "ACADEMIC", direction: "", depart
 
 const errorText = (code: AdminError) => a.errors[code];
 
-function UserModal({ view, editing, onClose, onDone }: { view: UsersView; editing: UserRow | null; onClose: () => void; onDone: (text: string) => void }) {
+function UserModal({ view, editing, onClose, onDone }: { view: UsersView; editing: UserRow | null; onClose: () => void; onDone: (text: string, saved?: Partial<UserRow>) => void }) {
   const [form, setForm] = useState<Form>(() =>
     editing
       ? {
@@ -94,9 +94,15 @@ function UserModal({ view, editing, onClose, onDone }: { view: UsersView; editin
     setFailure(null);
     start(async () => {
       const { firstName, lastName, email, role } = form;
-      const r = await saveUserForm(editing?.id ?? null, { firstName, lastName, email, role, managerId: form.managerId || null, internship: intern ? form.internship : null });
+      const managerId = form.managerId || null;
+      const internship = intern ? form.internship : null;
+      const r = await saveUserForm(editing?.id ?? null, { firstName, lastName, email, role, managerId, internship });
       if (r.ok) {
-        onDone(editing ? t(a.userSaved, { name: r.name }) : t(a.invitedNotice, { email: r.email ?? form.email }));
+        if (!editing) return onDone(t(a.invitedNotice, { email: r.email ?? form.email }));
+        // La ligne prend tout de suite les valeurs enregistrées : rouvrir la fenêtre
+        // avant le rafraîchissement du serveur ne montre pas l'ancien état.
+        const manager = view.managers.find((m) => m.id === managerId)?.name ?? null;
+        onDone(t(a.userSaved, { name: r.name }), { firstName: firstName.trim(), lastName: lastName.trim(), name: r.name, role, managerId, manager, internship });
         return;
       }
       if ("fields" in r) {
@@ -340,7 +346,8 @@ export function UsersSection({ view }: { view: UsersView }) {
           view={view}
           editing={modal.editing}
           onClose={() => setModal(null)}
-          onDone={(text) => {
+          onDone={(text, saved) => {
+            if (saved && modal.editing) patch(modal.editing.id, saved);
             setModal(null);
             setNotice({ tone: "success", text });
           }}

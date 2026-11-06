@@ -15,10 +15,14 @@ export type SelfScope = { userId: string };
 export const NOTIFICATION_KINDS: NotificationKind[] = ["fillReminder", "validated", "rejected", "signatureReminder"];
 
 export class SettingsRuleError extends Error {
-  constructor(public readonly code: "time" | "order" | "currentPassword" | "wrongPassword" | "passwordRules" | "passwordConfirm" | "samePassword" | "notFound") {
+  constructor(public readonly code: "time" | "order" | "currentPassword" | "wrongPassword" | "throttled" | "passwordRules" | "passwordConfirm" | "samePassword" | "notFound") {
     super(code);
   }
 }
+
+/** Mot de passe actuel : 5 échecs en 15 minutes au plus, comme la signature par mot de passe. */
+const PASSWORD_ATTEMPTS = 5;
+const PASSWORD_WINDOW_MS = 15 * 60_000;
 
 const fullName = (u: { firstName: string; lastName: string }) => `${u.firstName} ${u.lastName}`;
 
@@ -98,13 +102,18 @@ export async function changePassword(scope: SelfScope, current: string, next: st
   if (!current) throw new SettingsRuleError("currentPassword");
   const user = await me(scope);
   const label = fullName(user);
+  // Fenêtre de sécurité en heure réelle : l'horloge de démonstration repart à chaque démarrage.
+  const since = new Date(Date.now() - PASSWORD_WINDOW_MS);
+  const failures = await prisma.auditLog.count({ where: { action: "PASSWORD_CHANGED", result: "FAILURE", actorId: user.id, recordedAt: { gte: since } } });
+  if (failures >= PASSWORD_ATTEMPTS) throw new SettingsRuleError("throttled");
   if (!user.passwordHash || !(await verifyPassword(current, user.passwordHash))) {
     await appendAudit({ actorId: user.id, actorLabel: label, divisionId: user.divisionId, action: "PASSWORD_CHANGED", objectLabel: user.email, result: "FAILURE", metadata: { reason: "mot-de-passe-actuel" } });
-    throw new SettingsRuleError("wrongPassword");
+    throw new SettingsRuleError(failures + 1 >= PASSWORD_ATTEMPTS ? "throttled" : "wrongPassword");
   }
   const problem = checkNewPassword(next, confirm);
   if (problem) throw new SettingsRuleError(problem.field === "next" ? "passwordRules" : "passwordConfirm");
   if (next === current) throw new SettingsRuleError("samePassword");
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(next) } });
+  // Les autres sessions du compte sont fermées ; l'action rouvre celle de l'utilisateur.
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(next), sessionVersion: { increment: 1 } } });
   await appendAudit({ actorId: user.id, actorLabel: label, divisionId: user.divisionId, action: "PASSWORD_CHANGED", objectLabel: user.email, result: "SUCCESS" });
 }

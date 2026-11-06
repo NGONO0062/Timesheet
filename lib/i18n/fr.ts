@@ -1038,6 +1038,7 @@ export const fr = {
       order: "L'heure de départ doit suivre l'heure d'arrivée.",
       currentPassword: "Saisissez votre mot de passe actuel.",
       wrongPassword: "Mot de passe actuel incorrect.",
+      throttled: "Trop de tentatives. Pour protéger le compte, le changement est bloqué pendant 15 minutes.",
       passwordRules: "Le mot de passe doit compter 12 caractères au moins, dont une lettre et un chiffre.",
       passwordConfirm: "Les deux mots de passe ne correspondent pas.",
       samePassword: "Choisissez un mot de passe différent de l'actuel.",
@@ -1062,6 +1063,7 @@ export const fr = {
     sendLink: "Envoyer le lien",
     sent: "Si un compte actif correspond à cette adresse, un e-mail vient de partir. Pensez à vérifier vos courriers indésirables.",
     passwordSet: "Mot de passe enregistré. Vous pouvez vous connecter.",
+    passwordChanged: "Mot de passe modifié. Reconnectez-vous avec le nouveau mot de passe.",
     errors: {
       email: "Saisissez une adresse e-mail valide.",
     },

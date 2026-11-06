@@ -16,6 +16,7 @@ export async function findLoginAccount(email: string) {
       firstName: true,
       lastName: true,
       passwordHash: true,
+      sessionVersion: true,
       active: true,
       divisionId: true,
       division: { select: { status: true } },
@@ -28,8 +29,11 @@ export function canSignIn(account: { active: boolean; division: { status: string
   return account.active && account.division?.status !== "SUSPENDED";
 }
 
-/** Reconstruit l'utilisateur connecté depuis la base, à chaque requête. */
-export async function loadViewer(userId: string): Promise<Viewer | null> {
+/**
+ * Reconstruit l'utilisateur connecté depuis la base, à chaque requête. Avec
+ * `sessionVersion`, une session ouverte avant le dernier changement de mot de passe est refusée.
+ */
+export async function loadViewer(userId: string, sessionVersion?: number): Promise<Viewer | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -38,6 +42,7 @@ export async function loadViewer(userId: string): Promise<Viewer | null> {
     },
   });
   if (!user || !canSignIn(user)) return null;
+  if (sessionVersion !== undefined && sessionVersion !== user.sessionVersion) return null;
   if (user.role !== "PLATFORM_ADMIN" && !user.divisionId) return null;
 
   const overrides = (user.division?.permissions ?? []).map((p) => ({

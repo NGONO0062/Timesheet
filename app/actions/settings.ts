@@ -3,6 +3,7 @@
 // le compte de l'utilisateur connecté ; entrées validées avec zod.
 import { refresh } from "next/cache";
 import { z } from "zod";
+import { signOut } from "@/auth";
 import { changePassword, savePreferences, saveUsualHours, setNotification, SettingsRuleError } from "@/lib/data/settings";
 import { getViewer } from "@/lib/data/viewer";
 
@@ -63,12 +64,15 @@ export async function savePreferencesForm(input: z.input<typeof preferences>): P
 }
 
 export async function changePasswordForm(current: string, next: string, confirm: string): Promise<{ ok: true } | Fail> {
-  const scope = await self();
-  if (!scope || [current, next, confirm].some((v) => typeof v !== "string" || v.length > 200)) return session;
+  const viewer = await getViewer();
+  if (!viewer || [current, next, confirm].some((v) => typeof v !== "string" || v.length > 200)) return session;
   try {
-    await changePassword(scope, current, next, confirm);
-    return { ok: true };
+    await changePassword({ userId: viewer.userId }, current, next, confirm);
   } catch (e) {
     return failure(e);
   }
+  // Le changement ferme toutes les sessions du compte, celle-ci comprise : retour à la
+  // connexion, où la personne entre avec le nouveau mot de passe.
+  await signOut({ redirectTo: "/connexion?mot-de-passe=modifie" });
+  return { ok: true };
 }

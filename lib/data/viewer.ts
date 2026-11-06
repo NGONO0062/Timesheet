@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { auth, type SessionWithVersion } from "@/auth";
 import type { Permission } from "@/lib/permissions";
 import type { Viewer } from "@/lib/viewer";
 import type { DivisionScope } from "./db";
@@ -11,7 +11,7 @@ import { loadViewer } from "./users";
 export const getViewer = cache(async (): Promise<Viewer | null> => {
   const session = await auth();
   const userId = session?.user?.id;
-  return userId ? loadViewer(userId) : null;
+  return userId ? loadViewer(userId, (session as SessionWithVersion).sessionVersion ?? 0) : null;
 });
 
 /** Page protégée : sans session valide, retour à la connexion. */

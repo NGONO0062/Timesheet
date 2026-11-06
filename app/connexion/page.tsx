@@ -20,8 +20,10 @@ type Props = { searchParams: Promise<{ "mot-de-passe"?: string }> };
 export default async function ConnexionPage({ searchParams }: Props) {
   const viewer = await getViewer();
   if (viewer) redirect(homeFor(viewer));
-  // Retour d'une invitation ou d'une réinitialisation : le mot de passe vient d'être choisi.
-  const passwordSet = (await searchParams)["mot-de-passe"] === "enregistre";
+  // Retour d'une invitation ou d'une réinitialisation (mot de passe choisi), ou des
+  // Paramètres (mot de passe modifié, toutes les sessions fermées).
+  const flag = (await searchParams)["mot-de-passe"];
+  const notice = flag === "enregistre" ? dict.account.passwordSet : flag === "modifie" ? dict.account.passwordChanged : null;
 
   return (
     <div className="ts-login">
@@ -52,9 +54,9 @@ export default async function ConnexionPage({ searchParams }: Props) {
             <h1 id="titre-connexion">{t.title}</h1>
             <p className="text-secondary">{t.intro}</p>
           </div>
-          {passwordSet && (
+          {notice && (
             <Alert tone="success" role="status">
-              <p>{dict.account.passwordSet}</p>
+              <p>{notice}</p>
             </Alert>
           )}
           <LoginForm />

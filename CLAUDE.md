@@ -58,7 +58,7 @@ Application interne Orange Cameroun : projets, temps de travail, fiche de prése
 - Tâches (tableau Kanban par projet, §9.12) : règles pures dans `lib/tasks/rules.ts`, données dans `lib/data/tasks.ts` (membres du projet et ceux qui le gèrent), actions dans `app/actions/tasks.ts`, écran `/taches`. Étiquettes des colonnes : `<StatusBadge kind="task">` et `TaskStatusMenu` (déplacement au clavier, à côté du glisser-déposer). Glisser-déposer commun aux tableaux en colonnes (Tâches, Projets) : `components/ts/useBoardDrag.ts`.
 - Saisie en jours entiers (point 82) : une cellule vaut 1 ou reste vide ; `formatDays`, `DAY_ENTRY`. Les noms techniques `hours`, `budgetHours`, `hoursPerDay` portent des jours.
 - Écran avec `loading.tsx` : permission et existence vérifiées dans un `layout.tsx` du segment (sinon statut 200 au lieu de 404).
-- Authentification : `auth.ts` (Auth.js, JWT). Utilisateur connecté : `getViewer()` / `requirePermission()` dans `lib/data/viewer.ts`. Navigation : `lib/navigation.ts`.
+- Authentification : `auth.ts` (Auth.js, JWT). Utilisateur connecté : `getViewer()` / `requirePermission()` dans `lib/data/viewer.ts`. Navigation : `lib/navigation.ts`. Un changement de mot de passe augmente `User.sessionVersion` : les sessions plus anciennes sont refusées. Démarrage refusé en production si la configuration est dangereuse (`instrumentation.ts`, `lib/demo.ts`). En-têtes de sécurité dans `next.config.ts`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

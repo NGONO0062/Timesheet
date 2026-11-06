@@ -82,7 +82,9 @@ test("mot de passe : l'actuel est vérifié, le nouveau sert à la connexion sui
   await expect(page.getByText("Mot de passe actuel incorrect.")).toBeVisible();
   await page.getByLabel("Mot de passe actuel").fill(PASSWORD);
   await page.getByRole("button", { name: "Modifier le mot de passe" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Mot de passe modifié." })).toBeVisible();
+  // Toutes les sessions du compte sont fermées : retour à la connexion.
+  await expect(page).toHaveURL(/\/connexion\?mot-de-passe=modifie$/);
+  await expect(page.getByRole("status").filter({ hasText: "Mot de passe modifié. Reconnectez-vous avec le nouveau mot de passe." })).toBeVisible();
   await openSettings(page, SACHA, "Reglages-2026-neuf");
 });
 

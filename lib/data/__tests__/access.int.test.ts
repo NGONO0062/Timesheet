@@ -52,6 +52,15 @@ describe("utilisateur connecté relu en base", () => {
     expect(await loadViewer(off.id)).toBeNull();
   });
 
+  it("refuse une session ouverte avant un changement de mot de passe", async () => {
+    // Comme changePassword() et consumeToken(), sans écrire au journal (qui bloquerait la suppression de la division de test).
+    const before = (await prisma.user.findUniqueOrThrow({ where: { id: userB } })).sessionVersion;
+    expect(await loadViewer(userB, before)).not.toBeNull();
+    await prisma.user.update({ where: { id: userB }, data: { sessionVersion: { increment: 1 } } });
+    expect(await loadViewer(userB, before)).toBeNull();
+    expect(await loadViewer(userB, before + 1)).not.toBeNull();
+  });
+
   it("refuse un compte d'une division suspendue", async () => {
     await prisma.division.update({ where: { id: divisionB }, data: { status: "SUSPENDED" } });
     expect(await loadViewer(userB)).toBeNull();

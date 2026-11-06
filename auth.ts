@@ -27,6 +27,17 @@ function clientIp(request: Request | undefined): string {
   return forwarded || request?.headers.get("x-real-ip") || "inconnue";
 }
 
+/**
+ * Le numéro de session du compte voyage dans le jeton. Un changement de mot de passe
+ * l'augmente : les sessions ouvertes avant sont refusées par getViewer().
+ */
+type SignedInUser = { id: string; email: string; name: string; sessionVersion: number };
+export type SessionWithVersion = { sessionVersion?: number };
+
+function signedIn(account: { id: string; email: string; firstName: string; lastName: string; sessionVersion: number }): SignedInUser {
+  return { id: account.id, email: account.email, name: `${account.firstName} ${account.lastName}`, sessionVersion: account.sessionVersion };
+}
+
 class InvalidCredentials extends CredentialsSignin {
   code = "identifiants";
 }
@@ -98,7 +109,7 @@ const nextAuth = NextAuth({
           objectLabel: email,
           result: "SUCCESS",
         });
-        return { id: account.id, email: account.email, name: `${account.firstName} ${account.lastName}` };
+        return signedIn(account);
       },
     }),
     // Prototype uniquement (PROMPT.md §10) : entrer avec un profil de démonstration,
@@ -121,17 +132,22 @@ const nextAuth = NextAuth({
           result: "SUCCESS",
           metadata: { mode: "profil-de-demonstration" },
         });
-        return { id: account.id, email: account.email, name: `${account.firstName} ${account.lastName}` };
+        return signedIn(account);
       },
     }),
   ],
   callbacks: {
     jwt({ token, user }) {
-      if (user?.id) token.sub = user.id;
+      if (user?.id) {
+        token.sub = user.id;
+        token.sv = (user as SignedInUser).sessionVersion;
+      }
       return token;
     },
     session({ session, token }) {
       if (token.sub) session.user.id = token.sub;
+      // Jeton émis avant cette version : 0, la valeur de départ de chaque compte.
+      (session as SessionWithVersion).sessionVersion = typeof token.sv === "number" ? token.sv : 0;
       return session;
     },
   },

@@ -176,6 +176,8 @@ model User {
   division             Division?       @relation(fields: [divisionId], references: [id])
   email                String          @unique
   passwordHash         String?
+  // Augmenté à chaque changement de mot de passe : les sessions ouvertes avant sont refusées.
+  sessionVersion       Int             @default(0)
   firstName            String
   lastName             String
   role                 Role
