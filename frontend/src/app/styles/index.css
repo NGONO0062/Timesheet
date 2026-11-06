@@ -65,6 +65,9 @@
   --spacing-cell: 60px;
   /* Zone de signature : cadre de 200 px. */
   --spacing-pad: 200px;
+  /* Barre latérale de navigation (bureau) et panneau de navigation (mobile). */
+  --spacing-sidenav: 240px;
+  --spacing-nav-panel: 280px;
   /* Chevauchement d'une bordure (onglet actif posé sur la ligne). */
   --spacing-border: 2px;
   /* Largeurs des fenêtres ODS. */
@@ -73,6 +76,9 @@
   --container-grid: 900px;
   /* Planches de /design : conteneur mobile de 312 px, place pour une liste ouverte. */
   --container-planche: 1280px;
+  /* Coque : formulaire de connexion, contenu des écrans. */
+  --container-login: 400px;
+  --container-content: 1200px;
   --container-mobile: 312px;
   --spacing-open-list: 290px;
   --spacing-status-list: 222px;
@@ -200,4 +206,12 @@
 /* Bloc de traçabilité de la signature : libellés à gauche, valeurs à droite. */
 @utility grid-cols-trace {
   grid-template-columns: auto minmax(0, 1fr);
+}
+
+/* Écran de connexion (bureau) : colonne noire 1 part, formulaire 2 parts. */
+@utility flex-brand {
+  flex: 1 1 400px;
+}
+@utility flex-login {
+  flex: 2 1 480px;
 }

@@ -13,6 +13,7 @@ Backend de la réécriture sur la stack Orange (voir `docs/reecriture.md`) : .NE
 - Compiler : `dotnet build TimeSheet.slnx`
 - Tests (unitaires, intégration, fonctionnels) : `dotnet test TimeSheet.slnx`. Les tests d'intégration et fonctionnels recréent leurs bases (`timesheet_api_integration`, `timesheet_api_functional`) sur `TIMESHEET_TEST_DB`, sinon sur le PostgreSQL local. Pas de Docker.
 - Lancer l'API : `dotnet run --project TimeSheet.Api/src/TimeSheet.Api` (environnement `Development`, base `timesheet_api`, migrations appliquées au démarrage).
+- Données de démonstration : `dotnet run --project TimeSheet.Api/src/TimeSheet.Api -- --seed` (migrations, puis comptes du seed ; `SEED_PASSWORD`). Base de développement à recréer : `dropdb` puis `createdb timesheet_api`.
 - Nouvelle migration : `dotnet ef migrations add <Nom> --project TimeSheet.Api/src/TimeSheet.Api --output-dir Databases/Migrations`.
 
 ## Écarts avec la sortie de Craftsman

@@ -24,3 +24,7 @@ TestResults/
 frontend/dist/
 # Documentation XML produite à la compilation (Swagger)
 backend/**/TimeSheet.Api.WebApi.xml
+
+# Tests de bout en bout (frontend)
+frontend/test-results/
+frontend/playwright-report/

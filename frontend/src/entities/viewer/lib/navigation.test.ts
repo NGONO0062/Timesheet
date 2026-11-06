@@ -1,0 +1,57 @@
+import { describe, expect, it } from "vitest";
+import type { Permission, Role } from "../model/types";
+import { homeFor, isCurrent, navigationFor } from "./navigation";
+
+// Matrice par défaut (règles du serveur, PermissionRules.cs), pour les tests.
+const DEFAULT: Record<Role, Permission[]> = {
+  STAFF: ["ENTER_TIME"],
+  MANAGER: ["ENTER_TIME", "VALIDATE_TEAM", "MANAGE_PROJECTS", "VIEW_REPORTING"],
+  OWNER: ["VALIDATE_TEAM", "MANAGE_PROJECTS", "VIEW_REPORTING", "VIEW_DIVISION"],
+  DIVISION_ADMIN: ["MANAGE_PROJECTS", "VIEW_REPORTING", "VIEW_DIVISION", "ADMINISTER_DIVISION"],
+  PLATFORM_ADMIN: [],
+};
+
+const viewer = (role: Role, isIntern = false) => ({ role, isIntern, permissions: DEFAULT[role] });
+const labels = (role: Role, isIntern = false) => navigationFor(viewer(role, isIntern)).map((i) => i.label);
+
+describe("navigation par permissions (§6)", () => {
+  it("donne au stagiaire les trois liens Staff", () => {
+    expect(labels("STAFF", true)).toEqual(["Tableau de bord", "Saisie hebdomadaire", "Fiche de présence", "Tâches"]);
+  });
+
+  it("masque la fiche de présence pour un staff non stagiaire", () => {
+    expect(labels("STAFF")).toEqual(["Tableau de bord", "Saisie hebdomadaire", "Tâches"]);
+  });
+
+  it("donne au manager qui saisit ses temps les liens Staff en plus des siens", () => {
+    expect(labels("MANAGER")).toEqual(["Tableau de bord", "Saisie hebdomadaire", "Validation", "Projets", "Tâches", "Reporting"]);
+  });
+
+  it("suit la matrice pour l'owner", () => {
+    expect(labels("OWNER")).toEqual(["Vue division", "Validation", "Projets", "Tâches", "Reporting"]);
+  });
+
+  it("donne à l'admin plateforme les divisions et le journal", () => {
+    expect(labels("PLATFORM_ADMIN")).toEqual(["Divisions", "Journal d'audit"]);
+  });
+
+  it("suit les permissions effectives, pas le nom du rôle", () => {
+    const manager = { role: "MANAGER" as const, isIntern: false, permissions: DEFAULT.MANAGER.filter((p) => p !== "ENTER_TIME") };
+    expect(navigationFor(manager).map((i) => i.label)).toEqual(["Validation", "Projets", "Tâches", "Reporting"]);
+    expect(homeFor(manager)).toBe("/validation");
+  });
+
+  it("ouvre sur le premier lien du rôle", () => {
+    expect(homeFor(viewer("STAFF", true))).toBe("/tableau-de-bord");
+    expect(homeFor(viewer("OWNER"))).toBe("/division");
+    expect(homeFor(viewer("DIVISION_ADMIN"))).toBe("/administration");
+    expect(homeFor(viewer("PLATFORM_ADMIN"))).toBe("/plateforme");
+  });
+
+  it("marque le lien courant, sous-pages comprises", () => {
+    expect(isCurrent("/validation", "/validation/abc")).toBe(true);
+    expect(isCurrent("/saisie", "/saisie/2026/12")).toBe(true);
+    expect(isCurrent("/plateforme", "/plateforme/journal")).toBe(false);
+    expect(isCurrent("/plateforme", "/plateforme/divisions/nouvelle")).toBe(true);
+  });
+});
