@@ -6,8 +6,8 @@ Application interne Orange Cameroun : projets, temps de travail, fiche de prése
 
 - Couleurs : uniquement `#ff7900`, `#f16e00`, `#000000`, `#ffffff`, `#999999`, `#595959`, `#dddddd`, `#fafafa`, `#228722`, `#cd3c14`, `#ffd200`, `#4170d8`.
 - Graphiques seulement : quatre couleurs de séries, dans cet ordre, `#237eca`, `#198c51`, `#6e4aa7`, `#d573bb`. Jamais ailleurs.
-- `#ff7900` sert à l'état actif seulement. Le primaire est `#f16e00`.
-- Graisses 400 et 700. Jamais 500 ni 600.
+- `#ff7900` sert à l'état actif seulement. Le primaire est `#f16e00`. Réécriture : l'état actif est un trait de 5 px (`accent-mark`), jamais un aplat ; les éléments sélectionnés passent en noir (`docs/design-v2.md`).
+- Graisses 400 et 700. Jamais 500 ni 600. Réécriture : le gras pour les titres, chiffres clés, libellés, étiquettes et actions ; valeurs et cellules en 400.
 - Espacements : 0, 5, 10, 20, 30, 60 px.
 - Bordures de 2 px, jamais 1 px. Rayon 6 px, 8 au maximum.
 - Aucune ombre, aucun dégradé, aucune opacité réduite (seul le voile de modale est à 50 %).

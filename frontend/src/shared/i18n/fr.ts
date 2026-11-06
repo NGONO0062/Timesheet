@@ -266,6 +266,21 @@ export const fr = {
       titleLong: "Le titre tient en {max} caractères au plus.",
     },
   },
+  /** Saisie par jour (docs/design-v2.md) : un projet par journée. Textes non maquettés. */
+  dayEntry: {
+    day: "Jour",
+    assignment: "Projet et activité",
+    status: "Statut",
+    choose: "Choisir un projet",
+    selectLabel: "{day} : projet et activité",
+    notEntered: "Pas de saisie",
+    holiday: "Jour férié",
+    summary: "{filled} sur {expected} jours saisis",
+    flagged: "{day} : journée signalée par votre manager ({project}). Réaffectez-la, ou gardez ce projet s'il est juste.",
+    flagDay: "Signaler la journée du {day} ({project})",
+    noChoiceTitle: "Aucun projet ouvert à la saisie",
+    noChoiceText: "Vous n'êtes membre d'aucun projet en cours cette semaine. Votre manager vous ajoute aux projets ; l'absence reste toujours possible.",
+  },
   grid: {
     projectActivity: "Projet / activité",
     total: "Total",

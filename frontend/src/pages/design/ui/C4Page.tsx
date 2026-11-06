@@ -109,10 +109,8 @@ export function C4Page() {
             kind="day"
             rows={[
               ["UPCOMING", "Jour futur, rien n'est attendu."],
-              ["TODO", "Aucune heure saisie."],
-              ["PARTIAL", "Moins que la journée attendue."],
-              ["COMPLETE", "Exactement la journée attendue."],
-              ["OVER", "Plus d’une journée, la soumission est bloquée."],
+              ["TODO", "Aucun projet choisi pour ce jour."],
+              ["COMPLETE", "Un projet et une activité sont choisis."],
               ["TO_FIX", "Jour signalé par le manager lors d'un rejet."],
             ]}
           />
@@ -153,6 +151,11 @@ export function C4Page() {
             <li>Un objet, une étiquette : jamais deux étiquettes en concurrence sur la même ligne.</li>
             <li>Le même libellé partout : liste, détail, tableau de bord, e-mails, export.</li>
             <li>Une forme et un libellé pour chaque statut. La couleur vient en renfort, jamais seule.</li>
+            <li>
+              Une forme par sens, quelle que soit la couleur : coche, fait ; croix, refusé ou à corriger ; point d&apos;exclamation, en retard ou bloqué ; sablier, en attente
+              d&apos;une autre personne ; crayon, une action vous attend ; lecture, en cours ; pause, suspendu ; cercle, pas commencé.
+            </li>
+            <li>Saisie par jour : « Incomplet » et « Dépassement » n&apos;existent plus, une journée va sur un seul projet.</li>
             <li>L&apos;étiquette de projet est un bouton pour qui peut la changer, un simple badge pour les autres.</li>
             <li>« Manquante » n&apos;est pas enregistré : le statut se calcule quand l&apos;échéance est passée sans soumission.</li>
           </ul>

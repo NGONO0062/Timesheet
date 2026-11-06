@@ -12,7 +12,7 @@ import { Wordmark } from "@/shared/ui/Wordmark";
 
 const NAV_LINK =
   "flex min-h-control w-full cursor-pointer items-center gap-10 rounded-md px-10 text-left font-bold text-white no-underline " +
-  "hover:bg-white hover:text-black aria-[current=page]:bg-active aria-[current=page]:text-black";
+  "hover:bg-white hover:text-black aria-[current=page]:accent-mark";
 
 const GROUP = "flex flex-col gap-10 border-t-2 border-gray-999 pt-20";
 

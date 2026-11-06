@@ -38,7 +38,7 @@ type Props = {
 };
 
 const ITEM =
-  "flex w-full cursor-pointer items-center justify-between gap-20 px-20 py-10 text-left font-bold text-black no-underline " +
+  "flex w-full cursor-pointer items-center justify-between gap-20 px-20 py-10 text-left text-black no-underline " +
   "data-focus:bg-black data-focus:text-white";
 
 export function Dropdown({ children, buttonClassName, buttonLabel, items, label, checkSide = "end", matchWidth, menuClassName, staticOpen, className }: Props) {
@@ -70,7 +70,8 @@ export function Dropdown({ children, buttonClassName, buttonLabel, items, label,
               {item.current && item.currentSuffix && <span className="sr-only">{item.currentSuffix}</span>}
             </>
           );
-          const className = cx(ITEM, item.current && "bg-active");
+          // Élément courant : coche, trait orange et gras ; pas d'aplat.
+          const className = cx(ITEM, item.current && "accent-mark font-bold");
           return (
             <MenuItem key={item.key}>
               {item.href ? (

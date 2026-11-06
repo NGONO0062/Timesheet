@@ -4,7 +4,7 @@ import { cx } from "@/shared/lib/cx";
 /** Cadre d'une planche : 1280 px, marge 60 px, comme dans design/captures. */
 export function Planche({ title, lead, children, className }: { title: string; lead: string; children: ReactNode; className?: string }) {
   return (
-    <main className={cx("flex w-full max-w-planche flex-col gap-30 bg-white p-60", className)}>
+    <main className={cx("flex w-full max-w-planche flex-col gap-30 bg-white p-20 md:p-60", className)}>
       <div className="flex flex-col gap-10">
         <h1>{title}</h1>
         <p className="text-lead">{lead}</p>

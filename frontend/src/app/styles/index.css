@@ -196,6 +196,26 @@
   clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%, 15px 50%);
 }
 
+/*
+ * État actif (docs/design-v2.md) : #ff7900 marque l'élément courant par un trait de 5 px
+ * à gauche, jamais par un aplat. L'aplat orange est réservé au bouton primaire (#f16e00),
+ * pour qu'il reste le seul élément orange plein de l'écran. La forme (trait) porte l'état
+ * en plus de aria-current : la couleur n'est jamais seule.
+ */
+@utility accent-mark {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 5px;
+    bottom: 5px;
+    width: 5px;
+    border-radius: 0 4px 4px 0;
+    background-color: var(--color-active);
+  }
+}
+
 /* Focus figé, pour montrer l'état sur les planches de /design (même tracé que :focus-visible). */
 @utility focus-ring {
   outline: 3px solid var(--color-black);

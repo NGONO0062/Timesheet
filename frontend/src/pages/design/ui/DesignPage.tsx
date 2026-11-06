@@ -21,8 +21,8 @@ const VARIANTS: Array<[ButtonVariant, string]> = [
 
 const PLANCHES = [
   ["/design/c1", "C1 · Sélecteur de semaine"],
-  ["/design/c2-a", "C2 · Grille, en cours de saisie"],
-  ["/design/c2-b", "C2 · Grille, après soumission"],
+  ["/design/c2-a", "C2 · Saisie par jour, en cours"],
+  ["/design/c2-b", "C2 · Saisie par jour, après soumission"],
   ["/design/c3", "C3 · Signature"],
   ["/design/c4", "C4 · Étiquettes de statut"],
 ] as const;
@@ -199,7 +199,7 @@ export function DesignPage() {
           <Button onClick={() => setPanel(true)}>Ouvrir le panneau</Button>
           <Dropdown
             label="Actions"
-            buttonClassName="inline-flex min-h-control cursor-pointer items-center gap-10 rounded-md border-2 border-black px-btn-x font-bold hover:bg-black hover:text-white data-open:bg-active data-open:text-black"
+            buttonClassName="inline-flex min-h-control cursor-pointer items-center gap-10 rounded-md border-2 border-black px-btn-x font-bold hover:bg-black hover:text-white data-open:bg-black data-open:text-white"
             items={[
               { key: "a", content: "Modifier", current: true, currentSuffix: "(actuel)" },
               { key: "b", content: "Archiver" },

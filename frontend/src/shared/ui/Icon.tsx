@@ -14,6 +14,10 @@ const GLYPHS = {
   menu: "10,20 90,20 90,32 10,32 10,44 90,44 90,56 10,56 10,68 90,68 90,80 10,80",
   play: "15,5 95,50 15,95",
   pause: "10,5 40,5 40,95 10,95 10,5 60,5 90,5 90,95 60,95 60,5",
+  /** Sablier : en attente d'une autre personne. */
+  hourglass: "15,5 85,5 85,15 58,45 58,55 85,85 85,95 15,95 15,85 42,55 42,45 15,15",
+  /** Crayon : une action vous attend (saisir, signer). */
+  pencil: "68,8 92,32 38,86 10,92 16,64",
 } as const;
 
 /** Icônes de navigation, tracées au contour (2 px sur 20 × 20). */

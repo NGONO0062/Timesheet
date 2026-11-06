@@ -133,7 +133,7 @@ export function ListGroupItem({ children, active, className }: { children: React
     <li
       className={cx(
         "flex flex-wrap items-center justify-between gap-x-20 gap-y-10 border-b-2 border-gray-999 px-20 py-10 last:border-b-0",
-        active && "bg-active",
+        active && "accent-mark font-bold",
         className,
       )}
       aria-current={active || undefined}

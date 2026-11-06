@@ -41,7 +41,7 @@ const ARROW =
 
 const LABEL =
   "inline-flex w-full cursor-pointer items-center justify-center border-y-2 border-black bg-white font-bold text-black " +
-  "hover:bg-black hover:text-white data-open:bg-active data-open:text-black";
+  "hover:bg-black hover:text-white data-open:bg-black data-open:text-white";
 
 export function WeekSelector({ week, current, onNavigate, allowFutureWeeks, recent, olderHref, large, staticOpen, nextDisabledLabel }: Props) {
   const prev = shiftWeek(week, -1);

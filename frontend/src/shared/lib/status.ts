@@ -25,12 +25,26 @@ export type StatusValue = {
 /** Couleur de fond de l'étiquette ; elle accompagne toujours un symbole et un libellé. */
 export type Tone = "neutral" | "success" | "danger" | "warning" | "info";
 
-/** Symbole devant le libellé : la couleur ne porte jamais l'information seule. */
-export type Glyph = "none" | "check" | "cross" | "bang" | "info" | "todo" | "play" | "pause";
+/**
+ * Symbole devant le libellé : la couleur ne porte jamais l'information seule, et deux
+ * statuts de même couleur mais de sens différent ont deux formes (docs/design-v2.md) :
+ * coche = fait ; croix = refusé, à corriger ; ! = en retard, bloqué ; sablier = en attente
+ * d'une autre personne ; crayon = une action vous attend ; lecture = en cours ;
+ * pause = suspendu ; cercle = pas commencé ; aucun = brouillon, neutre.
+ */
+export type Glyph = "none" | "check" | "cross" | "bang" | "info" | "todo" | "play" | "pause" | "hourglass" | "pencil";
 
 export type Look = { label: string; tone: Tone; glyph: Glyph };
 
-const GLYPH_OF_TONE: Record<Tone, Glyph> = { neutral: "none", success: "check", danger: "cross", warning: "bang", info: "info" };
+const GLYPHS: { [K in StatusKind]: Record<StatusValue[K], Glyph> } = {
+  project: { NOT_STARTED: "todo", IN_PROGRESS: "play", ON_HOLD: "pause", DONE: "check" },
+  timesheet: { DRAFT: "none", SUBMITTED: "hourglass", REJECTED: "cross", VALIDATED: "check", MISSING: "bang" },
+  day: { UPCOMING: "none", TODO: "pencil", PARTIAL: "pencil", COMPLETE: "check", OVER: "cross", TO_FIX: "cross" },
+  attendance: { GENERATED: "pencil", SIGNED_BY_INTERN: "hourglass", SIGNED_BY_SUPERVISOR: "check", SENT: "check" },
+  division: { ACTIVE: "check", ONBOARDING: "play", SUSPENDED: "bang" },
+  audit: { SUCCESS: "check", FAILURE: "cross" },
+  task: { BACKLOG: "none", TODO: "todo", IN_PROGRESS: "play", REVIEW: "hourglass", DONE: "check" },
+};
 
 const TONES: { [K in StatusKind]: Record<StatusValue[K], Tone> } = {
   project: { NOT_STARTED: "neutral", IN_PROGRESS: "info", ON_HOLD: "warning", DONE: "success" },
@@ -43,14 +57,11 @@ const TONES: { [K in StatusKind]: Record<StatusValue[K], Tone> } = {
   task: { BACKLOG: "neutral", TODO: "neutral", IN_PROGRESS: "info", REVIEW: "warning", DONE: "success" },
 };
 
-/** Les projets ont leurs propres formes : cercle, lecture, pause, coche. */
-const PROJECT_GLYPHS: Record<ProjectStatus, Glyph> = { NOT_STARTED: "todo", IN_PROGRESS: "play", ON_HOLD: "pause", DONE: "check" };
-
 /** `params` : valeurs du libellé (« Onboarding · étape {step} sur 5 »). */
 export function statusLook<K extends StatusKind>(kind: K, value: StatusValue[K], params?: Record<string, string | number>): Look {
   const labels = dict.status[kind] as Record<StatusValue[K], string>;
   const tone = (TONES[kind] as Record<StatusValue[K], Tone>)[value];
-  const glyph = kind === "project" ? PROJECT_GLYPHS[value as ProjectStatus] : GLYPH_OF_TONE[tone];
+  const glyph = (GLYPHS[kind] as Record<StatusValue[K], Glyph>)[value];
   return { label: params ? t(labels[value], params) : labels[value], tone, glyph };
 }
 

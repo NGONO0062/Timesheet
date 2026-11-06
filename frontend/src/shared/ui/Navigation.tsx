@@ -31,7 +31,7 @@ export function Breadcrumb({ items }: { items: Array<{ label: string; href?: str
 
 const PAGE_LINK =
   "flex h-control min-w-control items-center justify-center rounded-md border-2 border-white px-10 font-bold text-black no-underline " +
-  "hover:border-black hover:bg-black hover:text-white aria-[current=page]:border-black aria-[current=page]:bg-active aria-[current=page]:text-black";
+  "hover:border-black hover:bg-black hover:text-white aria-[current=page]:border-black aria-[current=page]:bg-black aria-[current=page]:text-white";
 
 /** Pagination ODS. `href(n)` construit le lien de la page n. */
 export function Pagination({ page, pageCount, href, label = dict.nav.pagination }: { page: number; pageCount: number; href: (n: number) => string; label?: string }) {

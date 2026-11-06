@@ -20,7 +20,7 @@ type FieldFrame = {
 
 /** Contrôle ODS : bordure noire 2 px, texte gras, désactivé gris plein. */
 export const CONTROL =
-  "block w-full border-2 border-black bg-white px-10 font-bold text-black placeholder:font-normal placeholder:text-gray-595 " +
+  "block w-full border-2 border-black bg-white px-10 font-normal text-black placeholder:text-gray-595 " +
   "disabled:cursor-not-allowed disabled:border-gray-999 disabled:bg-gray-ddd disabled:text-gray-595 aria-invalid:border-danger";
 
 const CONTROL_SIZES: Record<FieldSize, string> = {
@@ -134,7 +134,7 @@ export function SelectField({ label, required, hint, error, hideLabel, size = "m
 type CheckProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & { label: ReactNode; hint?: ReactNode };
 
 const CHECK_INPUT =
-  "peer size-20 flex-none cursor-pointer appearance-none border-2 border-black bg-white checked:bg-active " +
+  "peer size-20 flex-none cursor-pointer appearance-none border-2 border-black bg-white " +
   "disabled:cursor-not-allowed disabled:border-gray-999 disabled:bg-gray-ddd";
 
 function CheckFrame({ inputId, label, hint, control, className }: { inputId: string; label: ReactNode; hint?: ReactNode; control: ReactNode; className?: string }) {
@@ -167,8 +167,8 @@ export function Checkbox({ label, hint, id, className, ...rest }: CheckProps) {
       className={className}
       control={
         <>
-          <input className={cx(CHECK_INPUT, "rounded-none")} type="checkbox" id={inputId} aria-describedby={hint ? `${inputId}-aide` : undefined} {...rest} />
-          <span className="pointer-events-none absolute inset-0 hidden text-black peer-checked:block" aria-hidden="true">
+          <input className={cx(CHECK_INPUT, "rounded-none checked:bg-black")} type="checkbox" id={inputId} aria-describedby={hint ? `${inputId}-aide` : undefined} {...rest} />
+          <span className="pointer-events-none absolute inset-0 hidden text-white peer-checked:block" aria-hidden="true">
             <Icon name="check" />
           </span>
         </>
@@ -226,7 +226,7 @@ export function Switch({ label, checked, states = [dict.form.active, dict.form.i
       <span className="relative inline-flex flex-none">
         <input
           className={cx(
-            "peer h-control-sm w-switch cursor-pointer appearance-none rounded-sm border-2 border-black bg-white checked:bg-active",
+            "peer h-control-sm w-switch cursor-pointer appearance-none rounded-sm border-2 border-black bg-white checked:bg-black",
             "disabled:cursor-not-allowed disabled:border-gray-999 disabled:bg-gray-ddd",
           )}
           type="checkbox"
@@ -237,7 +237,7 @@ export function Switch({ label, checked, states = [dict.form.active, dict.form.i
           {...rest}
         />
         <span
-          className="pointer-events-none absolute top-knob-inset left-knob-inset size-knob bg-black peer-checked:left-knob-on peer-disabled:bg-gray-999"
+          className="pointer-events-none absolute top-knob-inset left-knob-inset size-knob bg-black peer-checked:left-knob-on peer-checked:bg-white peer-disabled:bg-gray-999"
           aria-hidden="true"
         />
       </span>

@@ -72,7 +72,7 @@ export function Accordion({ items, defaultOpen = [] }: { items: Array<{ key: str
 // Pastille : la couleur de fond dépend de l'état, posée une seule fois (pas de classes en concurrence).
 const PILL = "inline-flex min-h-control cursor-pointer items-center justify-center gap-5 rounded-md border-2 border-black px-btn-x py-btn-y text-btn font-bold text-black";
 const PILL_IDLE = "bg-white hover:bg-black hover:text-white";
-const PILL_ACTIVE = "bg-active";
+const PILL_ACTIVE = "bg-black text-white";
 
 /**
  * Pills ODS en filtre : boutons à bascule (aria-pressed), comme dans les maquettes.
