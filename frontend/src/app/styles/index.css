@@ -46,6 +46,31 @@
   --spacing-btn-y: 8px;
   --spacing-btn-x: 18px;
   --spacing-mark: 20px;
+  --spacing-glyph: 14px;
+  --spacing-text: 18px;
+  /* Interrupteur ODS : piste 60 × 30, curseur 22 px à 2 px du bord. */
+  --spacing-switch: 60px;
+  --spacing-knob: 22px;
+  --spacing-knob-inset: 2px;
+  --spacing-knob-on: 32px;
+  /* Champ du sélecteur de quantité. */
+  --spacing-quantity: 60px;
+  /* Sélecteur de semaine : libellé central (les flèches ne bougent pas), liste. */
+  --spacing-week-label: 320px;
+  --spacing-week-menu: 400px;
+  /* Colonne « Étiquette » des tableaux de statuts. */
+  --spacing-status-col: 220px;
+  /* Chevauchement d'une bordure (onglet actif posé sur la ligne). */
+  --spacing-border: 2px;
+  /* Largeurs des fenêtres ODS. */
+  --container-page: 1320px;
+  /* Planches de /design : conteneur mobile de 312 px, place pour une liste ouverte. */
+  --container-planche: 1280px;
+  --container-mobile: 312px;
+  --spacing-open-list: 290px;
+  --spacing-status-list: 222px;
+  --container-modal: 600px;
+  --container-offcanvas: 480px;
   --spacing-textarea: 100px;
 
   /* Typographie */
@@ -87,6 +112,8 @@
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
+  /* Formes rondes d'ODS seulement : bouton radio, cercle « À démarrer ». */
+  --radius-round: 50%;
 
   /* Aucune ombre, aucun flou. */
   --shadow-*: initial;
@@ -94,6 +121,12 @@
   --drop-shadow-*: initial;
   --text-shadow-*: initial;
   --blur-*: initial;
+
+  /* Squelette de chargement : aplat qui bat entre #dddddd et #fafafa, sans opacité. */
+  --animate-placeholder: placeholder 1.6s ease-in-out infinite;
+  @keyframes placeholder {
+    50% { background-color: var(--color-gray-fa); }
+  }
 
   /* Points de rupture Boosted. */
   --breakpoint-*: initial;
@@ -126,4 +159,33 @@
     outline-offset: 2px;
     box-shadow: 0 0 0 2px var(--color-white);
   }
+}
+
+/* Champ obligatoire : astérisque orange d'interface après le libellé. */
+@utility required-mark {
+  &::after {
+    content: " *";
+    color: var(--color-primary);
+    font-weight: 700;
+  }
+}
+
+/* Menu déroulant à la largeur de son bouton (variable posée par HeadlessUI). */
+@utility w-anchor {
+  width: var(--button-width);
+}
+
+/* Stepped process ODS : première étape à bout droit, les suivantes en flèche. */
+@utility step-first {
+  clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%);
+}
+@utility step-arrow {
+  clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%, 15px 50%);
+}
+
+/* Focus figé, pour montrer l'état sur les planches de /design (même tracé que :focus-visible). */
+@utility focus-ring {
+  outline: 3px solid var(--color-black);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-white);
 }

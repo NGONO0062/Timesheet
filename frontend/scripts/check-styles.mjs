@@ -8,33 +8,42 @@ import { fileURLToPath } from "node:url";
 
 const THEME = "src/app/styles/index.css";
 
-/** Classes Tailwind interdites, avec la raison affichée. */
+/**
+ * Variantes en tête de classe (hover:, md:, aria-expanded:, [&_th]:…) : retirées avant
+ * le contrôle. Une variante entre crochets est permise (elle cible des éléments) ;
+ * une valeur entre crochets ne l'est pas.
+ */
+const VARIANTS = /^(?:(?:[\w-]+|\[[^\]]*\]):)*!?/;
+
+/** Utilitaires Tailwind interdits (sans leurs variantes), avec la raison affichée. */
 const CLASS_RULES = [
-  [/^(?:[\w-]+:)*!?-?[\w-]*-\[.+\]$/, "valeur arbitraire : ajoutez un jeton nommé au thème"],
-  [/^(?:[\w-]+:)*-?[\w-]+-\(.+\)$/, "variable arbitraire : ajoutez un jeton nommé au thème"],
-  [/^(?:[\w-]+:)*border(?:-[trblxyse])?$/, "bordure de 1 px : utilisez border-2"],
-  [/^(?:[\w-]+:)*border(?:-[trblxyse])?-(?!0$|2$)\d+$/, "bordure : 2 px seulement"],
-  [/^(?:[\w-]+:)*(?:divide|outline|ring)(?:-[xy])?-(?!0$|2$)\d+$/, "épaisseur : 2 px seulement"],
-  [/^(?:[\w-]+:)*opacity-\d+$/, "opacité réduite interdite"],
-  [/^(?:[\w-]+:)*bg-(?:linear|radial|conic|gradient)/, "dégradé interdit"],
-  [/^(?:[\w-]+:)*(?:from|via|to)-[a-z]/, "dégradé interdit"],
-  [/^(?:[\w-]+:)*font-(?:thin|extralight|light|medium|semibold|extrabold|black)$/, "graisses 400 et 700 seulement"],
-  [/^(?:[\w-]+:)*rounded(?:-[trblse]{1,2})?-(?:xl|2xl|3xl|4xl|full)$/, "rayon de 8 px au maximum"],
+  [/^\[.+\]$|^-?[\w-]*-\[.+\]$/, "valeur arbitraire : ajoutez un jeton nommé au thème"],
+  [/^-?[\w-]+-\(.+\)$/, "variable arbitraire : ajoutez un jeton nommé au thème"],
+  [/^border(?:-[trblxyse])?$/, "bordure de 1 px : utilisez border-2"],
+  [/^border(?:-[trblxyse])?-(?!0$|2$)\d+$/, "bordure : 2 px seulement"],
+  [/^(?:divide|outline|ring)(?:-[xy])?-(?!0$|2$)\d+$/, "épaisseur : 2 px seulement"],
+  [/^opacity-\d+$/, "opacité réduite interdite"],
+  [/^bg-(?:linear|radial|conic|gradient)/, "dégradé interdit"],
+  [/^(?:from|via|to)-[a-z]/, "dégradé interdit"],
+  [/^font-(?:thin|extralight|light|medium|semibold|extrabold|black)$/, "graisses 400 et 700 seulement"],
+  [/^rounded(?:-[trblse]{1,2})?-(?:xl|2xl|3xl|4xl|full)$/, "rayon de 8 px au maximum"],
 ];
 
 /** Une couleur avec opacité (bg-black/50) : seul le voile de modale est permis. */
-const OPACITY_MODIFIER = /^(?:[\w-]+:)*[\w-]+\/\d+$/;
+const OPACITY_MODIFIER = /^(?:bg|text|border|ring|outline|fill|stroke|divide|decoration|placeholder|caret|accent)-[\w-]+\/\d+$/;
 const MODAL_BACKDROP = "bg-black/50";
 
-const CHART_CLASS = /(?:^|:)[\w-]+-chart-[1-4]$/;
+const CHART_CLASS = /-chart-[1-4]$/;
 const HEX = /#[0-9a-fA-F]{3,8}\b/;
 const CSS_WEIGHT = /font-weight\s*:\s*(?!400\b|700\b|inherit\b)[^;}\s]+/;
 
 /** Chaînes du fichier (guillemets et gabarits) découpées en mots. */
 function classTokens(text) {
   const tokens = [];
-  const strings = text.matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1/g);
-  for (const [, , body] of strings) {
+  // Guillemets simples et doubles sur une seule ligne ; gabarits (`…`) sur plusieurs.
+  const strings = text.matchAll(/(["'])((?:\\.|(?!\1)[^\\\n])*)\1|`((?:\\.|[^\\`])*)`/g);
+  for (const m of strings) {
+    const body = m[2] ?? m[3] ?? "";
     for (const t of body.split(/[\s]+/)) if (t) tokens.push(t.replace(/\$\{.*$/, ""));
   }
   return tokens;
@@ -59,11 +68,10 @@ export function checkSource(path, text) {
   if (hex) problems.push(`couleur en dur : utilisez le thème (${hex[0]})`);
 
   for (const token of new Set(classTokens(text))) {
-    for (const [rule, reason] of CLASS_RULES) if (rule.test(token)) problems.push(`${reason} (${token})`);
-    if (OPACITY_MODIFIER.test(token) && token.replace(/^(?:[\w-]+:)*/, "") !== MODAL_BACKDROP && /^(?:[\w-]+:)*(?:bg|text|border|ring|outline|fill|stroke|divide|decoration|placeholder|caret|accent)-/.test(token)) {
-      problems.push(`opacité réduite interdite, sauf le voile de modale (${token})`);
-    }
-    if (CHART_CLASS.test(token) && !isChart) problems.push(`couleur de série hors d'un graphique (${token})`);
+    const utility = token.replace(VARIANTS, "");
+    for (const [rule, reason] of CLASS_RULES) if (rule.test(utility)) problems.push(`${reason} (${token})`);
+    if (OPACITY_MODIFIER.test(utility) && utility !== MODAL_BACKDROP) problems.push(`opacité réduite interdite, sauf le voile de modale (${token})`);
+    if (CHART_CLASS.test(utility) && !isChart) problems.push(`couleur de série hors d'un graphique (${token})`);
   }
   return problems;
 }

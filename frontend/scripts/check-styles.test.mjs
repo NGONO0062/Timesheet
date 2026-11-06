@@ -21,6 +21,10 @@ describe("contrôle de style", () => {
     expect(problems("border-b")).toHaveLength(1);
     expect(problems("border-4")).toHaveLength(1);
     expect(problems("border-0 border-t-2")).toEqual([]);
+    // Variantes entre crochets : permises, mais la classe qu'elles portent est contrôlée.
+    expect(problems("[&_th]:border-b-2 [&_td]:p-10")).toEqual([]);
+    expect(problems("[&_th]:border")).toHaveLength(1);
+    expect(problems("[&_td]:p-[7px]")).toHaveLength(1);
   });
 
   it("refuse les opacités, sauf le voile de modale", () => {
