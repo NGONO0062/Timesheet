@@ -1,11 +1,14 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
-import { C1Page, C4Page, DesignPage } from "@/pages/design";
+import { C1Page, C2aPage, C2bPage, C3Page, C4Page, DesignPage } from "@/pages/design";
 import { HomePage } from "@/pages/home";
 
 // Composants dans tous leurs états, à comparer aux planches de design/captures (développement seulement).
 const design: RouteObject[] = [
   { path: "/design", element: <DesignPage /> },
   { path: "/design/c1", element: <C1Page /> },
+  { path: "/design/c2-a", element: <C2aPage /> },
+  { path: "/design/c2-b", element: <C2bPage /> },
+  { path: "/design/c3", element: <C3Page /> },
   { path: "/design/c4", element: <C4Page /> },
 ];
 

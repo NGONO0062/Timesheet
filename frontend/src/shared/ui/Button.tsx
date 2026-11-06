@@ -1,5 +1,6 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cx } from "@/shared/lib/cx";
+import { Icon, type IconName } from "./Icon";
 
 export type ButtonVariant = "default" | "primary" | "dark" | "success" | "danger" | "link";
 export type ButtonSize = "sm" | "md" | "lg";
@@ -25,9 +26,14 @@ const sizes: Record<ButtonSize, string> = {
   lg: "border-2 min-h-control-lg rounded-lg px-20 py-10 text-lead",
 };
 
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize };
+export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; icon?: IconName; children?: ReactNode };
 
 /** Un seul bouton primaire par écran (CLAUDE.md). */
-export function Button({ variant = "default", size = "md", type = "button", className, ...props }: ButtonProps) {
-  return <button type={type} className={cx(base, variants[variant], variant === "link" ? "" : sizes[size], className)} {...props} />;
+export function Button({ variant = "default", size = "md", type = "button", icon, className, children, ...props }: ButtonProps) {
+  return (
+    <button type={type} className={cx(base, variants[variant], variant === "link" ? "" : sizes[size], className)} {...props}>
+      {icon && <Icon name={icon} />}
+      {children}
+    </button>
+  );
 }

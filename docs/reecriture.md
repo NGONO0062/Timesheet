@@ -71,3 +71,7 @@ Même méthode qu'avant : un jalon à la fois ; tests, comparaison avec `design/
 - **Tailwind 4** : thème dans `frontend/src/app/styles/index.css`, valeurs par défaut retirées ; contrôle `frontend/scripts/check-styles.mjs`.
 - **npm** : `frontend/.npmrc` désactive l'installation automatique des dépendances de pairs (bug de npm 10 avec Vitest 5) ; toutes les dépendances sont déclarées.
 - **TypeScript 6.0** (comme l'application actuelle) : la 7 n'est pas encore prise en charge par typescript-eslint.
+
+## Avancement
+
+- **Jalon 0 (socle) : fait le 6 novembre 2026.** Backend .NET 10 généré par Craftsman, 16 tests. Frontend avec tous les composants ODS en Tailwind et HeadlessUI, sélecteur de semaine, grille de saisie, zone de signature, menus de statut ; planches `/design/c1`, `c2-a`, `c2-b`, `c3`, `c4` comparées aux captures (seul écart voulu : la grille en jours, point 82). Repris de l'application actuelle avec leurs tests : textes, formats, semaines ISO, pagination, règles de saisie. Restent pour les jalons suivants, avec les écrans qui les utilisent : graphiques (jalon 4), états d'erreur et de chargement par écran (E1 à E4), coque de l'application et navigation par rôle (jalon 1).

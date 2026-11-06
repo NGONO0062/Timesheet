@@ -69,10 +69,10 @@ export function Accordion({ items, defaultOpen = [] }: { items: Array<{ key: str
   );
 }
 
-const PILL =
-  "inline-flex min-h-control cursor-pointer items-center justify-center gap-5 rounded-md border-2 border-black bg-white px-btn-x py-btn-y text-btn font-bold text-black " +
-  "hover:bg-black hover:text-white";
-const PILL_ACTIVE = "bg-active hover:bg-active hover:text-black";
+// Pastille : la couleur de fond dépend de l'état, posée une seule fois (pas de classes en concurrence).
+const PILL = "inline-flex min-h-control cursor-pointer items-center justify-center gap-5 rounded-md border-2 border-black px-btn-x py-btn-y text-btn font-bold text-black";
+const PILL_IDLE = "bg-white hover:bg-black hover:text-white";
+const PILL_ACTIVE = "bg-active";
 
 /**
  * Pills ODS en filtre : boutons à bascule (aria-pressed), comme dans les maquettes.
@@ -89,7 +89,7 @@ export function Pills<T extends string>({ label, options, value, onChange, size 
     <ul className="flex flex-wrap gap-10" aria-label={label}>
       {options.map((o) => (
         <li key={o.value}>
-          <button className={cx(PILL, size === "lg" && "min-h-control-lg", o.value === value && PILL_ACTIVE)} type="button" aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
+          <button className={cx(PILL, size === "lg" && "min-h-control-lg", o.value === value ? PILL_ACTIVE : PILL_IDLE)} type="button" aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
             {o.value === value && <Icon name="check" size="glyph" />}
             {o.label}
           </button>
@@ -115,7 +115,7 @@ export function Tabs({ label, tabs, variant = "tabs", defaultTab }: {
     <TabGroup defaultIndex={defaultIndex} className="flex flex-col gap-20">
       <TabList aria-label={label} className={cx("flex flex-wrap", variant === "tabs" ? "border-b-2 border-black" : "gap-10")}>
         {tabs.map((tab) => (
-          <Tab key={tab.key} className={variant === "tabs" ? TAB : cx(PILL, "data-selected:bg-active data-selected:text-black")}>
+          <Tab key={tab.key} className={variant === "tabs" ? TAB : ({ selected }: { selected: boolean }) => cx(PILL, selected ? PILL_ACTIVE : PILL_IDLE)}>
             {tab.label}
           </Tab>
         ))}

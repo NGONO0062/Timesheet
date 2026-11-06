@@ -60,10 +60,17 @@
   --spacing-week-menu: 400px;
   /* Colonne « Étiquette » des tableaux de statuts. */
   --spacing-status-col: 220px;
+  /* Grille de saisie : colonne Total, bouton de cellule signalée. */
+  --spacing-grid-total: 110px;
+  --spacing-cell: 60px;
+  /* Zone de signature : cadre de 200 px. */
+  --spacing-pad: 200px;
   /* Chevauchement d'une bordure (onglet actif posé sur la ligne). */
   --spacing-border: 2px;
   /* Largeurs des fenêtres ODS. */
   --container-page: 1320px;
+  /* Largeur minimale de la grille de saisie (elle défile en dessous). */
+  --container-grid: 900px;
   /* Planches de /design : conteneur mobile de 312 px, place pour une liste ouverte. */
   --container-planche: 1280px;
   --container-mobile: 312px;
@@ -188,4 +195,9 @@
   outline: 3px solid var(--color-black);
   outline-offset: 2px;
   box-shadow: 0 0 0 2px var(--color-white);
+}
+
+/* Bloc de traçabilité de la signature : libellés à gauche, valeurs à droite. */
+@utility grid-cols-trace {
+  grid-template-columns: auto minmax(0, 1fr);
 }

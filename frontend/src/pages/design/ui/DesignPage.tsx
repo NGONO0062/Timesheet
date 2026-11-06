@@ -21,6 +21,9 @@ const VARIANTS: Array<[ButtonVariant, string]> = [
 
 const PLANCHES = [
   ["/design/c1", "C1 · Sélecteur de semaine"],
+  ["/design/c2-a", "C2 · Grille, en cours de saisie"],
+  ["/design/c2-b", "C2 · Grille, après soumission"],
+  ["/design/c3", "C3 · Signature"],
   ["/design/c4", "C4 · Étiquettes de statut"],
 ] as const;
 
