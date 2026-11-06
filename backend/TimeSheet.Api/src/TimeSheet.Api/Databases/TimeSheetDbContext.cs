@@ -6,7 +6,10 @@ using TimeSheet.Api.Services;
 using TimeSheet.Api.Exceptions;
 using Resources;
 using MediatR;
+using TimeSheet.Api.Domain.Audit;
 using TimeSheet.Api.Domain.Divisions;
+using TimeSheet.Api.Domain.Teams;
+using TimeSheet.Api.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Linq.Expressions;
@@ -22,6 +25,10 @@ public sealed class TimeSheetDbContext(DbContextOptions<TimeSheetDbContext> opti
 {
     #region DbSet Region - Do Not Delete
     public DbSet<Division> Divisions { get; set; }
+    public DbSet<RolePermission> RolePermissions { get; set; }
+    public DbSet<User> Users { get; set; }
+    public DbSet<Team> Teams { get; set; }
+    public DbSet<AuditEntry> AuditLog { get; set; }
     #endregion DbSet Region - Do Not Delete
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -29,7 +36,7 @@ public sealed class TimeSheetDbContext(DbContextOptions<TimeSheetDbContext> opti
         base.OnModelCreating(modelBuilder);
 
         #region Entity Database Config Region - Only delete if you don't want to automatically add configurations
-        modelBuilder.ApplyConfiguration(new DivisionConfiguration());
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(TimeSheetDbContext).Assembly);
         #endregion Entity Database Config Region - Only delete if you don't want to automatically add configurations
     }
 

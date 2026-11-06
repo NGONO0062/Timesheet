@@ -1,11 +1,14 @@
 using Destructurama;
 using Serilog;
-using Hangfire;
 using Hellang.Middleware.ProblemDetails;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
+using TimeSheet.Api.Databases;
+using TimeSheet.Api.Databases.Seed;
 using TimeSheet.Api.Extensions.Application;
 using TimeSheet.Api.Extensions.Services;
-using TimeSheet.Api.Databases;
-using TimeSheet.Api.Resources.HangfireUtilities;
+using TimeSheet.Api.Middleware;
+using TimeSheet.Api.Services.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 Log.Logger = new LoggerConfiguration()
@@ -16,39 +19,45 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+// Une configuration dangereuse en production arrête tout, plutôt que de servir des liens
+// faux ou une connexion sans mot de passe (revue de sécurité, point 85).
+var problems = DemoProfiles.ProductionProblems(builder.Environment.IsProduction(), builder.Configuration["DEMO_PROFILES"], builder.Configuration["APP_URL"]);
+if (problems.Count > 0) throw new InvalidOperationException($"Configuration refusée :\n- {string.Join("\n- ", problems)}");
+
 builder.ConfigureServices();
 var app = builder.Build();
 
-using var scope = app.Services.CreateScope();
-if (builder.Environment.IsDevelopment())
+// « dotnet run -- --seed » : migrations, puis données de démonstration (développement seulement).
+if (args.Contains("--seed"))
 {
-    app.UseDeveloperExceptionPage();
+    if (app.Environment.IsProduction()) throw new InvalidOperationException("Pas de données de démonstration en production.");
+    var password = builder.Configuration["SEED_PASSWORD"];
+    if (string.IsNullOrWhiteSpace(password)) throw new InvalidOperationException("SEED_PASSWORD est vide.");
+    using var seedScope = app.Services.CreateScope();
+    var db = seedScope.ServiceProvider.GetRequiredService<TimeSheetDbContext>();
+    await db.Database.MigrateAsync();
+    Console.WriteLine(await DemoSeed.RunAsync(db, password));
+    return;
 }
-else
+
+// Adresse du client transmise par le proxy d'entrée (limitation des tentatives par poste).
+// Le proxy doit remplacer l'en-tête reçu du client (docs/exploitation.md).
+app.UseForwardedHeaders(new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto, ForwardLimit = 1 });
+app.UseSecurityHeaders();
+if (!builder.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 app.UseProblemDetails();
 
-// For elevated security, it is recommended to remove this middleware and set your server to only listen on https.
-// A slightly less secure option would be to redirect http to 400, 505, etc.
-app.UseHttpsRedirection();
-
-app.UseCors("TimeSheet.ApiCorsPolicy");
-
-app.MapHealthChecks("api/health");
 app.UseSerilogRequestLogging();
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 
+app.MapHealthChecks("api/health").AllowAnonymous();
 app.MapControllers();
-
-app.UseHangfireDashboard("/hangfire", new DashboardOptions
-{
-    AsyncAuthorization = new[] { new HangfireAuthorizationFilter(scope.ServiceProvider) },
-    IgnoreAntiforgeryToken = true
-});
 
 app.UseSwaggerExtension(builder.Configuration, builder.Environment);
 

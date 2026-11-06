@@ -21,13 +21,14 @@ public static class WebAppServiceConfiguration
     {
         builder.Services.Configure<TimeSheetApiOptions>(builder.Configuration.GetSection(TimeSheetApiOptions.SectionName));
 
-        builder.Services.AddSingleton(TimeProvider.System);
+        // Horloge de l'application : TIMESHEET_NOW en démonstration, l'heure réelle sinon.
+        builder.Services.AddSingleton<TimeProvider>(new AppClock(builder.Configuration["TIMESHEET_NOW"]));
         builder.Services.AddSingleton(Log.Logger);
         builder.Services.AddProblemDetails(ProblemDetailsConfigurationExtension.ConfigureProblemDetails)
             .AddProblemDetailsConventions();
 
-        // TODO update CORS for your env
-        builder.Services.AddCorsService("TimeSheet.ApiCorsPolicy", builder.Environment);
+        // Pas de CORS : l'interface est servie par le même hôte (/api relayé), les cookies restent SameSite=Strict.
+        builder.Services.AddCookieSession(builder.Environment);
         builder.Services.AddInfrastructure(builder.Environment, builder.Configuration);
 
         builder.Services.AddControllers()
