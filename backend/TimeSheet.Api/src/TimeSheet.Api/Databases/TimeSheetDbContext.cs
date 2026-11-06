@@ -8,7 +8,9 @@ using Resources;
 using MediatR;
 using TimeSheet.Api.Domain.Audit;
 using TimeSheet.Api.Domain.Divisions;
+using TimeSheet.Api.Domain.Projects;
 using TimeSheet.Api.Domain.Teams;
+using TimeSheet.Api.Domain.Timesheets;
 using TimeSheet.Api.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -29,6 +31,13 @@ public sealed class TimeSheetDbContext(DbContextOptions<TimeSheetDbContext> opti
     public DbSet<User> Users { get; set; }
     public DbSet<Team> Teams { get; set; }
     public DbSet<AuditEntry> AuditLog { get; set; }
+    public DbSet<DivisionSettings> DivisionSettings { get; set; }
+    public DbSet<Holiday> Holidays { get; set; }
+    public DbSet<Project> Projects { get; set; }
+    public DbSet<Activity> Activities { get; set; }
+    public DbSet<ProjectMember> ProjectMembers { get; set; }
+    public DbSet<Timesheet> Timesheets { get; set; }
+    public DbSet<TimesheetDay> TimesheetDays { get; set; }
     #endregion DbSet Region - Do Not Delete
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

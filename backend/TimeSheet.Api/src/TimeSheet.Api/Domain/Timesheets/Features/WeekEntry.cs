@@ -1,0 +1,159 @@
+namespace TimeSheet.Api.Domain.Timesheets.Features;
+
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using TimeSheet.Api.Databases;
+using TimeSheet.Api.Domain.Access;
+using TimeSheet.Api.Exceptions;
+using TimeSheet.Api.Services.Access;
+using TimeSheet.Api.Services.Audit;
+
+public sealed record WeekRef(int Year, int Week);
+
+public sealed record WeekDayDto(DateOnly Date, int Expected, string? Holiday, bool IsFuture, Guid? Value, bool Flagged);
+
+public sealed record DecisionDto(string By, DateTimeOffset At, string? Reason);
+
+public sealed record RecentWeekDto(int Year, int Week, string Status);
+
+/// <summary>Semaine de saisie (écrans 03, 04, 05), telle que l'interface l'affiche.</summary>
+public sealed record WeekDto(
+    int Year,
+    int Week,
+    WeekRef Current,
+    bool AllowFutureWeeks,
+    IReadOnlyList<WeekDayDto> Days,
+    IReadOnlyList<DayChoiceDto> Choices,
+    string Status,
+    bool Editable,
+    string? Comment,
+    DateTimeOffset? SavedAt,
+    DateTimeOffset Deadline,
+    DateTimeOffset? SubmittedAt,
+    int SubmissionCount,
+    string? Validator,
+    DecisionDto? Decision,
+    IReadOnlyList<RecentWeekDto> Recent);
+
+public sealed record DayInput(DateOnly Date, Guid? Key);
+
+public sealed record SaveResult(DateTimeOffset? SavedAt, string Status);
+
+/// <summary>Saisie hebdomadaire par jour (docs/design-v2.md) : lecture, brouillon, soumission.</summary>
+public static class WeekEntry
+{
+    public sealed record Query(int Year, int Week) : IRequest<WeekDto>;
+
+    /// <summary>Brouillon (sauvegarde automatique) ou soumission ; le serveur revérifie tout.</summary>
+    public sealed record Command(int Year, int Week, IReadOnlyList<DayInput> Days, string? Comment, bool Submit) : IRequest<SaveResult>;
+
+    public sealed class Handler(TimeSheetDbContext db, IViewerAccessor viewers, IEntryContext entry, IAuditWriter audit) : IRequestHandler<Query, WeekDto>, IRequestHandler<Command, SaveResult>
+    {
+        public async Task<WeekDto> Handle(Query request, CancellationToken cancellationToken)
+        {
+            var scope = (await viewers.RequireAsync(cancellationToken)).Require(Permission.ENTER_TIME).Scope;
+            var week = WeekRequest.Parse(request.Year, request.Week);
+            var frame = await entry.FrameAsync(scope, week, cancellationToken);
+            var sheet = await db.Timesheets.AsNoTracking().Include(t => t.Days)
+                .FirstOrDefaultAsync(t => t.UserId == scope.UserId && t.WeekYear == week.Year && t.WeekNumber == week.Week, cancellationToken);
+            var used = sheet?.Days.ToDictionary(d => d.Date) ?? [];
+            var choices = (await entry.ChoicesAsync(scope, week, cancellationToken))
+                .Where(c => !c.Closed || used.Values.Any(d => d.ActivityId == c.Key))
+                .ToList();
+
+            DecisionDto? decision = null;
+            if (sheet?.DecidedById is { } deciderId && sheet.DecidedAt is { } decidedAt)
+            {
+                var by = await db.Users.AsNoTracking().Where(u => u.Id == deciderId).Select(u => u.FirstName + " " + u.LastName).FirstAsync(cancellationToken);
+                decision = new DecisionDto(by, decidedAt, sheet.RejectionReason);
+            }
+
+            var recentWeeks = Enumerable.Range(0, 4).Select(i => frame.Current.Shift(-i)).ToList();
+            var oldestYear = recentWeeks[^1].Year;
+            var recentSheets = await db.Timesheets.AsNoTracking()
+                .Where(t => t.UserId == scope.UserId && t.WeekYear >= oldestYear)
+                .Select(t => new { t.WeekYear, t.WeekNumber, t.Status })
+                .ToListAsync(cancellationToken);
+            var recent = new List<RecentWeekDto>();
+            foreach (var w in recentWeeks)
+            {
+                var stored = recentSheets.FirstOrDefault(s => s.WeekYear == w.Year && s.WeekNumber == w.Week)?.Status;
+                var wFrame = w == week ? frame : await entry.FrameAsync(scope, w, cancellationToken);
+                recent.Add(new RecentWeekDto(w.Year, w.Week, WeekRules.Display(stored, wFrame.Deadline, frame.Now).ToString()));
+            }
+
+            var editable = frame.IsOpen && (sheet is null || WeekRules.IsEditable(sheet.Status, frame.Settings.LockAfterValidation));
+            return new WeekDto(
+                week.Year,
+                week.Week,
+                new WeekRef(frame.Current.Year, frame.Current.Week),
+                frame.Settings.AllowFutureWeeks,
+                frame.Days.Select(d => new WeekDayDto(d.Date, d.Expected, d.Holiday, d.IsFuture, used.GetValueOrDefault(d.Date)?.ActivityId, used.GetValueOrDefault(d.Date)?.Flagged ?? false)).ToList(),
+                choices,
+                WeekRules.Display(sheet?.Status, frame.Deadline, frame.Now).ToString(),
+                editable,
+                sheet?.Comment,
+                sheet?.UpdatedAt,
+                frame.Deadline,
+                sheet?.SubmittedAt,
+                sheet?.SubmissionCount ?? 0,
+                await entry.ValidatorNameAsync(scope, cancellationToken),
+                decision,
+                recent);
+        }
+
+        public async Task<SaveResult> Handle(Command request, CancellationToken cancellationToken)
+        {
+            var viewer = (await viewers.RequireAsync(cancellationToken)).Require(Permission.ENTER_TIME);
+            var scope = viewer.Scope;
+            var week = WeekRequest.Parse(request.Year, request.Week);
+            var frame = await entry.FrameAsync(scope, week, cancellationToken);
+            if (!frame.IsOpen) throw new RuleException("futureWeek");
+            if ((request.Comment?.Length ?? 0) > 2000) throw new RuleException("comment");
+
+            var sheet = await db.Timesheets.Include(t => t.Days)
+                .FirstOrDefaultAsync(t => t.UserId == scope.UserId && t.WeekYear == week.Year && t.WeekNumber == week.Week, cancellationToken);
+            if (sheet is not null && !WeekRules.IsEditable(sheet.Status, frame.Settings.LockAfterValidation)) throw new RuleException("notEditable");
+
+            // Jours : chaque date une seule fois, un jour ouvré non férié de la semaine.
+            var expected = frame.Days.Where(d => d.Expected > 0).Select(d => d.Date).ToHashSet();
+            var input = request.Days ?? [];
+            if (input.Select(d => d.Date).Distinct().Count() != input.Count || input.Any(d => !expected.Contains(d.Date))) throw new RuleException("invalidDay");
+
+            // Choix : ouvert à la personne, ou déjà enregistré ce jour-là (projet fermé depuis).
+            var choices = await entry.ChoicesAsync(scope, week, cancellationToken);
+            var open = choices.Where(c => !c.Closed).Select(c => c.Key).ToHashSet();
+            var previous = sheet?.Days.ToDictionary(d => d.Date, d => d.ActivityId) ?? [];
+            var days = new Dictionary<DateOnly, Guid>();
+            foreach (var day in input.Where(d => d.Key is not null))
+            {
+                var key = day.Key!.Value;
+                if (!open.Contains(key) && previous.GetValueOrDefault(day.Date) != key) throw new RuleException("invalidChoice");
+                days[day.Date] = key;
+            }
+
+            // Rien saisi et pas encore de fiche : on ne crée rien.
+            if (sheet is null && days.Count == 0 && string.IsNullOrWhiteSpace(request.Comment) && !request.Submit)
+                return new SaveResult(null, WeekRules.Display(null, frame.Deadline, frame.Now).ToString());
+
+            if (sheet is null)
+            {
+                sheet = Timesheet.Create(scope.DivisionId, scope.UserId, week, frame.Now);
+                db.Timesheets.Add(sheet);
+            }
+            sheet.SaveDraft(days, request.Comment, frame.Now);
+
+            if (request.Submit)
+            {
+                if (await entry.ValidatorNameAsync(scope, cancellationToken) is null) throw new RuleException("noValidator");
+                if (!expected.All(days.ContainsKey)) throw new RuleException("incomplete");
+                sheet.Submit(scope.UserId, frame.Now);
+            }
+            await db.SaveChangesAsync(cancellationToken);
+            if (request.Submit)
+                await audit.AppendAsync("TIMESHEET_SUBMITTED", viewer.FullName, $"Semaine {week.Week}", AuditResult.SUCCESS, viewer.UserId, scope.DivisionId, cancellationToken: cancellationToken);
+
+            return new SaveResult(sheet.UpdatedAt, WeekRules.Display(sheet.Status, frame.Deadline, frame.Now).ToString());
+        }
+    }
+}

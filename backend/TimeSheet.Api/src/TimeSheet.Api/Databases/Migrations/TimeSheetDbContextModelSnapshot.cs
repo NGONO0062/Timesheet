@@ -117,6 +117,75 @@ namespace TimeSheet.Api.Databases.Migrations
                     b.ToTable("Divisions");
                 });
 
+            modelBuilder.Entity("TimeSheet.Api.Domain.Divisions.DivisionSettings", b =>
+                {
+                    b.Property<Guid>("DivisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AllowFutureWeeks")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("DeadlineDay")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("DeadlineTime")
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
+
+                    b.Property<bool>("DelegateToOwner")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("FillAlertThreshold")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("HrAutoSend")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("HrEmail")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("LockAfterValidation")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("OwnerValidation")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ReminderAfterWorkingDays")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("WorkingDays")
+                        .HasColumnType("text");
+
+                    b.HasKey("DivisionId");
+
+                    b.ToTable("DivisionSettings");
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Divisions.Holiday", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("DivisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Label")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DivisionId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("Holidays");
+                });
+
             modelBuilder.Entity("TimeSheet.Api.Domain.Divisions.RolePermission", b =>
                 {
                     b.Property<Guid>("DivisionId")
@@ -136,6 +205,109 @@ namespace TimeSheet.Api.Databases.Migrations
                     b.HasKey("DivisionId", "Role", "Permission");
 
                     b.ToTable("RolePermissions");
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Projects.Activity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("Activities");
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Projects.Project", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("BudgetDays")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Code")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DivisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("LastModifiedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ManagerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset>("StatusChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("StatusChangedById")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagerId");
+
+                    b.HasIndex("StatusChangedById");
+
+                    b.HasIndex("DivisionId", "Code")
+                        .IsUnique();
+
+                    b.HasIndex("DivisionId", "Status");
+
+                    b.ToTable("Projects");
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Projects.ProjectMember", b =>
+                {
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("ProjectId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ProjectMembers");
                 });
 
             modelBuilder.Entity("TimeSheet.Api.Domain.Teams.Team", b =>
@@ -172,6 +344,128 @@ namespace TimeSheet.Api.Databases.Migrations
                     b.HasIndex("ManagerId");
 
                     b.ToTable("Teams");
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Timesheets.Timesheet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecidedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DivisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("LastModifiedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("SubmissionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("WeekNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WeekYear")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DecidedById");
+
+                    b.HasIndex("DivisionId", "Status");
+
+                    b.HasIndex("UserId", "WeekYear", "WeekNumber")
+                        .IsUnique();
+
+                    b.ToTable("Timesheets");
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Timesheets.TimesheetDay", b =>
+                {
+                    b.Property<Guid>("TimesheetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("ActivityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Flagged")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("TimesheetId", "Date");
+
+                    b.HasIndex("ActivityId");
+
+                    b.ToTable("TimesheetDays");
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Timesheets.TimesheetEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("TimesheetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("TimesheetId", "At");
+
+                    b.ToTable("TimesheetEvent");
                 });
 
             modelBuilder.Entity("TimeSheet.Api.Domain.Users.User", b =>
@@ -247,11 +541,72 @@ namespace TimeSheet.Api.Databases.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("TimeSheet.Api.Domain.Divisions.DivisionSettings", b =>
+                {
+                    b.HasOne("TimeSheet.Api.Domain.Divisions.Division", null)
+                        .WithOne()
+                        .HasForeignKey("TimeSheet.Api.Domain.Divisions.DivisionSettings", "DivisionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Divisions.Holiday", b =>
+                {
+                    b.HasOne("TimeSheet.Api.Domain.Divisions.Division", null)
+                        .WithMany()
+                        .HasForeignKey("DivisionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TimeSheet.Api.Domain.Divisions.RolePermission", b =>
                 {
                     b.HasOne("TimeSheet.Api.Domain.Divisions.Division", null)
                         .WithMany("Permissions")
                         .HasForeignKey("DivisionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Projects.Activity", b =>
+                {
+                    b.HasOne("TimeSheet.Api.Domain.Projects.Project", null)
+                        .WithMany("Activities")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Projects.Project", b =>
+                {
+                    b.HasOne("TimeSheet.Api.Domain.Divisions.Division", null)
+                        .WithMany()
+                        .HasForeignKey("DivisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TimeSheet.Api.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TimeSheet.Api.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("StatusChangedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Projects.ProjectMember", b =>
+                {
+                    b.HasOne("TimeSheet.Api.Domain.Projects.Project", null)
+                        .WithMany("Members")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TimeSheet.Api.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -268,6 +623,56 @@ namespace TimeSheet.Api.Databases.Migrations
                         .WithMany()
                         .HasForeignKey("ManagerId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Timesheets.Timesheet", b =>
+                {
+                    b.HasOne("TimeSheet.Api.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("DecidedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TimeSheet.Api.Domain.Divisions.Division", null)
+                        .WithMany()
+                        .HasForeignKey("DivisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TimeSheet.Api.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Timesheets.TimesheetDay", b =>
+                {
+                    b.HasOne("TimeSheet.Api.Domain.Projects.Activity", null)
+                        .WithMany()
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TimeSheet.Api.Domain.Timesheets.Timesheet", null)
+                        .WithMany("Days")
+                        .HasForeignKey("TimesheetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Timesheets.TimesheetEvent", b =>
+                {
+                    b.HasOne("TimeSheet.Api.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TimeSheet.Api.Domain.Timesheets.Timesheet", null)
+                        .WithMany("Events")
+                        .HasForeignKey("TimesheetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TimeSheet.Api.Domain.Users.User", b =>
@@ -293,6 +698,20 @@ namespace TimeSheet.Api.Databases.Migrations
             modelBuilder.Entity("TimeSheet.Api.Domain.Divisions.Division", b =>
                 {
                     b.Navigation("Permissions");
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Projects.Project", b =>
+                {
+                    b.Navigation("Activities");
+
+                    b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Timesheets.Timesheet", b =>
+                {
+                    b.Navigation("Days");
+
+                    b.Navigation("Events");
                 });
 #pragma warning restore 612, 618
         }

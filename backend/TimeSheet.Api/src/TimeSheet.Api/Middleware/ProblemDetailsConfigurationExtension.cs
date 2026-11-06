@@ -17,6 +17,14 @@ public static class ProblemDetailsConfigurationExtension
         options.MapToStatusCode<ForbiddenAccessException>(StatusCodes.Status401Unauthorized);
         options.MapToStatusCode<NoRolesAssignedException>(StatusCodes.Status403Forbidden);
         options.MapToStatusCode<NotFoundException>(StatusCodes.Status404NotFound);
+        // Règle métier refusée (semaine future, fiche non modifiable…) : 422 avec un code que
+        // l'interface traduit en message.
+        options.Map<RuleException>((ctx, ex) => new Microsoft.AspNetCore.Mvc.ProblemDetails
+        {
+            Status = StatusCodes.Status422UnprocessableEntity,
+            Title = ex.Code,
+            Extensions = { ["code"] = ex.Code },
+        });
 
         // You can configure the middleware to re-throw certain types of exceptions, all exceptions or based on a predicate.
         // This is useful if you have upstream middleware that needs to do additional handling of exceptions.

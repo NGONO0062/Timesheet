@@ -81,6 +81,7 @@ public static class DemoSeed
             foreach (var p in People.Where(p => p.Team == name)) ids[$"{p.First} {p.Last}"].AssignTeam(team.Id);
         }
         await db.SaveChangesAsync(cancellationToken);
+        await EntrySeed.RunAsync(db, division, ids, cancellationToken);
         var active = People.Count(p => p.Active);
         return $"Division CX Expertise : {active} comptes actifs, {People.Length - active} désactivé. Admin plateforme : Rose Ekambi.";
     }
