@@ -16,6 +16,8 @@ Backend de la réécriture sur la stack Orange (voir `docs/reecriture.md`) : .NE
 - Données de démonstration : `dotnet run --project TimeSheet.Api/src/TimeSheet.Api -- --seed` (migrations, puis comptes du seed ; `SEED_PASSWORD`). Base de développement à recréer : `dropdb` puis `createdb timesheet_api`.
 - E-mails : SMTP par `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` ; en développement, Mailpit (`localhost:1025`, interface http://localhost:8025). Un échec d'envoi n'annule jamais l'action. Les tests fonctionnels gardent les messages sans les envoyer.
 - Tâche planifiée, chaque jour ouvré : `curl -X POST -H "Authorization: Bearer $TASKS_SECRET" https://…/api/v1/taches/relances` (relance des validateurs). Sans `TASKS_SECRET` d'au moins 32 caractères, la route refuse tout appel (il n'est pas fourni en développement).
+- PDF (exports, fiche de présence) : Chromium par Microsoft.Playwright. À installer une fois par poste ou par image, après la compilation : `TimeSheet.Api/src/TimeSheet.Api/bin/Debug/net10.0/.playwright/node/win32_x64/node.exe TimeSheet.Api/src/TimeSheet.Api/bin/Debug/net10.0/.playwright/package/cli.js install chromium --only-shell` (ou `pwsh bin/…/playwright.ps1 install chromium --only-shell`).
+- Base des tests de bout en bout : `dotnet run --project TimeSheet.Api/src/TimeSheet.Api -- --seed-fresh` recrée la base désignée par la chaîne de connexion avec la démonstration et la division de test ; refusé si son nom ne finit pas par `_e2e`. Lancé par `frontend/e2e/global-setup.ts`.
 - Nouvelle migration : `dotnet ef migrations add <Nom> --project TimeSheet.Api/src/TimeSheet.Api --output-dir Databases/Migrations`.
 
 ## Écarts avec la sortie de Craftsman

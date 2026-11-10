@@ -1,5 +1,6 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
 import { DashboardPage } from "@/pages/dashboard";
+import { DivisionPage } from "@/pages/division";
 import { ProjectsPage } from "@/pages/projects";
 import { ReportingPage } from "@/pages/reporting";
 import { C1Page, C2aPage, C2bPage, C3Page, C4Page, DesignPage } from "@/pages/design";
@@ -20,7 +21,6 @@ const design: RouteObject[] = [
 
 /** Écrans des jalons suivants (docs/reecriture.md) : présents dans la navigation, en préparation. */
 const UPCOMING: Array<[href: string, title: string, milestone: number]> = [
-  ["/division", "Vue division", 4],
   ["/fiche-presence", "Fiche de présence", 5],
   ["/administration", "Administration", 6],
   ["/parametres", "Paramètres", 6],
@@ -49,6 +49,7 @@ export const router = createBrowserRouter([
       // Jalon 4 : pilotage (écrans 09 à 11).
       { path: "/projets", element: <RequirePermission permission="MANAGE_PROJECTS"><ProjectsPage /></RequirePermission> },
       { path: "/reporting", element: <RequirePermission permission="VIEW_REPORTING"><ReportingPage /></RequirePermission> },
+      { path: "/division", element: <RequirePermission permission="VIEW_DIVISION"><DivisionPage /></RequirePermission> },
       ...UPCOMING.map(([href, title, milestone]) => ({ path: href, element: <Upcoming href={href} title={title} milestone={milestone} /> })),
       { path: "*", element: <NotFound /> },
     ],

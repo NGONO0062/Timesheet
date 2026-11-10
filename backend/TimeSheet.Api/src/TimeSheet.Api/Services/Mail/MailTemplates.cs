@@ -40,6 +40,11 @@ public static class MailTemplates
         Compose(to, $"Fiche de {name} en attente depuis le {since}", firstName,
             [$"La fiche de {name} pour la semaine {week} ({range}) attend votre décision depuis le {since}."], url);
 
+    /// <summary>Rappel de saisie : la semaine n'est pas soumise à l'échéance (relance depuis la vue consolidée).</summary>
+    public static MailMessage FillReminder(string to, string firstName, int week, string range, string deadline, string url) =>
+        Compose(to, $"Semaine {week} à saisir", firstName,
+            [$"Votre fiche de la semaine {week} ({range}) n'est pas soumise, l'échéance était le {deadline}. Merci de la compléter et de la soumettre dès que possible."], url);
+
     /// <summary>Relance d'un manager depuis la vue consolidée : fiches de son équipe en attente.</summary>
     public static MailMessage ManagerReminder(string to, string firstName, string team, int count, int days, string url) =>
         Compose(to, $"Fiches de l'équipe {team} en attente de validation", firstName,

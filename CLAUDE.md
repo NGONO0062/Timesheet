@@ -26,7 +26,7 @@ Application interne Orange Cameroun : projets, temps de travail, fiche de prése
 
 - Plan, stack et jalons : `docs/reecriture.md`. L'application Next.js (racine) reste la référence fonctionnelle jusqu'au jalon 9.
 - Backend `backend/` : .NET 10, Craftsman, CQRS avec MediatR 12 (pas 13 et plus : licence payante), EF Core sur PostgreSQL. `dotnet build TimeSheet.slnx`, `dotnet test TimeSheet.slnx` (bases de test recréées sur le PostgreSQL local, `TIMESHEET_TEST_DB`), `dotnet run --project TimeSheet.Api/src/TimeSheet.Api`.
-- Frontend `frontend/` : Vite, React 19, React Router 7, TanStack Query, Zustand, Tailwind 4, HeadlessUI, Feature-Sliced Design. `npm run dev` (port 5173, `/api` relayé vers le port 5000), `npm run check`. Tests de bout en bout : `npm run test:e2e`. Seed : `dotnet run --project TimeSheet.Api/src/TimeSheet.Api -- --seed`.
+- Frontend `frontend/` : Vite, React 19, React Router 7, TanStack Query, Zustand, Tailwind 4, HeadlessUI, Feature-Sliced Design. `npm run dev` (port 5173, `/api` relayé vers le port 5000), `npm run check`. Tests de bout en bout : `npm run test:e2e` (pile à eux : base `timesheet_api_e2e` recréée, API port 5100, interface port 5174 ; la base de développement n'est jamais touchée). PDF : Chromium à installer pour Microsoft.Playwright (`backend/README.md`). Seed : `dotnet run --project TimeSheet.Api/src/TimeSheet.Api -- --seed`.
 - Poste sans Docker : Node, .NET, PostgreSQL et Mailpit portables dans le profil (`backend/README.md`).
 
 ## Méthode

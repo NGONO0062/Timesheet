@@ -61,7 +61,7 @@ public static class EntrySeed
         var samuel = people["Samuel Etoga"].Id;
 
         void Sheet(string person, int week, Day?[] days, string? submittedAt = null, string? validatedAt = null, (string At, string Reason, int[] Flagged)? rejected = null,
-            (string SubmittedAt, string RejectedAt, string Reason)? previous = null, string? comment = null)
+            (string SubmittedAt, string RejectedAt, string Reason)? previous = null, string? comment = null, string decider = "Samuel Etoga")
         {
             var user = people[person];
             var iso = new IsoWeek(2026, week);
@@ -74,16 +74,16 @@ public static class EntrySeed
                 sheet.Reject(samuel, At(p.RejectedAt), p.Reason, []);
             }
             if (submittedAt is not null) sheet.Submit(user.Id, At(submittedAt));
-            if (validatedAt is not null) sheet.Validate(samuel, At(validatedAt));
+            if (validatedAt is not null) sheet.Validate(people[decider].Id, At(validatedAt));
             if (rejected is { } r) sheet.Reject(samuel, At(r.At), r.Reason, r.Flagged.Select(i => iso.Monday.AddDays(i)));
             db.Timesheets.Add(sheet);
         }
 
         // Semaines validées : soumises le vendredi à 16:30, validées le lundi suivant à 10:00.
-        void Validated(string person, int week, Day?[] days)
+        void Validated(string person, int week, Day?[] days, string decider = "Samuel Etoga")
         {
             var monday = new IsoWeek(2026, week).Monday;
-            Sheet(person, week, days, $"{monday.AddDays(4):yyyy-MM-dd}T16:30:00", $"{monday.AddDays(7):yyyy-MM-dd}T10:00:00");
+            Sheet(person, week, days, $"{monday.AddDays(4):yyyy-MM-dd}T16:30:00", $"{monday.AddDays(7):yyyy-MM-dd}T10:00:00", decider: decider);
         }
 
         var january = new Day?[] { D("CX-2026-01", "Tests utilisateurs"), D("CX-2026-01", "Tests utilisateurs"), D("CX-2026-02", "Analyse"), D("CX-2026-02", "Analyse"), D("CX-2026-00", "Formation") };
@@ -122,6 +122,28 @@ public static class EntrySeed
             submittedAt: "2026-03-19T08:50:00",
             previous: ("2026-03-13T17:05:00", "2026-03-16T10:20:00", "Vendredi 13 mars : la journée de formation manque. Merci de l'ajouter."),
             comment: "Journée de formation du vendredi ajoutée, comme demandé.");
+
+        // Équipes Études et Data CX (vue consolidée, écran 11) : semaines 2 à 10 validées.
+        // Études : semaine 11 validée, semaine 12 validée pour quatre personnes, Nadège Fouda en
+        // brouillon (4 jours sur 5). Data CX : semaine 11 en attente depuis le 13 mars (validation
+        // en retard), semaine 12 soumise par trois personnes, rien pour Vanessa Ndzana.
+        string[] studies = ["Christelle Nana", "Boris Mbida", "Estelle Owona", "Franck Ateba", "Nadège Fouda"];
+        string[] data = ["Arnaud Biyong", "Carine Messi", "Thierry Eyenga", "Vanessa Ndzana"];
+        Day?[] studyWeek = [D("CX-2026-07", "Enquête"), D("CX-2026-07", "Enquête"), D("CX-2026-07", "Enquête"), D("CX-2026-07", "Analyse"), D("CX-2026-07", "Analyse")];
+        Day?[] dataWeek = [D("CX-2026-08", "Données"), D("CX-2026-08", "Données"), D("CX-2026-08", "Données"), D("CX-2026-08", "Visualisation"), D("CX-2026-08", "Visualisation")];
+        foreach (var who in studies)
+            for (var week = 2; week <= 11; week++) Validated(who, week, studyWeek, "Hélène Nkoa");
+        foreach (var who in studies.Take(4))
+            Sheet(who, 12, studyWeek, submittedAt: "2026-03-18T17:00:00", validatedAt: "2026-03-19T08:30:00", decider: "Hélène Nkoa");
+        Sheet("Nadège Fouda", 12, [D("CX-2026-07", "Enquête"), D("CX-2026-07", "Enquête"), D("CX-2026-07", "Enquête"), D("CX-2026-07", "Analyse"), null]);
+        foreach (var who in data)
+            for (var week = 2; week <= 10; week++) Validated(who, week, dataWeek, "Olivier Manga");
+        Validated("Vanessa Ndzana", 11, dataWeek, "Olivier Manga");
+        foreach (var who in data.Take(3))
+        {
+            Sheet(who, 11, dataWeek, submittedAt: "2026-03-13T17:20:00");
+            Sheet(who, 12, dataWeek, submittedAt: "2026-03-19T08:10:00");
+        }
 
         await db.SaveChangesAsync(cancellationToken);
     }

@@ -178,3 +178,41 @@ test.describe("reporting (écran 10)", () => {
     expect((await page.request.get("/api/v1/reporting/export?format=csv")).status()).toBe(404);
   });
 });
+
+test.describe("vue division (écran 11)", () => {
+  test("indicateurs, équipes, tendance, dérives, relance, semaine précédente, accès", async ({ page }) => {
+    desktop();
+    test.setTimeout(90_000);
+    await open(page, "brigitte.mbarga@exemple.com", "/division", "Division CX Expertise");
+    await expect(page.getByText("3 équipes · 15 collaborateurs")).toBeVisible();
+    const kpis = page.getByRole("list", { name: "Indicateurs de la semaine 12" });
+    for (const label of ["Taux de remplissage", "Fiches soumises", "Fiches validées", "Dérives à traiter"]) await expect(kpis).toContainText(label);
+    const teams = page.getByRole("table", { name: "Remplissage, soumission et validation par équipe" });
+    for (const name of ["Parcours", "Études", "Data CX", "Division"]) await expect(teams.getByRole("rowheader", { name: new RegExp(`^${name}`) })).toBeVisible();
+    await expect(teams).toContainText(/Sous le seuil de 80\s%/);
+    const drifts = page.getByRole("table", { name: "Dérives détectées dans la division" });
+    for (const type of ["Budget dépassé", "Sous-remplissage", "Validation en retard", "Saisie manquante"]) await expect(drifts).toContainText(type);
+    await expect(page.getByRole("button", { name: /Semaine suivante indisponible/ })).toBeDisabled();
+    expect(await axe(page)).toEqual([]);
+
+    // Relance du manager : le résultat s'écrit à la place du bouton.
+    await drifts.getByRole("button", { name: "Relancer le manager : Olivier Manga" }).click();
+    await expect(drifts.getByRole("status").filter({ hasText: "Relance envoyée à Olivier Manga." })).toBeVisible();
+
+    // « Voir le projet » ouvre le panneau du projet dans l'écran Projets.
+    await drifts.getByRole("link", { name: "Voir le projet : Refonte parcours souscription" }).click();
+    await expect(page).toHaveURL(/\/projets\?projet=/);
+    await expect(page.getByRole("dialog", { name: "Modifier le projet" }).getByLabel("Nom du projet")).toHaveValue("Refonte parcours souscription");
+
+    await page.goto("/division");
+    await page.getByRole("button", { name: /^Semaine précédente/ }).click();
+    await expect(page).toHaveURL(/annee=2026&semaine=11/);
+    await expect(page.getByRole("list", { name: "Indicateurs de la semaine 11" })).toBeVisible();
+
+    // Un manager n'a pas la vue division.
+    await page.context().clearCookies();
+    await signedIn(page, SAMUEL);
+    await page.goto("/division");
+    await expect(page.getByRole("heading", { name: "Page introuvable" })).toBeVisible();
+  });
+});
