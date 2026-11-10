@@ -15,6 +15,7 @@ public sealed class DivisionConfiguration : IEntityTypeConfiguration<Division>
     {
         builder.HasIndex(d => d.Slug).IsUnique();
         builder.Property(d => d.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(d => d.ConfigSource).HasMaxLength(10);
         builder.HasMany(d => d.Permissions).WithOne().HasForeignKey(p => p.DivisionId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(d => d.Permissions).UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.Ignore(d => d.Overrides);

@@ -50,6 +50,25 @@ public class DivisionSettings
         return this;
     }
 
+    /// <summary>
+    /// Configuration de départ d'une division en onboarding : celle de la division pilote, ou les
+    /// valeurs par défaut. L'adresse des RH est propre à la division : elle n'est jamais reprise.
+    /// </summary>
+    public DivisionSettings CopyFrom(DivisionSettings source)
+    {
+        WorkingDays = [.. source.WorkingDays];
+        DeadlineDay = source.DeadlineDay;
+        DeadlineTime = source.DeadlineTime;
+        FillAlertThreshold = source.FillAlertThreshold;
+        AllowFutureWeeks = source.AllowFutureWeeks;
+        LockAfterValidation = source.LockAfterValidation;
+        OwnerValidation = source.OwnerValidation;
+        HrAutoSend = source.HrAutoSend;
+        ReminderAfterWorkingDays = source.ReminderAfterWorkingDays;
+        DelegateToOwner = source.DelegateToOwner;
+        return this;
+    }
+
     /// <summary>Règles de saisie (écran 12), contrôlées par <see cref="Admin.AdminRules.CheckRules"/>.</summary>
     public DivisionSettings WithRules(DayOfWeek[] workingDays, DayOfWeek deadlineDay, string deadlineTime, int fillAlertThreshold, bool allowFutureWeeks, bool lockAfterValidation)
     {

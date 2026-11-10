@@ -52,7 +52,11 @@ public static class DemoSeed
         var passwordHash = PasswordHasher.Hash(password);
         var division = Division.Create("CX Expertise", "cx-expertise", "DEC", "CX", "CX Expertise", DivisionStatus.ACTIVE);
         db.Divisions.Add(division);
-        db.Divisions.Add(Division.Create("Expérience boutiques", "experience-boutiques", "DEC"));
+        // Division en onboarding, arrêtée à l'étape 2 (planche 13).
+        var boutiques = Division.Create("Expérience boutiques", "experience-boutiques", "DEC");
+        boutiques.AdvanceTo(2);
+        db.Divisions.Add(boutiques);
+        db.DivisionSettings.Add(DivisionSettings.Defaults(boutiques.Id));
 
         // Comptes, managers d'abord pour pouvoir rattacher les équipes.
         var ids = new Dictionary<string, User>();
@@ -90,7 +94,65 @@ public static class DemoSeed
         db.AttendanceSheets.Add(Domain.Attendance.AttendanceSheet.Generate(division.Id, aicha.Id, 2026, 2, new DateTimeOffset(2026, 3, 9, 8, 0, 0, TimeSpan.FromHours(1)).ToUniversalTime()));
         await db.SaveChangesAsync(cancellationToken);
 
+        await PlatformAsync(db, division, boutiques, ids, cancellationToken);
+
         var active = People.Count(p => p.Active);
         return $"Division CX Expertise : {active} comptes actifs, {People.Length - active} désactivé. Admin plateforme : Rose Ekambi.";
+    }
+
+    private static DateTimeOffset Douala(string iso) => DateTimeOffset.Parse($"{iso}+01:00", System.Globalization.CultureInfo.InvariantCulture).ToUniversalTime();
+
+    /// <summary>
+    /// Écran 13 (repris de prisma/seed.ts) : dates de création des divisions et journal d'audit de
+    /// la semaine 12. Connexions du matin, soumissions et décisions des fiches du seed, puis les six
+    /// dernières lignes de la planche (vendredi 20 mars). Marquées « seed » dans leurs détails.
+    /// </summary>
+    private static async Task PlatformAsync(TimeSheetDbContext db, Division division, Division boutiques, Dictionary<string, User> ids, CancellationToken cancellationToken)
+    {
+        division.UpdateCreationProperties(Douala("2026-01-05T09:00:00"), "seed");
+        boutiques.UpdateCreationProperties(Douala("2026-03-19T10:15:00"), "seed");
+        await db.SaveChangesAsync(cancellationToken);
+
+        var events = new List<(DateTimeOffset At, string? Actor, string Action, string Object, Domain.Access.AuditResult Result)>();
+        var activePeople = People.Where(p => p.Active).ToList();
+        for (var i = 0; i < activePeople.Count; i++)
+        {
+            var p = activePeople[i];
+            for (var day = 0; day < 5; day++)
+            {
+                var minute = (i * 7 + day * 11) % 50 + 5;
+                var second = (i * 13 + day * 17) % 60;
+                events.Add((Douala($"2026-03-{16 + day}T08:{minute:00}:{second:00}"), $"{p.First} {p.Last}", "LOGIN_SUCCESS", EmailOf(p.First, p.Last), Domain.Access.AuditResult.SUCCESS));
+            }
+        }
+
+        var weekStart = Douala("2026-03-16T00:00:00");
+        var cutoff = Douala("2026-03-20T16:00:00");
+        var names = ids.ToDictionary(x => x.Value.Id, x => x.Key);
+        var sheets = await db.Timesheets.AsNoTracking().Where(t => t.DivisionId == division.Id && (t.SubmittedAt >= weekStart || t.DecidedAt >= weekStart)).ToListAsync(cancellationToken);
+        foreach (var t in sheets)
+        {
+            var owner = names[t.UserId];
+            if (t.SubmittedAt is { } s && s >= weekStart && s < cutoff)
+                events.Add((s, owner, "TIMESHEET_SUBMITTED", $"Semaine {t.WeekNumber}", Domain.Access.AuditResult.SUCCESS));
+            if (t.DecidedAt is { } d && d >= weekStart && t.DecidedById is { } by)
+                events.Add((d, names[by], t.Status == Domain.Timesheets.TimesheetStatus.REJECTED ? "TIMESHEET_REJECTED" : "TIMESHEET_VALIDATED", $"Semaine {t.WeekNumber} · {owner}", Domain.Access.AuditResult.SUCCESS));
+        }
+
+        // Planche 13 : les six dernières lignes du journal.
+        events.Add((Douala("2026-03-20T16:10:45"), "Paul Tchouta", "RULES_CHANGED", "Seuil d'alerte de remplissage : 80 %", Domain.Access.AuditResult.SUCCESS));
+        events.Add((Douala("2026-03-20T16:42:10"), "Aïcha Ndongo", "TIMESHEET_SUBMITTED", "Semaine 12", Domain.Access.AuditResult.SUCCESS));
+        events.Add((Douala("2026-03-20T17:03:12"), null, "LOGIN_FAILURE", "kevin.fotso@exemple.com", Domain.Access.AuditResult.FAILURE));
+        events.Add((Douala("2026-03-20T17:05:41"), "Kevin Fotso", "TIMESHEET_SUBMITTED", "Semaine 12", Domain.Access.AuditResult.SUCCESS));
+        events.Add((Douala("2026-03-20T17:30:26"), "Laure Bikoï", "TIMESHEET_SUBMITTED", "Semaine 12", Domain.Access.AuditResult.SUCCESS));
+        events.Add((Douala("2026-03-20T17:48:02"), "Yannick Essomba", "TIMESHEET_SUBMITTED", "Semaine 12", Domain.Access.AuditResult.SUCCESS));
+
+        var recorded = DateTimeOffset.UtcNow;
+        foreach (var e in events)
+        {
+            var actor = e.Actor is not null && ids.TryGetValue(e.Actor, out var u) ? u.Id : (Guid?)null;
+            db.AuditLog.Add(Domain.Audit.AuditEntry.Create(e.At, recorded, e.Action, e.Actor ?? e.Object, e.Object, e.Result, actor, division.Id, "{\"seed\":true}"));
+        }
+        await db.SaveChangesAsync(cancellationToken);
     }
 }

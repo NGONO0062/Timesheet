@@ -15,6 +15,21 @@ public class Division : BaseEntity
     public string? Service { get; private set; }
     public DivisionStatus Status { get; private set; } = DivisionStatus.ONBOARDING;
     public int OnboardingStep { get; private set; } = 1;
+    /// <summary>Configuration de départ choisie à l'étape 2 de l'onboarding : « COPY » (division pilote) ou « BLANK ».</summary>
+    public string? ConfigSource { get; private set; }
+
+    /// <summary>Identité saisie à l'étape 1 de l'onboarding (écran 13).</summary>
+    public void SetIdentity(string name, string slug, string direction)
+    {
+        Name = name.Trim();
+        Slug = slug.Trim().ToLowerInvariant();
+        Direction = direction.Trim();
+    }
+
+    /// <summary>Progression de l'onboarding : elle ne recule jamais (1 à 5).</summary>
+    public void AdvanceTo(int step) => OnboardingStep = Math.Clamp(Math.Max(OnboardingStep, step), 1, 5);
+
+    public void SetConfigSource(string source) => ConfigSource = source;
 
     private readonly List<RolePermission> _permissions = [];
     public IReadOnlyCollection<RolePermission> Permissions => _permissions;

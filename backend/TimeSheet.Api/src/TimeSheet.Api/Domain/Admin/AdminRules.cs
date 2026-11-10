@@ -72,6 +72,19 @@ public static partial class AdminRules
         return PermissionRules.DivisionRoles.ToDictionary(r => r, r => Enum.GetValues<Permission>().Where(PermissionRules.Effective(r, list).Contains).ToArray());
     }
 
+    /// <summary>Matrice reçue de l'interface (rôle → permissions) ; « matrix » si elle est incomplète ou inconnue.</summary>
+    public static Dictionary<Role, Permission[]> ParseMatrix(IReadOnlyDictionary<string, string[]>? input)
+    {
+        var matrix = new Dictionary<Role, Permission[]>();
+        foreach (var (key, values) in input ?? new Dictionary<string, string[]>())
+        {
+            var role = ParseDivisionRole(key) ?? throw new Exceptions.RuleException("matrix");
+            matrix[role] = (values ?? []).Select(v => Enum.TryParse<Permission>(v, out var p) && v == p.ToString() ? p : throw new Exceptions.RuleException("matrix")).Distinct().ToArray();
+        }
+        if (matrix.Count != PermissionRules.DivisionRoles.Length) throw new Exceptions.RuleException("matrix");
+        return matrix;
+    }
+
     /// <summary>Réglages à enregistrer : seulement les écarts à la matrice par défaut ; la permission verrouillée reste accordée.</summary>
     public static List<MatrixOverride> OverridesFor(IReadOnlyDictionary<Role, Permission[]> matrix)
     {

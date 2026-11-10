@@ -62,6 +62,9 @@ public class User : BaseEntity
 
     public void SetSignatureMode(Attendance.SignatureMethod mode) => DefaultSignatureMode = mode;
 
+    /// <summary>Adresse corrigée avant la première connexion (administrateur désigné à l'onboarding).</summary>
+    public void ChangeEmail(string email) => Email = NormalizeEmail(email);
+
     public void Rename(string firstName, string lastName)
     {
         FirstName = firstName.Trim();

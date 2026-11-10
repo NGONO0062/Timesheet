@@ -210,31 +210,36 @@ export function UsersSection({ admin }: { admin: Admin }) {
     setParams(next);
   }
 
+  // La ligne montre la nouvelle valeur dès le clic, jusqu'à la liste relue (ou l'échec).
+  const [local, setLocal] = useState<Record<string, { role?: DivisionRole; active?: boolean }>>({});
+  const patch = (id: string, value: { role?: DivisionRole; active?: boolean } | null) =>
+    setLocal((l) => (value ? { ...l, [id]: { ...l[id], ...value } } : Object.fromEntries(Object.entries(l).filter(([k]) => k !== id))));
+
   function role(row: AdminUser, next: DivisionRole, undoable = true) {
+    patch(row.id, { role: next });
     changeRole.mutate(
       { id: row.id, role: next },
       {
         onSuccess: (r) =>
           setNotice(undoable ? { tone: "success", text: t(a.roleChanged, { name: r.name, role: roleLabel(next) }), undo: () => role({ ...row, role: next }, r.previous, false) } : { tone: "success", text: a.undone }),
         onError: (err) => setNotice({ tone: "danger", text: adminMessage(ruleOf(err).code) }),
+        onSettled: () => patch(row.id, null),
       },
     );
   }
 
   function active(row: AdminUser, next: boolean, undoable = true) {
+    patch(row.id, { active: next });
     setActive.mutate(
       { id: row.id, active: next },
       {
         onSuccess: (r) =>
           setNotice(undoable ? { tone: "success", text: t(next ? a.activated : a.deactivated, { name: r.name }), undo: () => active({ ...row, active: next }, !next, false) } : { tone: "success", text: a.undone }),
         onError: (err) => setNotice({ tone: "danger", text: adminMessage(ruleOf(err).code) }),
+        onSettled: () => patch(row.id, null),
       },
     );
   }
-
-  // Changement en cours : la ligne montre déjà la nouvelle valeur.
-  const pendingRole = changeRole.isPending ? changeRole.variables : null;
-  const pendingActive = setActive.isPending ? setActive.variables : null;
 
   return (
     <section id="utilisateurs" aria-labelledby="titre-utilisateurs" className="flex scroll-mt-20 flex-col gap-20">
@@ -317,8 +322,8 @@ export function UsersSection({ admin }: { admin: Admin }) {
             </thead>
             <tbody>
               {users.data.rows.map((r) => {
-                const shownRole = pendingRole?.id === r.id ? pendingRole.role : r.role;
-                const shownActive = pendingActive?.id === r.id ? pendingActive.active : r.active;
+                const shownRole = local[r.id]?.role ?? r.role;
+                const shownActive = local[r.id]?.active ?? r.active;
                 return (
                   <tr key={r.id}>
                     <th scope="row">

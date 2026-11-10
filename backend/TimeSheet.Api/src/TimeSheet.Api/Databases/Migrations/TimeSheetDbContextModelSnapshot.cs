@@ -220,6 +220,10 @@ namespace TimeSheet.Api.Databases.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ConfigSource")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 

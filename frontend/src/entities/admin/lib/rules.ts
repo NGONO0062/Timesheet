@@ -12,6 +12,27 @@ export const REMINDER_DAYS = [2, 3, 5] as const;
 export const DEADLINE_DAYS = ["FRIDAY", "MONDAY"] as const;
 export const INTERNSHIP_KINDS = ["ACADEMIC", "PROFESSIONAL", "GRADUATE"] as const;
 
+/** Matrice par défaut d'une division (§7), avant tout réglage. */
+export const DEFAULT_MATRIX: Matrix = {
+  STAFF: ["ENTER_TIME"],
+  MANAGER: ["ENTER_TIME", "VALIDATE_TEAM", "MANAGE_PROJECTS", "VIEW_REPORTING"],
+  OWNER: ["VALIDATE_TEAM", "MANAGE_PROJECTS", "VIEW_REPORTING", "VIEW_DIVISION"],
+  DIVISION_ADMIN: ["MANAGE_PROJECTS", "VIEW_REPORTING", "VIEW_DIVISION", "ADMINISTER_DIVISION"],
+};
+
+/** Écarts à la matrice par défaut (récapitulatif de l'onboarding). */
+export function matrixChanges(m: Matrix): Array<{ role: DivisionRole; permission: Permission; granted: boolean }> {
+  const out: Array<{ role: DivisionRole; permission: Permission; granted: boolean }> = [];
+  for (const role of DIVISION_ROLES) {
+    for (const permission of PERMISSIONS) {
+      if (isLocked(role, permission)) continue;
+      const granted = m[role].includes(permission);
+      if (granted !== DEFAULT_MATRIX[role].includes(permission)) out.push({ role, permission, granted });
+    }
+  }
+  return out;
+}
+
 /** La dernière permission de l'admin de division ne se retire pas. */
 export const isLocked = (role: DivisionRole, permission: Permission) => role === "DIVISION_ADMIN" && permission === "ADMINISTER_DIVISION";
 

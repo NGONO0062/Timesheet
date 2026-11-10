@@ -6,13 +6,14 @@ import { SupervisedListPage, SupervisedSheetPage } from "@/pages/attendance-supe
 import { DashboardPage } from "@/pages/dashboard";
 import { DivisionPage } from "@/pages/division";
 import { ProjectsPage } from "@/pages/projects";
+import { AuditPage, OnboardingPage, PlatformDivisionPage, PlatformPage } from "@/pages/platform";
 import { ReportingPage } from "@/pages/reporting";
 import { SettingsPage } from "@/pages/settings";
 import { C1Page, C2aPage, C2bPage, C3Page, C4Page, DesignPage } from "@/pages/design";
 import { ValidationQueuePage } from "@/pages/validation-queue";
 import { ValidationReviewPage } from "@/pages/validation-review";
 import { CurrentWeekRedirect, WeekEntryPage } from "@/pages/week-entry";
-import { Home, NotFound, Protected, PublicOnly, RequireIntern, RequirePermission, Upcoming } from "./guards";
+import { Home, NotFound, Protected, PublicOnly, RequireIntern, RequirePermission, RequirePlatformAdmin, Upcoming } from "./guards";
 
 // Composants dans tous leurs états, à comparer aux planches de design/captures (développement seulement).
 const design: RouteObject[] = [
@@ -26,8 +27,6 @@ const design: RouteObject[] = [
 
 /** Écrans des jalons suivants (docs/reecriture.md) : présents dans la navigation, en préparation. */
 const UPCOMING: Array<[href: string, title: string, milestone: number]> = [
-  ["/plateforme", "Divisions", 7],
-  ["/plateforme/journal", "Journal d'audit", 7],
   ["/taches", "Tâches", 8],
 ];
 
@@ -64,6 +63,11 @@ export const router = createBrowserRouter([
       // Jalon 6 : administration de division (écran 12) et paramètres (écran 14).
       { path: "/administration", element: <RequirePermission permission="ADMINISTER_DIVISION"><AdminPage /></RequirePermission> },
       { path: "/parametres", element: <SettingsPage /> },
+      // Jalon 7 : administration plateforme (écran 13), onboarding, journal d'audit.
+      { path: "/plateforme", element: <RequirePlatformAdmin><PlatformPage /></RequirePlatformAdmin> },
+      { path: "/plateforme/journal", element: <RequirePlatformAdmin><AuditPage /></RequirePlatformAdmin> },
+      { path: "/plateforme/divisions/nouvelle", element: <RequirePlatformAdmin><OnboardingPage /></RequirePlatformAdmin> },
+      { path: "/plateforme/divisions/:id", element: <RequirePlatformAdmin><PlatformDivisionPage /></RequirePlatformAdmin> },
       ...UPCOMING.map(([href, title, milestone]) => ({ path: href, element: <Upcoming href={href} title={title} milestone={milestone} /> })),
       { path: "*", element: <NotFound /> },
     ],

@@ -300,14 +300,7 @@ public static class Administration
         public async Task<Unit> Handle(MatrixCommand request, CancellationToken cancellationToken)
         {
             var viewer = (await viewers.RequireAsync(cancellationToken)).Require(Permission.ADMINISTER_DIVISION);
-            var matrix = new Dictionary<Role, Permission[]>();
-            foreach (var (key, values) in request.Matrix ?? new Dictionary<string, string[]>())
-            {
-                var role = AdminRules.ParseDivisionRole(key) ?? throw new RuleException("matrix");
-                matrix[role] = values.Select(v => Enum.TryParse<Permission>(v, out var p) && v == p.ToString() ? p : throw new RuleException("matrix")).Distinct().ToArray();
-            }
-            if (matrix.Count != PermissionRules.DivisionRoles.Length) throw new RuleException("matrix");
-            var overrides = AdminRules.OverridesFor(matrix);
+            var overrides = AdminRules.OverridesFor(AdminRules.ParseMatrix(request.Matrix));
             var division = await db.Divisions.Include(d => d.Permissions).FirstAsync(d => d.Id == viewer.Scope.DivisionId, cancellationToken);
             division.ReplaceMatrix(overrides);
             await db.SaveChangesAsync(cancellationToken);
