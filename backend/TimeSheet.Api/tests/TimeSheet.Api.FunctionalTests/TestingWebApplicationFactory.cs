@@ -7,6 +7,8 @@ using TimeSheet.Api.Databases;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
@@ -35,10 +37,14 @@ public class TestingWebApplicationFactory : WebApplicationFactory<Program>, IAsy
                 .AddEnvironmentVariables()
                 .Build();
             configurationBuilder.AddConfiguration(functionalConfig);
+            configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?> { ["TASKS_SECRET"] = TestUtilities.RecordingMailSender.TasksSecret });
         });
 
-        builder.ConfigureServices(services =>
+        // Aucun e-mail ne part pendant les tests : ils sont gardés pour être vérifiés.
+        builder.ConfigureTestServices(services =>
         {
+            services.RemoveAll<TimeSheet.Api.Services.Mail.IMailSender>();
+            services.AddSingleton<TimeSheet.Api.Services.Mail.IMailSender, TestUtilities.RecordingMailSender>();
         });
     }
 

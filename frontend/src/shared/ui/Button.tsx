@@ -28,6 +28,11 @@ const sizes: Record<ButtonSize, string> = {
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; icon?: IconName; children?: ReactNode };
 
+/** Classes d'un bouton, pour un lien qui en a l'apparence (navigation, pas action). */
+export function buttonClass(variant: ButtonVariant = "default", size: ButtonSize = "md"): string {
+  return cx(base, variants[variant], variant === "link" ? "" : sizes[size], "no-underline");
+}
+
 /** Un seul bouton primaire par écran (CLAUDE.md). */
 export function Button({ variant = "default", size = "md", type = "button", icon, className, children, ...props }: ButtonProps) {
   return (

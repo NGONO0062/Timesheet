@@ -39,7 +39,7 @@ export type Dashboard = {
   managerName: string | null;
   isIntern: boolean;
   todo: Array<{ kind: "missing" | "rejected"; week: WeekSummary }>;
-  current: { week: WeekSummary; days: Array<{ date: string; expected: number; isFuture: boolean; filled: boolean }> };
+  current: { week: WeekSummary; days: Array<{ date: string; expected: number; isFuture: boolean; filled: boolean; flagged: boolean }> };
   projects: Array<{ code: string; name: string; status: "NOT_STARTED" | "IN_PROGRESS" | "ON_HOLD" | "DONE"; start: string; end: string | null; activities: string[]; daysThisWeek: number; acceptsEntry: boolean }>;
   recent: WeekSummary[];
 };

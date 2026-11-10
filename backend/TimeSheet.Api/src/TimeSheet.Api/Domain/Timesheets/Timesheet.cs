@@ -69,7 +69,7 @@ public class Timesheet : BaseEntity
         _events.Add(new TimesheetEvent(Id, "SUBMITTED", actorId, now, Comment));
     }
 
-    /// <summary>Validation par le manager (jalon 3) ; employée ici par les données de démonstration.</summary>
+    /// <summary>Validation par le validateur : la fiche se verrouille si la division le demande.</summary>
     public void Validate(Guid deciderId, DateTimeOffset now)
     {
         if (Status != TimesheetStatus.SUBMITTED) throw new InvalidOperationException("Fiche non soumise.");
@@ -79,10 +79,14 @@ public class Timesheet : BaseEntity
         _events.Add(new TimesheetEvent(Id, "VALIDATED", deciderId, now, null));
     }
 
-    /// <summary>Rejet avec motif et journées signalées (jalon 3) ; employé ici par les données de démonstration.</summary>
+    /// <summary>
+    /// Rejet avec motif : la fiche repasse en saisie. Les journées signalées (saisies) apparaissent
+    /// en erreur chez le collaborateur jusqu'à la nouvelle soumission.
+    /// </summary>
     public void Reject(Guid deciderId, DateTimeOffset now, string reason, IEnumerable<DateOnly> flaggedDays)
     {
         if (Status != TimesheetStatus.SUBMITTED) throw new InvalidOperationException("Fiche non soumise.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentException("Motif obligatoire.", nameof(reason));
         Status = TimesheetStatus.REJECTED;
         DecidedById = deciderId;
         DecidedAt = now;
@@ -91,6 +95,16 @@ public class Timesheet : BaseEntity
         foreach (var day in _days) day.Flagged = flags.Contains(day.Date);
         _events.Add(new TimesheetEvent(Id, "REJECTED", deciderId, now, RejectionReason));
     }
+
+    /// <summary>Relance envoyée au validateur (une par soumission) : l'historique la montre.</summary>
+    public void RecordReminder(Guid validatorId, DateTimeOffset now)
+    {
+        if (Status != TimesheetStatus.SUBMITTED) throw new InvalidOperationException("Fiche non soumise.");
+        _events.Add(new TimesheetEvent(Id, "REMINDER_SENT", validatorId, now, null));
+    }
+
+    /// <summary>Une relance est-elle déjà partie depuis la dernière soumission ?</summary>
+    public bool RemindedSinceSubmission => SubmittedAt is { } at && _events.Any(e => e.Type == "REMINDER_SENT" && e.At >= at);
 
     protected Timesheet() { } // EF
 }

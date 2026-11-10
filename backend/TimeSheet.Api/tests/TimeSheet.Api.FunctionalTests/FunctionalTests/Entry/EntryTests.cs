@@ -134,4 +134,25 @@ public class EntryTests : TestBase
         todo.Should().Contain(s.Current.Shift(-1).Week).And.Contain(s.Current.Shift(-2).Week);
         dashboard.GetProperty("current").GetProperty("week").GetProperty("week").GetInt32().Should().Be(s.Current.Week);
     }
+
+    [Fact]
+    public async Task une_semaine_en_cours_rejetee_est_a_faire_avec_sa_journee_signalee()
+    {
+        var s = await NewDivision();
+        var now = DateTimeOffset.UtcNow;
+        await WithDb(async db =>
+        {
+            var sheet = Timesheet.Create(db.Users.Single(u => u.Id == s.Staff.Id).DivisionId!.Value, s.Staff.Id, s.Current, now.AddMinutes(-10));
+            sheet.SaveDraft(Enumerable.Range(0, 5).ToDictionary(i => s.Current.Monday.AddDays(i), _ => s.Open), null, now.AddMinutes(-10));
+            sheet.Submit(s.Staff.Id, now.AddMinutes(-5));
+            sheet.Reject(db.Users.Single(u => u.Id == s.Staff.Id).ManagerId!.Value, now, "Lundi à revoir.", [s.Current.Monday]);
+            db.Timesheets.Add(sheet);
+            await db.SaveChangesAsync();
+        });
+        var dashboard = await FactoryClient.GetFromJsonAsync<JsonElement>("api/v1/tableau-de-bord");
+        var todo = dashboard.GetProperty("todo").EnumerateArray().First();
+        todo.GetProperty("kind").GetString().Should().Be("rejected");
+        todo.GetProperty("week").GetProperty("week").GetInt32().Should().Be(s.Current.Week);
+        dashboard.GetProperty("current").GetProperty("days")[0].GetProperty("flagged").GetBoolean().Should().BeTrue();
+    }
 }

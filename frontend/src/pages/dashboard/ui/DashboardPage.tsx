@@ -100,7 +100,7 @@ function CurrentWeek({ data }: { data: Dashboard }) {
     date: day.date,
     today: i === todayIndex,
     label: capitalize(formatWeekdayDay(dayOf(day.date))),
-    status: (day.expected === 0 ? "UPCOMING" : day.filled ? "COMPLETE" : day.isFuture ? "UPCOMING" : "TODO") as DayStatus,
+    status: (day.expected === 0 ? "UPCOMING" : day.flagged ? "TO_FIX" : day.filled ? "COMPLETE" : day.isFuture ? "UPCOMING" : "TODO") as DayStatus,
   }));
   return (
     <section className="flex flex-col gap-20" aria-labelledby="semaine-en-cours">

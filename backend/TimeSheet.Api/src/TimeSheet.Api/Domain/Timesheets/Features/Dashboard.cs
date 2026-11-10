@@ -12,7 +12,8 @@ public sealed record WeekSummaryDto(int Year, int Week, DateOnly Monday, int Fil
 /// <summary>Une action « À faire » : semaine rejetée à corriger, ou semaine manquante.</summary>
 public sealed record TodoDto(string Kind, WeekSummaryDto Week);
 
-public sealed record CurrentDayDto(DateOnly Date, int Expected, bool IsFuture, bool Filled);
+/// <summary>Jour de la semaine en cours ; <c>Flagged</c> : signalé par le manager lors d'un rejet (« À corriger »).</summary>
+public sealed record CurrentDayDto(DateOnly Date, int Expected, bool IsFuture, bool Filled, bool Flagged);
 
 public sealed record CurrentWeekDto(WeekSummaryDto Week, IReadOnlyList<CurrentDayDto> Days);
 
@@ -36,14 +37,13 @@ public static class Dashboard
 
     public sealed record Query : IRequest<DashboardDto>;
 
-    public sealed class Handler(TimeSheetDbContext db, IViewerAccessor viewers, IEntryContext entry) : IRequestHandler<Query, DashboardDto>
+    public sealed class Handler(TimeSheetDbContext db, IViewerAccessor viewers, IEntryContext entry, TimeProvider clock) : IRequestHandler<Query, DashboardDto>
     {
         public async Task<DashboardDto> Handle(Query request, CancellationToken cancellationToken)
         {
             var viewer = (await viewers.RequireAsync(cancellationToken)).Require(Permission.ENTER_TIME);
             var scope = viewer.Scope;
-            var current = await entry.FrameAsync(scope, WeekRules.CurrentWeek(TimeProvider.System.GetUtcNow()), cancellationToken);
-            current = await entry.FrameAsync(scope, current.Current, cancellationToken);
+            var current = await entry.FrameAsync(scope, WeekRules.CurrentWeek(clock.GetUtcNow()), cancellationToken);
 
             var sheets = await db.Timesheets.AsNoTracking().Include(t => t.Days).Where(t => t.UserId == scope.UserId).ToListAsync(cancellationToken);
             var user = await db.Users.AsNoTracking().FirstAsync(u => u.Id == scope.UserId, cancellationToken);
@@ -63,14 +63,17 @@ public static class Dashboard
             var past = new List<WeekSummaryDto>();
             for (var w = current.Current.Shift(-1); w >= arrival && past.Count < LookBackWeeks; w = w.Shift(-1)) past.Add(await Summary(w));
 
-            var todo = past.Where(s => s.Status == nameof(DisplayStatus.REJECTED)).Select(s => new TodoDto("rejected", s))
+            // Une fiche rejetée est à corriger, semaine en cours comprise (§9.1).
+            var currentSummary = await Summary(current.Week);
+            var todo = past.Prepend(currentSummary).Where(s => s.Status == nameof(DisplayStatus.REJECTED)).Select(s => new TodoDto("rejected", s))
                 .Concat(past.Where(s => s.Status == nameof(DisplayStatus.MISSING)).OrderBy(s => s.Monday).Select(s => new TodoDto("missing", s)))
                 .ToList();
             var inTodo = todo.Select(t => (t.Week.Year, t.Week.Week)).ToHashSet();
             var recent = past.Where(s => !inTodo.Contains((s.Year, s.Week))).Take(3).ToList();
 
             var currentSheet = sheets.FirstOrDefault(s => s.Week == current.Week);
-            var currentDays = current.Days.Select(d => new CurrentDayDto(d.Date, d.Expected, d.IsFuture, currentSheet?.Days.Any(x => x.Date == d.Date) ?? false)).ToList();
+            var currentDays = current.Days.Select(d => new CurrentDayDto(d.Date, d.Expected, d.IsFuture, currentSheet?.Days.Any(x => x.Date == d.Date) ?? false,
+                currentSheet?.Days.Any(x => x.Date == d.Date && x.Flagged) ?? false)).ToList();
 
             var monday = current.Week.Monday;
             var projects = await db.Projects.AsNoTracking().Include(p => p.Activities)
@@ -89,7 +92,7 @@ public static class Dashboard
                 manager,
                 viewer.IsIntern,
                 todo,
-                new CurrentWeekDto(await Summary(current.Week), currentDays),
+                new CurrentWeekDto(currentSummary, currentDays),
                 projects.Select(p => new DashboardProjectDto(
                     p.Code,
                     p.Name,

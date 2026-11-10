@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using TimeSheet.Api.Domain.Access;
 using TimeSheet.Api.Domain.Divisions;
 using TimeSheet.Api.Domain.Projects;
+using TimeSheet.Api.Domain.Timesheets;
 using TimeSheet.Api.Domain.Users;
 using TimeSheet.Api.Services.Security;
 
@@ -65,6 +66,33 @@ public static class E2eSeed
         // Fiches de la division de test : on repart de zéro.
         db.Timesheets.RemoveRange(db.Timesheets.Where(t => t.DivisionId == division.Id));
         await db.SaveChangesAsync(cancellationToken);
-        return "Division de test prête (valideur.e2e, saisie.e2e).";
+
+        // File de Martin Valideur (écrans 07 et 08) : semaine 12 soumise par Alice, Bruno et
+        // Chloé (avant l'horloge de démonstration, jeudi 19 mars), semaine 11 par David.
+        var analyse = await (from a in db.Activities join p in db.Projects on a.ProjectId equals p.Id
+                             where p.DivisionId == division.Id && p.Code == "TEST-01" && a.Name == "Analyse" select a.Id).FirstAsync(cancellationToken);
+        var off = await (from a in db.Activities join p in db.Projects on a.ProjectId equals p.Id
+                         where p.DivisionId == division.Id && p.IsSystem select a.Id).FirstAsync(cancellationToken);
+        var testProject = await db.Projects.Include(p => p.Members).FirstAsync(p => p.DivisionId == division.Id && p.Code == "TEST-01", cancellationToken);
+        var douala = TimeSpan.FromHours(1);
+        foreach (var (first, week, submitted, absence) in new[]
+                 {
+                     ("Alice", 12, new DateTimeOffset(2026, 3, 18, 17, 0, 0, douala).ToUniversalTime(), false),
+                     ("Bruno", 12, new DateTimeOffset(2026, 3, 18, 17, 10, 0, douala).ToUniversalTime(), true),
+                     ("Chloé", 12, new DateTimeOffset(2026, 3, 18, 17, 20, 0, douala).ToUniversalTime(), false),
+                     ("David", 11, new DateTimeOffset(2026, 3, 13, 16, 30, 0, douala).ToUniversalTime(), false),
+                 })
+        {
+            var email = $"{first.ToLowerInvariant().Replace('é', 'e')}.e2e@exemple.com";
+            var user = await Account(email, first, "Essai", Role.STAFF, manager.Id);
+            testProject.AddMember(user.Id);
+            var iso = new IsoWeek(2026, week);
+            var sheet = Timesheet.Create(division.Id, user.Id, iso, submitted.AddHours(-2));
+            sheet.SaveDraft(Enumerable.Range(0, 5).ToDictionary(i => iso.Monday.AddDays(i), i => absence && i == 4 ? off : analyse), null, submitted.AddHours(-2));
+            sheet.Submit(user.Id, submitted);
+            db.Timesheets.Add(sheet);
+        }
+        await db.SaveChangesAsync(cancellationToken);
+        return "Division de test prête (valideur.e2e, saisie.e2e, alice/bruno/chloe/david.e2e).";
     }
 }

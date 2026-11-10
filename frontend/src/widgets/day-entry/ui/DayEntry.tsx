@@ -82,7 +82,7 @@ export function DayEntry({ caption, days, expected, choices, values, onChange, r
                 ) : readOnly && onToggleFlag && value ? (
                   <button
                     className={cx(
-                      "inline-flex min-h-control cursor-pointer items-center gap-5 rounded-md border-2 bg-white px-10 text-left text-black hover:border-black hover:bg-black hover:text-white",
+                      "inline-flex min-h-control cursor-pointer items-center gap-5 rounded-md border-2 bg-white px-10 py-5 text-left text-black hover:border-black hover:bg-black hover:text-white",
                       isFlagged ? "border-danger" : "border-black",
                     )}
                     type="button"

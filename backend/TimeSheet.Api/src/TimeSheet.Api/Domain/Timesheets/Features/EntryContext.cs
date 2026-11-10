@@ -2,6 +2,7 @@ namespace TimeSheet.Api.Domain.Timesheets.Features;
 
 using Microsoft.EntityFrameworkCore;
 using TimeSheet.Api.Databases;
+using TimeSheet.Api.Domain.Access;
 using TimeSheet.Api.Domain.Divisions;
 using TimeSheet.Api.Exceptions;
 using TimeSheet.Api.Services;
@@ -26,9 +27,17 @@ public interface IEntryContext : ITimeSheetApiScopedService
     /// <summary>Projets en cours dont la personne est membre, qui couvrent la semaine, plus l'absence.</summary>
     Task<List<DayChoiceDto>> ChoicesAsync(DivisionScope scope, IsoWeek week, CancellationToken cancellationToken);
 
-    /// <summary>Validateur : le manager de la personne (jalon 3 : délégation à l'owner).</summary>
+    /// <summary>Nom du validateur de la personne connectée (voir <see cref="ValidatorOfAsync"/>).</summary>
     Task<string?> ValidatorNameAsync(DivisionScope scope, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Validateur d'une personne : son manager s'il est actif dans la division ; sinon, si la
+    /// division délègue au N+2 (par défaut), un owner actif de la division ; sinon personne.
+    /// </summary>
+    Task<ValidatorInfo?> ValidatorOfAsync(Guid divisionId, Guid userId, CancellationToken cancellationToken);
 }
+
+public sealed record ValidatorInfo(Guid Id, string Email, string FirstName, string FullName);
 
 public sealed class EntryContext(TimeSheetDbContext db, TimeProvider clock) : IEntryContext
 {
@@ -62,13 +71,27 @@ public sealed class EntryContext(TimeSheetDbContext db, TimeProvider clock) : IE
             .ToList();
     }
 
-    public async Task<string?> ValidatorNameAsync(DivisionScope scope, CancellationToken cancellationToken)
+    public async Task<string?> ValidatorNameAsync(DivisionScope scope, CancellationToken cancellationToken) =>
+        (await ValidatorOfAsync(scope.DivisionId, scope.UserId, cancellationToken))?.FullName;
+
+    public async Task<ValidatorInfo?> ValidatorOfAsync(Guid divisionId, Guid userId, CancellationToken cancellationToken)
     {
-        var manager = await db.Users.AsNoTracking()
-            .Where(u => u.Id == scope.UserId && u.ManagerId != null)
-            .Select(u => db.Users.Where(m => m.Id == u.ManagerId && m.Active).Select(m => m.FirstName + " " + m.LastName).FirstOrDefault())
+        var managerId = await db.Users.AsNoTracking().Where(u => u.Id == userId && u.DivisionId == divisionId).Select(u => u.ManagerId).FirstOrDefaultAsync(cancellationToken);
+        var manager = managerId is null
+            ? null
+            : await db.Users.AsNoTracking()
+                .Where(m => m.Id == managerId && m.DivisionId == divisionId && m.Active)
+                .Select(m => new ValidatorInfo(m.Id, m.Email, m.FirstName, m.FirstName + " " + m.LastName))
+                .FirstOrDefaultAsync(cancellationToken);
+        if (manager is not null) return manager;
+
+        var delegateToOwner = await db.DivisionSettings.AsNoTracking().Where(s => s.DivisionId == divisionId).Select(s => (bool?)s.DelegateToOwner).FirstOrDefaultAsync(cancellationToken) ?? true;
+        if (!delegateToOwner) return null;
+        return await db.Users.AsNoTracking()
+            .Where(o => o.DivisionId == divisionId && o.Role == Role.OWNER && o.Active && o.Id != userId)
+            .OrderBy(o => o.LastName).ThenBy(o => o.FirstName)
+            .Select(o => new ValidatorInfo(o.Id, o.Email, o.FirstName, o.FirstName + " " + o.LastName))
             .FirstOrDefaultAsync(cancellationToken);
-        return manager;
     }
 }
 

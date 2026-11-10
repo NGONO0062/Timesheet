@@ -537,6 +537,14 @@ export const fr = {
     flaggedNone: "Aucune cellule signalée.",
     flaggedOne: "{n} cellule signalée.",
     flaggedMany: "{n} cellules signalées.",
+    // Saisie par jour (docs/design-v2.md, §1) : le manager signale des journées, plus des cellules.
+    flagDayHelp: "Vous pouvez signaler des journées : sélectionnez-les dans la liste. Elles apparaîtront en erreur chez le collaborateur.",
+    flaggedDayNone: "Aucune journée signalée.",
+    flaggedDayOne: "{n} journée signalée.",
+    flaggedDayMany: "{n} journées signalées.",
+    // Étiquettes d'attention de la file (docs/design-v2.md, §6), à côté du nom.
+    attention: { comment: "Commentaire", absence: "Absence", unusualProject: "Projet inhabituel" },
+    attentionLabel: "À regarder",
     notPending: "Cette fiche n'attend pas de décision.",
     goneTitle: "Cette fiche n'existe plus ou a déjà été traitée",
     goneText: "Elle a peut-être été traitée par un autre validateur entre-temps.",

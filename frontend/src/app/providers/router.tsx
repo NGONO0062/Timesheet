@@ -1,6 +1,8 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
 import { DashboardPage } from "@/pages/dashboard";
 import { C1Page, C2aPage, C2bPage, C3Page, C4Page, DesignPage } from "@/pages/design";
+import { ValidationQueuePage } from "@/pages/validation-queue";
+import { ValidationReviewPage } from "@/pages/validation-review";
 import { CurrentWeekRedirect, WeekEntryPage } from "@/pages/week-entry";
 import { Home, NotFound, Protected, PublicOnly, RequirePermission, Upcoming } from "./guards";
 
@@ -16,7 +18,6 @@ const design: RouteObject[] = [
 
 /** Écrans des jalons suivants (docs/reecriture.md) : présents dans la navigation, en préparation. */
 const UPCOMING: Array<[href: string, title: string, milestone: number]> = [
-  ["/validation", "Validation", 3],
   ["/projets", "Projets", 4],
   ["/reporting", "Reporting", 4],
   ["/division", "Vue division", 4],
@@ -29,6 +30,7 @@ const UPCOMING: Array<[href: string, title: string, milestone: number]> = [
 ];
 
 const entry = (element: React.ReactNode) => <RequirePermission permission="ENTER_TIME">{element}</RequirePermission>;
+const review = (element: React.ReactNode) => <RequirePermission permission="VALIDATE_TEAM">{element}</RequirePermission>;
 
 /** Routes de l'application. Les écrans s'ajoutent jalon par jalon. */
 export const router = createBrowserRouter([
@@ -41,6 +43,9 @@ export const router = createBrowserRouter([
       { path: "/tableau-de-bord", element: entry(<DashboardPage />) },
       { path: "/saisie", element: entry(<CurrentWeekRedirect />) },
       { path: "/saisie/:year/:week", element: entry(<WeekEntryPage />) },
+      // Jalon 3 : validation (écrans 07 et 08).
+      { path: "/validation", element: review(<ValidationQueuePage />) },
+      { path: "/validation/:id", element: review(<ValidationReviewPage />) },
       ...UPCOMING.map(([href, title, milestone]) => ({ path: href, element: <Upcoming href={href} title={title} milestone={milestone} /> })),
       { path: "*", element: <NotFound /> },
     ],

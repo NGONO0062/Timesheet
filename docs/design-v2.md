@@ -61,6 +61,8 @@ Avant, « En attente » portait un « i » (information) et quatre statuts jaune
 - **Colonne Statut masquée** quand le filtre est « En attente » (elle répéterait la même valeur partout) ; affichée pour « Toutes ».
 - **Colonne Jours** : « 5 / 5 » sur une ligne, colonne assez large pour ne jamais passer à la ligne.
 - Détail (08) : saisie par jour en lecture seule, chaque journée signalable (planche `/design/c2-b`, dernière section).
+- **Étiquettes** (réalisées au jalon 3) : « 2e soumission », « Commentaire », « Absence », « Projet inhabituel », dans cet ordre. Projet inhabituel : un projet de la fiche que la personne n'a déclaré sur aucune de ses fiches des 8 semaines précédentes (aucune étiquette si elle n'a pas de fiche avant). Libellés non maquettés, à faire valider (§7).
+- **Mobile** : la file devient une liste (une fiche par ligne, case à cocher, lien sur le nom), « Sélectionner toutes les fiches » au-dessus.
 
 ## 7. Maquettes à produire
 
