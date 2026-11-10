@@ -73,6 +73,8 @@
   --spacing-cell: 60px;
   /* Zone de signature : cadre de 200 px. */
   --spacing-pad: 200px;
+  /* Fiche de présence : hauteur de la feuille A4 paysage (squelette de chargement). */
+  --spacing-sheet-h: 794px;
   /* Barre latérale de navigation (bureau) et panneau de navigation (mobile). */
   --spacing-sidenav: 240px;
   --spacing-nav-panel: 280px;
@@ -253,3 +255,9 @@
 @utility flex-login {
   flex: 2 1 480px;
 }
+
+/* Écran 06 : signature 3 parts, traçabilité et envoi aux RH 2 parts. */
+@utility grid-cols-sign {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+

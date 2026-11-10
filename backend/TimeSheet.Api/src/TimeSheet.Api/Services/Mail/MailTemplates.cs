@@ -45,6 +45,37 @@ public static class MailTemplates
         Compose(to, $"Semaine {week} à saisir", firstName,
             [$"Votre fiche de la semaine {week} ({range}) n'est pas soumise, l'échéance était le {deadline}. Merci de la compléter et de la soumettre dès que possible."], url);
 
+    /// <summary>Fiche de présence générée : le stagiaire est invité à la signer.</summary>
+    public static MailMessage AttendanceToSign(string to, string firstName, string month, string url) =>
+        Compose(to, $"Fiche de présence de {month} à signer", firstName,
+            [$"Votre fiche de présence de {month} est générée à partir de vos semaines validées. Relisez-la et signez-la : elle partira ensuite chez votre superviseur, puis aux RH."], url);
+
+    /// <summary>Signature du stagiaire posée : le superviseur est invité à signer à son tour.</summary>
+    public static MailMessage AttendanceSupervisor(string to, string firstName, string name, string month, string url) =>
+        Compose(to, $"Fiche de présence de {name} à signer ({month})", firstName,
+            [$"{name} a signé sa fiche de présence de {month}. Votre signature est attendue ; la fiche part ensuite par e-mail aux RH."], url);
+
+    /// <summary>Fiche renvoyée au stagiaire par le superviseur, avec le motif.</summary>
+    public static MailMessage AttendanceRejected(string to, string firstName, string supervisor, string month, string reason, string url) =>
+        Compose(to, $"Fiche de présence de {month} renvoyée", firstName,
+            [$"{supervisor} vous a renvoyé votre fiche de présence de {month}. Votre signature a été annulée : relisez la fiche et signez-la de nouveau.", $"Motif : « {reason} »"], url);
+
+    /// <summary>Envoi aux RH : la fiche signée en pièce jointe, sans lien vers l'application.</summary>
+    public static MailMessage AttendanceHr(string to, string name, string month, string supervisor, string fileName, byte[] pdf)
+    {
+        var subject = $"Fiche de présence · {name} · {month}";
+        string[] paragraphs =
+        [
+            "Bonjour,",
+            $"Veuillez trouver ci-joint la fiche de présence de {name} pour {month}, signée par le stagiaire dans TimeSheet et par son superviseur, {supervisor}.",
+            $"Pièce jointe : {fileName}",
+        ];
+        var html = $"<div style=\"max-width:640px;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.4;color:#000000\">{DocumentHtml.Head([DocumentHtml.Issuer], subject, [], size: 14, upper: false)}<div style=\"padding:20px 0\">"
+                   + string.Concat(paragraphs.Select(p => $"<p>{Escape(p)}</p>"))
+                   + $"</div><p style=\"margin:0;padding-top:10px;border-top:2px solid #000000;font-size:14px;color:#595959\">{Escape(DocumentHtml.Footer)}</p></div>";
+        return new MailMessage(to, subject, string.Join("\n\n", paragraphs.Append(Signature)), html, [new MailAttachment(fileName, pdf, "application/pdf")]);
+    }
+
     /// <summary>Relance d'un manager depuis la vue consolidée : fiches de son équipe en attente.</summary>
     public static MailMessage ManagerReminder(string to, string firstName, string team, int count, int days, string url) =>
         Compose(to, $"Fiches de l'équipe {team} en attente de validation", firstName,

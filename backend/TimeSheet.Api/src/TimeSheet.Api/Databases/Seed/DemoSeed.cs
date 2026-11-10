@@ -82,6 +82,14 @@ public static class DemoSeed
         }
         await db.SaveChangesAsync(cancellationToken);
         await EntrySeed.RunAsync(db, division, ids, cancellationToken);
+
+        // Aïcha Ndongo, stagiaire (PROMPT.md §18) : stage professionnel du 05/01/2026 au 26/06/2026 ;
+        // fiche de présence de février 2026 générée le 9 mars, à signer (écran 06).
+        var aicha = ids["Aïcha Ndongo"];
+        db.Internships.Add(Domain.Attendance.Internship.Create(aicha.Id, Domain.Attendance.InternshipKind.PROFESSIONAL, "DEC", "CX", "CX Expertise", new DateOnly(2026, 1, 5), new DateOnly(2026, 6, 26)));
+        db.AttendanceSheets.Add(Domain.Attendance.AttendanceSheet.Generate(division.Id, aicha.Id, 2026, 2, new DateTimeOffset(2026, 3, 9, 8, 0, 0, TimeSpan.FromHours(1)).ToUniversalTime()));
+        await db.SaveChangesAsync(cancellationToken);
+
         var active = People.Count(p => p.Active);
         return $"Division CX Expertise : {active} comptes actifs, {People.Length - active} désactivé. Admin plateforme : Rose Ekambi.";
     }

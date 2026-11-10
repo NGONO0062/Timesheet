@@ -29,7 +29,6 @@ public sealed record ReportDto(
     IReadOnlyList<ReportSeries> Series,
     IReadOnlyList<ReportEntityDto> Entities);
 
-public sealed record ExportFile(byte[] Content, string ContentType, string FileName);
 
 /// <summary>
 /// Reporting (PROMPT.md §9.5, repris de lib/data/reporting.ts et app/(app)/reporting). Périmètre :

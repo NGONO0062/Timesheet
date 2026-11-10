@@ -28,7 +28,11 @@ public sealed record DashboardDto(
     IReadOnlyList<TodoDto> Todo,
     CurrentWeekDto Current,
     IReadOnlyList<DashboardProjectDto> Projects,
-    IReadOnlyList<WeekSummaryDto> Recent);
+    IReadOnlyList<WeekSummaryDto> Recent,
+    IReadOnlyList<AttendanceTodoDto> Attendance);
+
+/// <summary>Fiche de présence à signer (stagiaire) : mois, date de génération, jours validés du mois.</summary>
+public sealed record AttendanceTodoDto(int Year, int Month, DateTimeOffset GeneratedAt, int ValidatedDays);
 
 public static class Dashboard
 {
@@ -86,6 +90,20 @@ public static class Dashboard
                 ? await db.Users.AsNoTracking().Where(m => m.Id == managerId).Select(m => m.FirstName + " " + m.LastName).FirstOrDefaultAsync(cancellationToken)
                 : null;
 
+            // Fiches de présence à signer (stagiaire, §9.1) : les jours validés du mois, d'après les fiches de temps.
+            var toSign = await db.AttendanceSheets.AsNoTracking()
+                .Where(s => s.DivisionId == scope.DivisionId && s.UserId == scope.UserId && s.Status == Attendance.AttendanceStatus.GENERATED)
+                .OrderBy(s => s.Year).ThenBy(s => s.Month)
+                .ToListAsync(cancellationToken);
+            var attendance = new List<AttendanceTodoDto>();
+            foreach (var s in toSign)
+            {
+                var first = new DateOnly(s.Year, s.Month, 1);
+                var next = first.AddMonths(1);
+                var validatedDays = sheets.Where(t => t.Status == TimesheetStatus.VALIDATED).SelectMany(t => t.Days).Count(d => d.Date >= first && d.Date < next);
+                attendance.Add(new AttendanceTodoDto(s.Year, s.Month, s.GeneratedAt, validatedDays));
+            }
+
             return new DashboardDto(
                 viewer.FirstName,
                 viewer.DivisionName,
@@ -102,7 +120,8 @@ public static class Dashboard
                     p.Activities.OrderBy(a => a.Name).Select(a => a.Name).ToList(),
                     p.Activities.Sum(a => daysByActivity.GetValueOrDefault(a.Id)),
                     p.AcceptsEntry(monday, monday.AddDays(6)))).ToList(),
-                recent);
+                recent,
+                attendance);
         }
     }
 }

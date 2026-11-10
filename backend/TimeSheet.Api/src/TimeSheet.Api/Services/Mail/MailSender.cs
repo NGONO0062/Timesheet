@@ -4,8 +4,11 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 
+/// <summary>Pièce jointe en mémoire (jamais un fichier local ni une adresse).</summary>
+public sealed record MailAttachment(string FileName, byte[] Content, string ContentType);
+
 /// <summary>E-mail prêt à partir : texte brut et HTML sobre, sans image ni contenu distant.</summary>
-public sealed record MailMessage(string To, string Subject, string Text, string Html);
+public sealed record MailMessage(string To, string Subject, string Text, string Html, IReadOnlyList<MailAttachment>? Attachments = null);
 
 public interface IMailSender : ITimeSheetApiScopedService
 {
@@ -37,7 +40,9 @@ public sealed class MailSender(IConfiguration configuration, ILogger<MailSender>
             message.From.Add(MailboxAddress.Parse(configuration["SMTP_FROM"] ?? "TimeSheet <timesheet@exemple.com>"));
             message.To.Add(MailboxAddress.Parse(mail.To));
             message.Subject = mail.Subject;
-            message.Body = new BodyBuilder { TextBody = mail.Text, HtmlBody = mail.Html }.ToMessageBody();
+            var body = new BodyBuilder { TextBody = mail.Text, HtmlBody = mail.Html };
+            foreach (var a in mail.Attachments ?? []) body.Attachments.Add(a.FileName, a.Content, ContentType.Parse(a.ContentType));
+            message.Body = body.ToMessageBody();
 
             using var client = new SmtpClient();
             // 465 : TLS implicite ; sinon STARTTLS quand le serveur le propose (Mailpit ne le propose pas).

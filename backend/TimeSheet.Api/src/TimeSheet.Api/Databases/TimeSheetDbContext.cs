@@ -38,6 +38,9 @@ public sealed class TimeSheetDbContext(DbContextOptions<TimeSheetDbContext> opti
     public DbSet<ProjectMember> ProjectMembers { get; set; }
     public DbSet<Timesheet> Timesheets { get; set; }
     public DbSet<TimesheetDay> TimesheetDays { get; set; }
+    public DbSet<Domain.Attendance.Internship> Internships { get; set; }
+    public DbSet<Domain.Attendance.AttendanceSheet> AttendanceSheets { get; set; }
+    public DbSet<Domain.Attendance.Signature> Signatures { get; set; }
     #endregion DbSet Region - Do Not Delete
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

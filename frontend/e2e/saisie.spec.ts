@@ -13,6 +13,10 @@ test.describe("tableau de bord (écran 02)", () => {
     const todo = page.getByRole("region", { name: "À faire" });
     await expect(todo.getByText("Semaine 11 non saisie")).toBeVisible();
     await expect(page.getByRole("link", { name: "Saisir la semaine 11" })).toBeVisible();
+    // Stagiaire : la fiche de présence de février est à signer, après la semaine manquante.
+    await expect(todo.getByText("Fiche de présence de février 2026 à signer")).toBeVisible();
+    await expect(todo.getByRole("link", { name: "Signer ma fiche" })).toHaveAttribute("href", "/fiche-presence/2026/2");
+    await expect(todo.getByText("2 actions")).toBeVisible();
     // La semaine 11 n'est pas répétée dans « Dernières semaines ».
     const history = page.getByRole("region", { name: "Dernières semaines" });
     // Tableau au bureau, liste sur mobile : une seule des deux est visible.

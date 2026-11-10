@@ -19,6 +19,7 @@ import {
   type QueueRow,
   type QueueTab,
 } from "@/entities/validation";
+import { useSupervised } from "@/entities/attendance";
 import { dict, t } from "@/shared/i18n";
 import { formatDayMonth, formatRange, formatTime, zonedDay } from "@/shared/lib/format";
 import { addDays } from "@/shared/lib/iso-week";
@@ -30,6 +31,7 @@ import { Checkbox, SelectField, TextareaField } from "@/shared/ui/Form";
 import { Modal } from "@/shared/ui/Overlay";
 import { EmptyState } from "@/shared/ui/States";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
+import { ValidationTabs } from "@/widgets/validation-tabs";
 
 const v = dict.validation;
 const REASON_ID = "motif-commun";
@@ -52,6 +54,9 @@ export function ValidationQueuePage() {
   const filters = { personId: params.get("personne"), period: params.get("periode") ?? DEFAULT_PERIOD, tab: parseTab(params.get("statut")) };
   const query = useQueue(filters);
   const decide = useGroupDecision();
+  // Onglet « Fiches de présence à signer » : seulement pour qui supervise un stagiaire.
+  const presence = useSupervised();
+  const presenceTabs = presence.data && presence.data.interns > 0 ? <ValidationTabs current="timesheets" presenceCount={presence.data.toSign} /> : null;
 
   // Sélection propre aux filtres affichés : changer de filtre la vide.
   const filterKey = params.toString();
@@ -162,6 +167,7 @@ export function ValidationQueuePage() {
         <h1>{v.title}</h1>
         <Badge tone={pendingCount > 0 ? "info" : undefined}>{t(v.pendingCount, { n: pendingCount })}</Badge>
       </div>
+      {presenceTabs}
 
       <form aria-label={v.filters} className="flex flex-wrap items-end gap-x-20 gap-y-10" onSubmit={(e) => e.preventDefault()}>
         <div className="w-full md:w-filter">

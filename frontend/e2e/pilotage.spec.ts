@@ -56,7 +56,7 @@ test.describe("projets (écran 09)", () => {
     // Panneau de création : erreurs sous les champs, focus sur la première.
     await page.getByRole("button", { name: "Nouveau projet" }).click();
     const panel = page.getByRole("dialog", { name: "Nouveau projet" });
-    await expect(panel.getByRole("group", { name: "Membres affectés (0 sur 5)" })).toBeVisible();
+    await expect(panel.getByRole("group", { name: "Membres affectés (0 sur 6)" })).toBeVisible();
     await panel.getByRole("button", { name: "Créer le projet" }).click();
     await expect(panel.getByText("Saisissez le nom du projet.")).toBeVisible();
     await expect(panel.getByLabel("Nom du projet")).toBeFocused();
@@ -75,7 +75,7 @@ test.describe("projets (écran 09)", () => {
     await panel.getByRole("button", { name: "Ajouter" }).click();
     await expect(panel.getByRole("button", { name: "Retirer l'activité Analyse" })).toBeVisible();
     await panel.getByLabel("Alice Essai").check();
-    await expect(panel.getByRole("group", { name: "Membres affectés (1 sur 5)" })).toBeVisible();
+    await expect(panel.getByRole("group", { name: "Membres affectés (1 sur 6)" })).toBeVisible();
     await panel.getByRole("button", { name: "Créer le projet" }).click();
     await expect(panel).toBeHidden();
     await expect(page.getByRole("status").filter({ hasText: "Projet « Projet de test e2e » créé avec le statut « En cours »." })).toBeVisible();

@@ -73,11 +73,11 @@ test.describe("écran de connexion", () => {
 test.describe("navigation par rôle", () => {
   test.skip(({ viewport }) => (viewport?.width ?? 0) < 1024, "Barre latérale : desktop");
 
-  // Stage (fiche de présence RH) : repris au jalon 5, le lien « Fiche de présence » viendra alors.
+  // Aïcha est stagiaire : le lien « Fiche de présence » s'ajoute aux liens Staff.
   test("staff : liens Staff, lien courant marqué", async ({ page }) => {
     await login(page, "aicha.ndongo@exemple.com");
     await expect(page).toHaveURL(/\/tableau-de-bord$/);
-    await expect(nav(page).getByRole("link")).toHaveText(["Tableau de bord", "Saisie hebdomadaire", "Tâches"]);
+    await expect(nav(page).getByRole("link")).toHaveText(["Tableau de bord", "Saisie hebdomadaire", "Fiche de présence", "Tâches"]);
     await expect(nav(page).getByRole("link", { name: "Tableau de bord" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByText("Aïcha Ndongo")).toBeVisible();
     expect(await axe(page)).toEqual([]);

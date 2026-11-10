@@ -2,6 +2,7 @@ namespace TimeSheet.Api.Databases.Seed;
 
 using Microsoft.EntityFrameworkCore;
 using TimeSheet.Api.Domain.Access;
+using TimeSheet.Api.Domain.Attendance;
 using TimeSheet.Api.Domain.Divisions;
 using TimeSheet.Api.Domain.Projects;
 using TimeSheet.Api.Domain.Timesheets;
@@ -50,8 +51,11 @@ public static class E2eSeed
 
         // Fiches, puis projets de la division de test : on repart de zéro (les tests en créent,
         // en archivent et changent leur statut).
+        db.AttendanceSheets.RemoveRange(db.AttendanceSheets.Where(s => s.DivisionId == division.Id));
         db.Timesheets.RemoveRange(db.Timesheets.Where(t => t.DivisionId == division.Id));
         await db.SaveChangesAsync(cancellationToken);
+        // Fiche de présence signée : envoyée aux RH, sans attendre (écran 06).
+        (await db.DivisionSettings.FirstAsync(s => s.DivisionId == division.Id, cancellationToken)).WithHr("rh.e2e@exemple.com", autoSend: true);
         db.Projects.RemoveRange(db.Projects.Where(p => p.DivisionId == division.Id));
         await db.SaveChangesAsync(cancellationToken);
 
@@ -96,6 +100,26 @@ public static class E2eSeed
             db.Timesheets.Add(sheet);
         }
         await db.SaveChangesAsync(cancellationToken);
-        return "Division de test prête (valideur.e2e, saisie.e2e, alice/bruno/chloe/david.e2e).";
+
+        // Fiche de présence (écran 06) : Inès Stage, stagiaire de Martin (horaires 08:30 – 17:30),
+        // les quatre semaines de février 2026 validées, la fiche générée le 9 mars, à signer.
+        var ines = await Account("stagiaire.e2e@exemple.com", "Inès", "Stage", Role.STAFF, manager.Id);
+        ines.SetUsualHours("08:30", "17:30");
+        testProject.AddMember(ines.Id);
+        if (!await db.Internships.AnyAsync(i => i.UserId == ines.Id, cancellationToken))
+            db.Internships.Add(Internship.Create(ines.Id, InternshipKind.ACADEMIC, "DEC", "Tests", "Recette", new DateOnly(2026, 1, 5), new DateOnly(2026, 6, 26)));
+        for (var week = 6; week <= 9; week++)
+        {
+            var iso = new IsoWeek(2026, week);
+            var friday = new DateTimeOffset(iso.Monday.AddDays(4).ToDateTime(new TimeOnly(16, 0)), douala).ToUniversalTime();
+            var sheet = Timesheet.Create(division.Id, ines.Id, iso, friday.AddHours(-1));
+            sheet.SaveDraft(Enumerable.Range(0, 5).ToDictionary(i => iso.Monday.AddDays(i), _ => analyse), null, friday.AddHours(-1));
+            sheet.Submit(ines.Id, friday);
+            sheet.Validate(manager.Id, friday.AddDays(3));
+            db.Timesheets.Add(sheet);
+        }
+        db.AttendanceSheets.Add(AttendanceSheet.Generate(division.Id, ines.Id, 2026, 2, new DateTimeOffset(2026, 3, 9, 8, 0, 0, douala).ToUniversalTime()));
+        await db.SaveChangesAsync(cancellationToken);
+        return "Division de test prête (valideur.e2e, saisie.e2e, alice/bruno/chloe/david.e2e, stagiaire.e2e).";
     }
 }

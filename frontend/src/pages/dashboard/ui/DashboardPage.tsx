@@ -2,6 +2,7 @@
 // principale (la plus urgente), pas de doublon entre « À faire » et « Dernières semaines »,
 // « Mes projets » replié, pas de carte dans une carte.
 import { Link } from "react-router";
+import { attendanceHref, monthLabel } from "@/entities/attendance";
 import { dayOf, useDashboard, type Dashboard, type WeekSummary } from "@/entities/timesheet";
 import { dict, t } from "@/shared/i18n";
 import { cx } from "@/shared/lib/cx";
@@ -42,55 +43,87 @@ const periodOf = (w: WeekSummary, withYear = true) => formatRange(...daysOf(w), 
 /** « Du 9 au 13 mars 2026 », dans une phrase. */
 const fromToOf = (w: WeekSummary) => formatFromTo(...daysOf(w));
 
-function Todo({ data }: { data: Dashboard }) {
+type TodoItem = { key: string; tone: "warning" | "danger"; title: string; detail: string; detailShort: string; action: string; href: string };
+
+/** Actions « À faire » : semaines rejetées, semaines manquantes, puis fiches de présence à signer. */
+function todoItems(data: Dashboard): TodoItem[] {
+  const weeks = data.todo.map((item): TodoItem => {
+    const w = item.week;
+    if (item.kind === "missing") {
+      return {
+        key: `manquante-${w.year}-${w.week}`,
+        tone: "warning",
+        title: t(d.missingTitle, { week: w.week }),
+        detail: t(d.missingDetail, { period: fromToOf(w), hours: formatDays(w.expected - w.filled), deadline: formatDayMonth(zonedDay(new Date(w.deadline))) }),
+        detailShort: t(d.missingDetailShort, { range: periodOf(w), hours: formatDays(w.expected - w.filled) }),
+        action: t(d.missingAction, { week: w.week }),
+        href: weekHref(w),
+      };
+    }
+    return {
+      key: `rejetee-${w.year}-${w.week}`,
+      tone: "danger",
+      title: t(d.rejectedTitle, { week: w.week, name: data.managerName ?? "" }),
+      detail: t(d.rejectedDetail, { period: fromToOf(w) }),
+      detailShort: t(d.rejectedDetailShort, { range: periodOf(w) }),
+      action: t(d.rejectedAction, { week: w.week }),
+      href: weekHref(w),
+    };
+  });
+  const sheets = data.attendance.map((s): TodoItem => {
+    const params = { hours: formatDays(s.validatedDays), date: formatDate(zonedDay(new Date(s.generatedAt))) };
+    return {
+      key: `presence-${s.year}-${s.month}`,
+      tone: "warning",
+      title: t(d.attendanceTitle, { month: monthLabel(s.year, s.month).toLowerCase() }),
+      detail: t(d.attendanceDetail, params),
+      detailShort: t(d.attendanceDetailShort, params),
+      action: d.attendanceAction,
+      href: attendanceHref(s.year, s.month),
+    };
+  });
+  return [...weeks, ...sheets];
+}
+
+function Todo({ items }: { items: TodoItem[] }) {
   return (
     <section className="flex flex-col gap-20" aria-labelledby="a-faire">
       <div className="flex flex-wrap items-center gap-x-20 gap-y-10">
         <h2 id="a-faire" className="text-h3">
           {d.todoTitle}
         </h2>
-        {data.todo.length > 0 && <Badge tone="warning">{t(data.todo.length > 1 ? d.todoCountMany : d.todoCountOne, { n: data.todo.length })}</Badge>}
+        {items.length > 0 && <Badge tone="warning">{t(items.length > 1 ? d.todoCountMany : d.todoCountOne, { n: items.length })}</Badge>}
       </div>
-      {data.todo.length === 0 ? (
+      {items.length === 0 ? (
         <p role="status">{d.todoEmpty}</p>
       ) : (
         <ul className="flex flex-col">
-          {data.todo.map((item, i) => {
-            const w = item.week;
-            const missing = item.kind === "missing";
-            return (
-              <li
-                key={`${w.year}-${w.week}`}
-                className="flex flex-col gap-10 border-b-2 border-gray-999 py-10 first:border-t-2 first:border-t-black md:flex-row md:items-center md:justify-between md:gap-20"
-              >
-                <div className="flex min-w-0 flex-1 items-start gap-10">
-                  <Mark tone={missing ? "warning" : "danger"} />
-                  <div className="flex flex-col gap-5">
-                    <p className="font-bold">{missing ? t(d.missingTitle, { week: w.week }) : t(d.rejectedTitle, { week: w.week, name: data.managerName ?? "" })}</p>
-                    <p className="hidden text-sm text-gray-595 md:block">
-                      {missing
-                        ? t(d.missingDetail, { period: fromToOf(w), hours: formatDays(w.expected - w.filled), deadline: formatDayMonth(zonedDay(new Date(w.deadline))) })
-                        : t(d.rejectedDetail, { period: fromToOf(w) })}
-                    </p>
-                    <p className="text-sm text-gray-595 md:hidden">
-                      {missing ? t(d.missingDetailShort, { range: periodOf(w), hours: formatDays(w.expected - w.filled) }) : t(d.rejectedDetailShort, { range: periodOf(w) })}
-                    </p>
-                  </div>
+          {items.map((item, i) => (
+            <li
+              key={item.key}
+              className="flex flex-col gap-10 border-b-2 border-gray-999 py-10 first:border-t-2 first:border-t-black md:flex-row md:items-center md:justify-between md:gap-20"
+            >
+              <div className="flex min-w-0 flex-1 items-start gap-10">
+                <Mark tone={item.tone} />
+                <div className="flex flex-col gap-5">
+                  <p className="font-bold">{item.title}</p>
+                  <p className="hidden text-sm text-gray-595 md:block">{item.detail}</p>
+                  <p className="text-sm text-gray-595 md:hidden">{item.detailShort}</p>
                 </div>
-                {/* Une seule action principale : la plus urgente, en tête de liste. */}
-                <Link className={cx(i === 0 ? PRIMARY : SECONDARY, "w-full md:w-auto")} to={weekHref(w)}>
-                  {missing ? t(d.missingAction, { week: w.week }) : t(d.rejectedAction, { week: w.week })}
-                </Link>
-              </li>
-            );
-          })}
+              </div>
+              {/* Une seule action principale : la plus urgente, en tête de liste. */}
+              <Link className={cx(i === 0 ? PRIMARY : SECONDARY, "w-full md:w-auto")} to={item.href}>
+                {item.action}
+              </Link>
+            </li>
+          ))}
         </ul>
       )}
     </section>
   );
 }
 
-function CurrentWeek({ data }: { data: Dashboard }) {
+function CurrentWeek({ data, hasTodo }: { data: Dashboard; hasTodo: boolean }) {
   const w = data.current.week;
   const deadline = new Date(w.deadline);
   const submitted = w.status === "SUBMITTED" || w.status === "VALIDATED";
@@ -153,7 +186,7 @@ function CurrentWeek({ data }: { data: Dashboard }) {
               : t(d.deadline, { date: formatLongDate(zonedDay(deadline)), time: formatTime(deadline) })}
         </p>
         {/* Bouton principal seulement si rien d'autre n'attend dans « À faire ». */}
-        <Link className={cx(data.todo.length === 0 && !submitted ? PRIMARY : SECONDARY, "w-full md:w-auto")} to={weekHref(w)}>
+        <Link className={cx(!hasTodo && !submitted ? PRIMARY : SECONDARY, "w-full md:w-auto")} to={weekHref(w)}>
           {submitted ? d.consult : d.continue}
         </Link>
       </div>
@@ -285,6 +318,7 @@ export function DashboardPage() {
     );
   }
   const data = query.data;
+  const todo = todoItems(data);
   const subtitle = [data.isIntern ? d.intern : null, data.divisionName, data.managerName ? t(d.managerOf, { name: data.managerName }) : null].filter(Boolean).join(" · ");
   return (
     <main className="flex flex-col gap-60">
@@ -292,8 +326,8 @@ export function DashboardPage() {
         <h1>{t(d.hello, { name: data.firstName })}</h1>
         <p className="text-gray-595">{subtitle}</p>
       </div>
-      <Todo data={data} />
-      <CurrentWeek data={data} />
+      <Todo items={todo} />
+      <CurrentWeek data={data} hasTodo={todo.length > 0} />
       <Projects data={data} />
       <History data={data} />
     </main>

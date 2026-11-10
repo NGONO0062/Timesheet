@@ -65,3 +65,9 @@ export function RequirePermission({ permission, children }: { permission: Viewer
 export function NotFound() {
   return <NotFoundPage home={homeFor(useCurrentViewer())} />;
 }
+
+/** Fiche de présence : réservée aux stagiaires (un stage enregistré). */
+export function RequireIntern({ children }: { children: ReactNode }) {
+  const viewer = useCurrentViewer();
+  return viewer.isIntern && viewer.permissions.includes("ENTER_TIME") ? children : <NotFoundPage home={homeFor(viewer)} />;
+}

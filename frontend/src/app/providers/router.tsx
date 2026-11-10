@@ -1,4 +1,6 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
+import { AttendanceIndexPage, AttendanceMonthPage } from "@/pages/attendance";
+import { SupervisedListPage, SupervisedSheetPage } from "@/pages/attendance-supervision";
 import { DashboardPage } from "@/pages/dashboard";
 import { DivisionPage } from "@/pages/division";
 import { ProjectsPage } from "@/pages/projects";
@@ -7,7 +9,7 @@ import { C1Page, C2aPage, C2bPage, C3Page, C4Page, DesignPage } from "@/pages/de
 import { ValidationQueuePage } from "@/pages/validation-queue";
 import { ValidationReviewPage } from "@/pages/validation-review";
 import { CurrentWeekRedirect, WeekEntryPage } from "@/pages/week-entry";
-import { Home, NotFound, Protected, PublicOnly, RequirePermission, Upcoming } from "./guards";
+import { Home, NotFound, Protected, PublicOnly, RequireIntern, RequirePermission, Upcoming } from "./guards";
 
 // Composants dans tous leurs états, à comparer aux planches de design/captures (développement seulement).
 const design: RouteObject[] = [
@@ -21,7 +23,6 @@ const design: RouteObject[] = [
 
 /** Écrans des jalons suivants (docs/reecriture.md) : présents dans la navigation, en préparation. */
 const UPCOMING: Array<[href: string, title: string, milestone: number]> = [
-  ["/fiche-presence", "Fiche de présence", 5],
   ["/administration", "Administration", 6],
   ["/parametres", "Paramètres", 6],
   ["/plateforme", "Divisions", 7],
@@ -50,6 +51,11 @@ export const router = createBrowserRouter([
       { path: "/projets", element: <RequirePermission permission="MANAGE_PROJECTS"><ProjectsPage /></RequirePermission> },
       { path: "/reporting", element: <RequirePermission permission="VIEW_REPORTING"><ReportingPage /></RequirePermission> },
       { path: "/division", element: <RequirePermission permission="VIEW_DIVISION"><DivisionPage /></RequirePermission> },
+      // Jalon 5 : fiche de présence (écran 06, côté stagiaire et côté superviseur).
+      { path: "/fiche-presence", element: <RequireIntern><AttendanceIndexPage /></RequireIntern> },
+      { path: "/fiche-presence/:year/:month", element: <RequireIntern><AttendanceMonthPage /></RequireIntern> },
+      { path: "/validation/presence", element: review(<SupervisedListPage />) },
+      { path: "/validation/presence/:id", element: review(<SupervisedSheetPage />) },
       ...UPCOMING.map(([href, title, milestone]) => ({ path: href, element: <Upcoming href={href} title={title} milestone={milestone} /> })),
       { path: "*", element: <NotFound /> },
     ],

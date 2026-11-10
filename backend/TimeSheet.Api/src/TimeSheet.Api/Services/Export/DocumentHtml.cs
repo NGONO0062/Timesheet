@@ -1,6 +1,5 @@
 namespace TimeSheet.Api.Services.Export;
 
-using System.Net;
 using TimeSheet.Api.Domain.Timesheets;
 
 /// <summary>
@@ -18,7 +17,8 @@ public static class DocumentHtml
     // Cellule neutre : annule les bordures et hauteurs des tableaux du gabarit qui l'entoure.
     private const string Cell = "border:0;height:auto;padding:0;vertical-align:top";
 
-    public static string Escape(string s) => WebUtility.HtmlEncode(s);
+    /// <summary>Échappe les caractères qui comptent en HTML (&amp; &lt; &gt; &quot; &#39;), garde les accents lisibles.</summary>
+    public static string Escape(string s) => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&#39;");
 
     /// <summary>Le mot seul, sur fond noir : <paramref name="size"/> en pixels.</summary>
     public static string Wordmark(int size = 20) =>
@@ -40,8 +40,8 @@ public static class DocumentHtml
     }
 
     /// <summary>Blocs d'information côte à côte : libellé en capitales, contenu HTML déjà échappé.</summary>
-    public static string Parties(IReadOnlyList<(string Label, string Html)> parties) =>
-        "<div style=\"display:flex;gap:20px\">" + string.Concat(parties.Select(p =>
+    public static string Parties(IReadOnlyList<(string Label, string Html)> parties, int gap = 20) =>
+        $"<div style=\"display:flex;gap:{gap}px\">" + string.Concat(parties.Select(p =>
             $"<div style=\"flex:1 1 0%;min-width:0;padding:10px;border:2px solid #000000;border-radius:6px\"><div style=\"margin-bottom:5px;color:#595959;font-weight:700;text-transform:uppercase\">{Escape(p.Label)}</div>{p.Html}</div>")) + "</div>";
 
     /// <summary>Récapitulatif aligné à droite : la dernière ligne en gras, sur fond #fafafa, filet noir au-dessus.</summary>

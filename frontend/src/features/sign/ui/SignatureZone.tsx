@@ -208,9 +208,10 @@ export function SignatureZone({ signerName, signerRole, defaultMode = "DRAWN", r
   );
 }
 
-function Trace({ rows }: { rows: Array<[string, string]> }) {
+/** Bloc de traçabilité : libellés à gauche, valeurs à droite (planche C3). */
+export function Trace({ rows, label = dict.sign.trace }: { rows: Array<[string, string]>; label?: string }) {
   return (
-    <dl className="grid grid-cols-trace gap-x-20 gap-y-10 rounded-md border-2 border-gray-999 bg-gray-fa p-20 text-sm" aria-label={dict.sign.trace}>
+    <dl className="grid grid-cols-trace gap-x-20 gap-y-10 rounded-md border-2 border-gray-999 bg-gray-fa p-20 text-sm" aria-label={label}>
       {rows.map(([k, v]) => (
         <div key={k} className="contents">
           <dt className="text-gray-595">{k}</dt>

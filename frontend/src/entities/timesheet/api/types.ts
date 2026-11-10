@@ -42,6 +42,8 @@ export type Dashboard = {
   current: { week: WeekSummary; days: Array<{ date: string; expected: number; isFuture: boolean; filled: boolean; flagged: boolean }> };
   projects: Array<{ code: string; name: string; status: "NOT_STARTED" | "IN_PROGRESS" | "ON_HOLD" | "DONE"; start: string; end: string | null; activities: string[]; daysThisWeek: number; acceptsEntry: boolean }>;
   recent: WeekSummary[];
+  /** Fiches de présence à signer (stagiaire) : jours validés du mois, date de génération. */
+  attendance: Array<{ year: number; month: number; generatedAt: string; validatedDays: number }>;
 };
 
 /** « 2026-03-16 » → date UTC du jour (les règles et formats travaillent en dates UTC). */

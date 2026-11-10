@@ -36,8 +36,7 @@ public sealed class ViewerAccessor(TimeSheetDbContext db, IHttpContextAccessor h
         if (user.Role != Role.PLATFORM_ADMIN && user.DivisionId is null) return null;
 
         var permissions = PermissionRules.Effective(user.Role, user.Division?.Overrides);
-        // Stage (fiche de présence RH) : repris au jalon 5.
-        return new Viewer(user.Id, user.FirstName, user.LastName, user.Email, user.Role, user.DivisionId, user.Division?.Name, permissions, IsIntern: false);
+        return new Viewer(user.Id, user.FirstName, user.LastName, user.Email, user.Role, user.DivisionId, user.Division?.Name, permissions, IsIntern: await db.Internships.AnyAsync(i => i.UserId == user.Id, cancellationToken), DefaultSignatureMode: user.DefaultSignatureMode.ToString());
     }
 
     public async Task<Viewer> RequireAsync(CancellationToken cancellationToken = default)

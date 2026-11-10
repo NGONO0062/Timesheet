@@ -276,7 +276,7 @@ public static class Validation
     public const int MaxSelection = 200;
     public const int MaxReason = 2000;
 
-    public sealed class DecideHandler(TimeSheetDbContext db, IViewerAccessor viewers, IEntryContext entry, IAuditWriter audit, IMailSender mail, IConfiguration configuration, TimeProvider clock)
+    public sealed class DecideHandler(TimeSheetDbContext db, IViewerAccessor viewers, IEntryContext entry, IAuditWriter audit, IMailSender mail, IConfiguration configuration, TimeProvider clock, Attendance.Features.IAttendanceService attendance)
         : IRequestHandler<DecideCommand, DecisionResult>
     {
         public async Task<DecisionResult> Handle(DecideCommand request, CancellationToken cancellationToken)
@@ -349,6 +349,9 @@ public static class Validation
                 var person = people[sheet.UserId];
                 var week = sheet.Week;
                 await audit.AppendAsync(validated ? "TIMESHEET_VALIDATED" : "TIMESHEET_REJECTED", viewer.FullName, $"Semaine {week.Week} · {person.FullName}", AuditResult.SUCCESS, viewer.UserId, sheet.DivisionId, cancellationToken: cancellationToken);
+
+                // Mois entièrement validé : la fiche de présence du stagiaire est générée (§9.7).
+                if (validated) await attendance.GenerateIfReadyAsync(sheet.DivisionId, sheet.UserId, week, clock.GetUtcNow(), cancellationToken);
 
                 var frame = await entry.FrameAsync(viewer.Scope, week, cancellationToken);
                 var range = FrenchFormat.Range(frame.Days[0].Date, frame.Days[^1].Date);

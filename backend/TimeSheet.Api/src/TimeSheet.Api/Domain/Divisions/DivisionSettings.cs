@@ -22,6 +22,14 @@ public class DivisionSettings
 
     public static DivisionSettings Defaults(Guid divisionId) => new() { DivisionId = divisionId };
 
+    /// <summary>Adresse des RH et envoi automatique de la fiche de présence signée (écran 12).</summary>
+    public DivisionSettings WithHr(string? email, bool autoSend)
+    {
+        HrEmail = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
+        HrAutoSend = autoSend;
+        return this;
+    }
+
     public DivisionSettings WithFutureWeeks(bool allowed)
     {
         AllowFutureWeeks = allowed;

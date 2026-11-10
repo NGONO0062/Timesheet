@@ -14,10 +14,10 @@ using TimeSheet.Api.Services.Audit;
 using TimeSheet.Api.Services.Security;
 
 /// <summary>Utilisateur connecté, tel que l'interface le voit.</summary>
-public sealed record ViewerDto(Guid UserId, string FirstName, string LastName, string Email, string Role, Guid? DivisionId, string? DivisionName, string[] Permissions, bool IsIntern)
+public sealed record ViewerDto(Guid UserId, string FirstName, string LastName, string Email, string Role, Guid? DivisionId, string? DivisionName, string[] Permissions, bool IsIntern, string DefaultSignatureMode)
 {
     public static ViewerDto From(Viewer v) =>
-        new(v.UserId, v.FirstName, v.LastName, v.Email, v.Role.ToString(), v.DivisionId, v.DivisionName, v.Permissions.Select(p => p.ToString()).Order().ToArray(), v.IsIntern);
+        new(v.UserId, v.FirstName, v.LastName, v.Email, v.Role.ToString(), v.DivisionId, v.DivisionName, v.Permissions.Select(p => p.ToString()).Order().ToArray(), v.IsIntern, v.DefaultSignatureMode);
 }
 
 public sealed record SignInRequest(string? Email, string? Password);
