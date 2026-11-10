@@ -353,6 +353,8 @@ public static class Validation
                 // Mois entièrement validé : la fiche de présence du stagiaire est générée (§9.7).
                 if (validated) await attendance.GenerateIfReadyAsync(sheet.DivisionId, sheet.UserId, week, clock.GetUtcNow(), cancellationToken);
 
+                // Préférence de l'écran 14 : la personne peut couper ces e-mails.
+                if (!person.Wants(validated ? Users.NotificationKind.Validated : Users.NotificationKind.Rejected)) continue;
                 var frame = await entry.FrameAsync(viewer.Scope, week, cancellationToken);
                 var range = FrenchFormat.Range(frame.Days[0].Date, frame.Days[^1].Date);
                 var url = $"{appUrl}/saisie/{week.Year}/{week.Week}";

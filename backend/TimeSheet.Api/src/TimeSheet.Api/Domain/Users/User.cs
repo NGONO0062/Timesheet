@@ -27,8 +27,46 @@ public class User : BaseEntity
     public string UsualDeparture { get; private set; } = "17:00";
     /// <summary>Mode de signature proposé d'abord (écran 14) : tracé ou mot de passe.</summary>
     public Attendance.SignatureMethod DefaultSignatureMode { get; private set; } = Attendance.SignatureMethod.DRAWN;
+    /// <summary>Langue de l'interface (écran 14) : le français seulement pour l'instant (point 53).</summary>
+    public string Locale { get; private set; } = "fr";
+    /// <summary>Préférences de notification (écran 14). Sans réglage, tout est actif.</summary>
+    public bool NotifyFillReminder { get; private set; } = true;
+    public bool NotifyValidated { get; private set; } = true;
+    public bool NotifyRejected { get; private set; } = true;
+    public bool NotifySignatureReminder { get; private set; } = true;
 
     public string FullName => $"{FirstName} {LastName}";
+
+    /// <summary>La personne veut-elle cet e-mail ? (écran 14)</summary>
+    public bool Wants(NotificationKind kind) => kind switch
+    {
+        NotificationKind.FillReminder => NotifyFillReminder,
+        NotificationKind.Validated => NotifyValidated,
+        NotificationKind.Rejected => NotifyRejected,
+        _ => NotifySignatureReminder,
+    };
+
+    /// <summary>Change une préférence ; renvoie l'ancienne valeur (pour « Annuler »).</summary>
+    public bool SetNotification(NotificationKind kind, bool enabled)
+    {
+        var previous = Wants(kind);
+        switch (kind)
+        {
+            case NotificationKind.FillReminder: NotifyFillReminder = enabled; break;
+            case NotificationKind.Validated: NotifyValidated = enabled; break;
+            case NotificationKind.Rejected: NotifyRejected = enabled; break;
+            default: NotifySignatureReminder = enabled; break;
+        }
+        return previous;
+    }
+
+    public void SetSignatureMode(Attendance.SignatureMethod mode) => DefaultSignatureMode = mode;
+
+    public void Rename(string firstName, string lastName)
+    {
+        FirstName = firstName.Trim();
+        LastName = lastName.Trim();
+    }
 
     public static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 

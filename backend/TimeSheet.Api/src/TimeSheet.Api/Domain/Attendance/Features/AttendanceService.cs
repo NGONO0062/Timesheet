@@ -120,7 +120,7 @@ public sealed class AttendanceService(
             db.AttendanceSheets.Add(sheet);
             await db.SaveChangesAsync(cancellationToken);
             await audit.AppendAsync("ATTENDANCE_GENERATED", "TimeSheet", Label(sheet, user.FullName), AuditResult.SUCCESS, divisionId: divisionId, metadata: new { sheetId = sheet.Id }, cancellationToken: cancellationToken);
-            await mail.SendAsync(MailTemplates.AttendanceToSign(user.Email, user.FirstName, MonthLower(sheet), AppUrl($"/fiche-presence/{year}/{month}")), cancellationToken);
+            if (user.Wants(Users.NotificationKind.SignatureReminder)) await mail.SendAsync(MailTemplates.AttendanceToSign(user.Email, user.FirstName, MonthLower(sheet), AppUrl($"/fiche-presence/{year}/{month}")), cancellationToken);
         }
     }
 
@@ -255,7 +255,7 @@ public sealed class AttendanceService(
         await audit.AppendAsync("ATTENDANCE_SIGNED", viewer.FullName, label, AuditResult.SUCCESS, viewer.UserId, scope.DivisionId, new { role = "STAFF", method = method.ToString(), sha256 = digest }, cancellationToken);
 
         var manager = parts.ManagerId is { } m ? await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == m && u.Active, cancellationToken) : null;
-        if (manager is not null)
+        if (manager is not null && manager.Wants(Users.NotificationKind.SignatureReminder))
             await mail.SendAsync(MailTemplates.AttendanceSupervisor(manager.Email, manager.FirstName, parts.InternName, MonthLower(sheet), AppUrl($"/validation/presence/{sheet.Id}")), cancellationToken);
         return new SignResult(sheet.Status.ToString(), manager?.FullName, null, false);
     }
@@ -312,7 +312,7 @@ public sealed class AttendanceService(
         sheet.Reject(motif, clock.GetUtcNow());
         await db.SaveChangesAsync(cancellationToken);
         await audit.AppendAsync("ATTENDANCE_REJECTED", viewer.FullName, Label(sheet, intern.FullName), AuditResult.SUCCESS, viewer.UserId, scope.DivisionId, new { reason = motif }, cancellationToken);
-        await mail.SendAsync(MailTemplates.AttendanceRejected(intern.Email, intern.FirstName, viewer.FullName, MonthLower(sheet), motif, AppUrl($"/fiche-presence/{sheet.Year}/{sheet.Month}")), cancellationToken);
+        if (intern.Wants(Users.NotificationKind.SignatureReminder)) await mail.SendAsync(MailTemplates.AttendanceRejected(intern.Email, intern.FirstName, viewer.FullName, MonthLower(sheet), motif, AppUrl($"/fiche-presence/{sheet.Year}/{sheet.Month}")), cancellationToken);
         return intern.FullName;
     }
 

@@ -1,10 +1,13 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
+import { ForgotPasswordPage, LinkPasswordPage } from "@/pages/account";
+import { AdminPage } from "@/pages/admin";
 import { AttendanceIndexPage, AttendanceMonthPage } from "@/pages/attendance";
 import { SupervisedListPage, SupervisedSheetPage } from "@/pages/attendance-supervision";
 import { DashboardPage } from "@/pages/dashboard";
 import { DivisionPage } from "@/pages/division";
 import { ProjectsPage } from "@/pages/projects";
 import { ReportingPage } from "@/pages/reporting";
+import { SettingsPage } from "@/pages/settings";
 import { C1Page, C2aPage, C2bPage, C3Page, C4Page, DesignPage } from "@/pages/design";
 import { ValidationQueuePage } from "@/pages/validation-queue";
 import { ValidationReviewPage } from "@/pages/validation-review";
@@ -23,8 +26,6 @@ const design: RouteObject[] = [
 
 /** Écrans des jalons suivants (docs/reecriture.md) : présents dans la navigation, en préparation. */
 const UPCOMING: Array<[href: string, title: string, milestone: number]> = [
-  ["/administration", "Administration", 6],
-  ["/parametres", "Paramètres", 6],
   ["/plateforme", "Divisions", 7],
   ["/plateforme/journal", "Journal d'audit", 7],
   ["/taches", "Tâches", 8],
@@ -36,6 +37,10 @@ const review = (element: React.ReactNode) => <RequirePermission permission="VALI
 /** Routes de l'application. Les écrans s'ajoutent jalon par jalon. */
 export const router = createBrowserRouter([
   { path: "/connexion", element: <PublicOnly /> },
+  // Pages publiques (jalon 6) : mot de passe oublié, liens d'invitation et de réinitialisation.
+  { path: "/mot-de-passe-oublie", element: <ForgotPasswordPage /> },
+  { path: "/invitation/:token", element: <LinkPasswordPage kind="invitation" /> },
+  { path: "/reinitialisation/:token", element: <LinkPasswordPage kind="reinitialisation" /> },
   {
     element: <Protected />,
     children: [
@@ -56,6 +61,9 @@ export const router = createBrowserRouter([
       { path: "/fiche-presence/:year/:month", element: <RequireIntern><AttendanceMonthPage /></RequireIntern> },
       { path: "/validation/presence", element: review(<SupervisedListPage />) },
       { path: "/validation/presence/:id", element: review(<SupervisedSheetPage />) },
+      // Jalon 6 : administration de division (écran 12) et paramètres (écran 14).
+      { path: "/administration", element: <RequirePermission permission="ADMINISTER_DIVISION"><AdminPage /></RequirePermission> },
+      { path: "/parametres", element: <SettingsPage /> },
       ...UPCOMING.map(([href, title, milestone]) => ({ path: href, element: <Upcoming href={href} title={title} milestone={milestone} /> })),
       { path: "*", element: <NotFound /> },
     ],

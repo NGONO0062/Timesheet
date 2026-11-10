@@ -75,6 +75,10 @@
   --spacing-pad: 200px;
   /* Fiche de présence : hauteur de la feuille A4 paysage (squelette de chargement). */
   --spacing-sheet-h: 794px;
+  /* Écrans 12 et 14 : champ d'heure (échéance), horaires et seuil, formulaires étroits. */
+  --spacing-time: 100px;
+  --spacing-hours: 160px;
+  --container-form: 480px;
   /* Barre latérale de navigation (bureau) et panneau de navigation (mobile). */
   --spacing-sidenav: 240px;
   --spacing-nav-panel: 280px;

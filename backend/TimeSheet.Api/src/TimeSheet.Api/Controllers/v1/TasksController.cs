@@ -29,6 +29,17 @@ public sealed class TasksController(IMediator mediator, IConfiguration configura
         return Ok(new { relances = await mediator.Send(new Validation.RemindersCommand(), cancellationToken) });
     }
 
+    /// <summary>
+    /// Rappel de saisie (préférence de l'écran 14), le vendredi à 12:00 :
+    /// <c>curl -X POST -H "Authorization: Bearer $TASKS_SECRET" https://…/api/v1/taches/rappels-saisie</c>
+    /// </summary>
+    [HttpPost("rappels-saisie")]
+    public async Task<IActionResult> FillReminders(CancellationToken cancellationToken)
+    {
+        if (!Authorized()) return Unauthorized();
+        return Ok(new { rappels = await mediator.Send(new FillReminders.Command(), cancellationToken) });
+    }
+
     /// <summary>Comparaison en temps constant, sur les empreintes : même longueur quelle que soit l'entrée.</summary>
     private bool Authorized()
     {

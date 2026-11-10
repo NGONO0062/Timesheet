@@ -218,7 +218,8 @@ public static class Consolidated
 
             var days = WeekRules.WorkingDays(week, f.Settings.WorkingDays);
             var url = $"{(configuration["APP_URL"] ?? "http://localhost:5173").TrimEnd('/')}/saisie/{week.Year}/{week.Week}";
-            var ok = await mail.SendAsync(MailTemplates.FillReminder(person.Email, person.FirstName, week.Week, FrenchFormat.Range(days[0], days[^1]),
+            // La préférence « rappel de saisie » de l'écran 14 s'applique aussi à cette relance.
+            var ok = !person.Wants(Users.NotificationKind.FillReminder) || await mail.SendAsync(MailTemplates.FillReminder(person.Email, person.FirstName, week.Week, FrenchFormat.Range(days[0], days[^1]),
                 FrenchFormat.Date(WeekRules.DoualaDay(f.Deadline(week))), url), cancellationToken);
             await audit.AppendAsync("FILL_REMINDER_SENT", viewer.FullName, $"Semaine {week.Week} de {week.Year} · {person.FullName}", ok ? AuditResult.SUCCESS : AuditResult.FAILURE, viewer.UserId, scope.DivisionId, cancellationToken: cancellationToken);
             if (!ok) throw new RuleException("mailFailed");

@@ -43,7 +43,13 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
         builder.Property(u => u.UsualArrival).IsRequired().HasMaxLength(5).HasDefaultValue("08:00");
         builder.Property(u => u.UsualDeparture).IsRequired().HasMaxLength(5).HasDefaultValue("17:00");
-        builder.Property(u => u.DefaultSignatureMode).HasConversion<string>().HasMaxLength(20).HasDefaultValueSql("'DRAWN'");
+        builder.Property(u => u.DefaultSignatureMode).HasConversion<string>().HasMaxLength(20).HasDefaultValueSql("'DRAWN'").ValueGeneratedNever();
+        builder.Property(u => u.Locale).IsRequired().HasMaxLength(5).HasDefaultValue("fr");
+        // Valeur par défaut en base pour les comptes existants ; EF envoie toujours la valeur (false compris).
+        builder.Property(u => u.NotifyFillReminder).HasDefaultValue(true).ValueGeneratedNever();
+        builder.Property(u => u.NotifyValidated).HasDefaultValue(true).ValueGeneratedNever();
+        builder.Property(u => u.NotifyRejected).HasDefaultValue(true).ValueGeneratedNever();
+        builder.Property(u => u.NotifySignatureReminder).HasDefaultValue(true).ValueGeneratedNever();
         builder.HasOne(u => u.Division).WithMany().HasForeignKey(u => u.DivisionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<User>().WithMany().HasForeignKey(u => u.ManagerId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Team>().WithMany().HasForeignKey(u => u.TeamId).OnDelete(DeleteBehavior.SetNull);
@@ -74,5 +80,18 @@ public sealed class AuditEntryConfiguration : IEntityTypeConfiguration<AuditEntr
         builder.HasIndex(a => new { a.DivisionId, a.At });
         builder.HasIndex(a => new { a.Action, a.At });
         builder.HasIndex(a => new { a.Action, a.ObjectLabel, a.RecordedAt });
+    }
+}
+
+public sealed class PasswordTokenConfiguration : IEntityTypeConfiguration<PasswordToken>
+{
+    public void Configure(EntityTypeBuilder<PasswordToken> builder)
+    {
+        builder.HasKey(t => t.Id);
+        builder.HasIndex(t => t.TokenHash).IsUnique();
+        builder.HasIndex(t => new { t.UserId, t.Kind });
+        builder.Property(t => t.TokenHash).HasMaxLength(64);
+        builder.Property(t => t.Kind).HasConversion<string>().HasMaxLength(20);
+        builder.HasOne<User>().WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }

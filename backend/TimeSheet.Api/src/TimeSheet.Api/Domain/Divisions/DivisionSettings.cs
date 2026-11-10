@@ -36,6 +36,32 @@ public class DivisionSettings
         return this;
     }
 
+    /// <summary>
+    /// Workflow (écran 12). La validation par l'owner (N+2) n'est pas encore branchée (point 52) :
+    /// elle reste désactivée.
+    /// </summary>
+    public DivisionSettings WithWorkflow(string hrEmail, bool hrAutoSend, int reminderAfterWorkingDays, bool delegateToOwner)
+    {
+        OwnerValidation = false;
+        HrEmail = hrEmail.Trim().ToLowerInvariant();
+        HrAutoSend = hrAutoSend;
+        ReminderAfterWorkingDays = reminderAfterWorkingDays;
+        DelegateToOwner = delegateToOwner;
+        return this;
+    }
+
+    /// <summary>Règles de saisie (écran 12), contrôlées par <see cref="Admin.AdminRules.CheckRules"/>.</summary>
+    public DivisionSettings WithRules(DayOfWeek[] workingDays, DayOfWeek deadlineDay, string deadlineTime, int fillAlertThreshold, bool allowFutureWeeks, bool lockAfterValidation)
+    {
+        WorkingDays = workingDays;
+        DeadlineDay = deadlineDay;
+        DeadlineTime = deadlineTime.Trim();
+        FillAlertThreshold = fillAlertThreshold;
+        AllowFutureWeeks = allowFutureWeeks;
+        LockAfterValidation = lockAfterValidation;
+        return this;
+    }
+
     protected DivisionSettings() { } // EF
 }
 

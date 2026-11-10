@@ -120,6 +120,56 @@ public static class E2eSeed
         }
         db.AttendanceSheets.Add(AttendanceSheet.Generate(division.Id, ines.Id, 2026, 2, new DateTimeOffset(2026, 3, 9, 8, 0, 0, douala).ToUniversalTime()));
         await db.SaveChangesAsync(cancellationToken);
-        return "Division de test prête (valideur.e2e, saisie.e2e, alice/bruno/chloe/david.e2e, stagiaire.e2e).";
+        await AdminDivisionAsync(db, hash, cancellationToken);
+        return "Division de test prête (valideur.e2e, saisie.e2e, alice/bruno/chloe/david.e2e, stagiaire.e2e) ; division d'administration de test (admin.e2e, chef.e2e, regle.e2e, cible.e2e, reglages.e2e, stage.e2e).";
+    }
+
+    public const string AdminSlug = "e2e-administration";
+
+    /// <summary>
+    /// Administration et Paramètres (jalon 6) : une seconde division, pour que le changement des
+    /// règles de saisie ou des permissions ne gêne pas les autres tests, qui tournent en parallèle.
+    /// Créée une fois (les tests de bout en bout repartent d'une base neuve, `--seed-fresh`).
+    /// </summary>
+    private static async Task AdminDivisionAsync(TimeSheetDbContext db, string hash, CancellationToken cancellationToken)
+    {
+        if (await db.Divisions.AnyAsync(d => d.Slug == AdminSlug, cancellationToken)) return;
+        var division = Division.Create("Division d'administration de test", AdminSlug, "TEST", status: DivisionStatus.ACTIVE);
+        db.Divisions.Add(division);
+        db.DivisionSettings.Add(DivisionSettings.Defaults(division.Id).WithHr("rh.e2e@exemple.com", autoSend: true));
+        await db.SaveChangesAsync(cancellationToken);
+
+        User Account(string email, string first, string last, Role role)
+        {
+            var user = User.Create(division.Id, email, first, last, role);
+            user.SetPassword(hash);
+            db.Users.Add(user);
+            return user;
+        }
+        Account("admin.e2e@exemple.com", "Adèle", "Admin", Role.DIVISION_ADMIN);
+        var chef = Account("chef.e2e@exemple.com", "Hugo", "Chef", Role.MANAGER);
+        await db.SaveChangesAsync(cancellationToken);
+        var team = Domain.Teams.Team.Create(division.Id, "Équipe test", chef.Id);
+        db.Teams.Add(team);
+        // Rita : saisie de la semaine 12 (règles appliquées) ; Théo : rôle et compte changés ;
+        // Sacha : écran Paramètres ; Inès : déclarée stagiaire par l'admin.
+        var members = new[]
+        {
+            Account("regle.e2e@exemple.com", "Rita", "Règle", Role.STAFF),
+            Account("cible.e2e@exemple.com", "Théo", "Cible", Role.STAFF),
+            Account("reglages.e2e@exemple.com", "Sacha", "Réglages", Role.STAFF),
+            Account("stage.e2e@exemple.com", "Inès", "Stage", Role.STAFF),
+        };
+        await db.SaveChangesAsync(cancellationToken);
+        foreach (var m in members)
+        {
+            m.AssignManager(chef.Id);
+            m.AssignTeam(team.Id);
+        }
+        var project = Project.Create(division.Id, "ADM-2026-01", "Projet d'administration", new DateOnly(2026, 1, 1), new DateOnly(2026, 12, 31), null, ProjectStatus.IN_PROGRESS, DateTimeOffset.UtcNow, chef.Id);
+        project.AddActivity("Analyse");
+        foreach (var m in members.Take(3)) project.AddMember(m.Id);
+        db.Projects.Add(project);
+        await db.SaveChangesAsync(cancellationToken);
     }
 }

@@ -614,6 +614,43 @@ namespace TimeSheet.Api.Databases.Migrations
                     b.ToTable("TimesheetEvent");
                 });
 
+            modelBuilder.Entity("TimeSheet.Api.Domain.Users.PasswordToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "Kind");
+
+                    b.ToTable("PasswordTokens");
+                });
+
             modelBuilder.Entity("TimeSheet.Api.Domain.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -631,7 +668,6 @@ namespace TimeSheet.Api.Databases.Migrations
 
                     b.Property<string>("DefaultSignatureMode")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasDefaultValueSql("'DRAWN'");
@@ -655,8 +691,31 @@ namespace TimeSheet.Api.Databases.Migrations
                     b.Property<string>("LastName")
                         .HasColumnType("text");
 
+                    b.Property<string>("Locale")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasDefaultValue("fr");
+
                     b.Property<Guid?>("ManagerId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("NotifyFillReminder")
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("NotifyRejected")
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("NotifySignatureReminder")
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("NotifyValidated")
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
@@ -877,6 +936,15 @@ namespace TimeSheet.Api.Databases.Migrations
                     b.HasOne("TimeSheet.Api.Domain.Timesheets.Timesheet", null)
                         .WithMany("Events")
                         .HasForeignKey("TimesheetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TimeSheet.Api.Domain.Users.PasswordToken", b =>
+                {
+                    b.HasOne("TimeSheet.Api.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

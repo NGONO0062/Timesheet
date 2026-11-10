@@ -39,6 +39,17 @@ public class Internship
     public static Internship Create(Guid userId, InternshipKind kind, string direction, string department, string service, DateOnly start, DateOnly end) =>
         new() { UserId = userId, Kind = kind, Direction = direction.Trim(), Department = department.Trim(), Service = service.Trim(), StartDate = start, EndDate = end };
 
+    /// <summary>Stage corrigé par l'admin de division (fenêtre « Modifier », écran 12).</summary>
+    public void Update(InternshipKind kind, string direction, string department, string service, DateOnly start, DateOnly end)
+    {
+        Kind = kind;
+        Direction = direction.Trim();
+        Department = department.Trim();
+        Service = service.Trim();
+        StartDate = start;
+        EndDate = end;
+    }
+
     protected Internship() { } // EF
 }
 

@@ -41,6 +41,7 @@ public sealed class TimeSheetDbContext(DbContextOptions<TimeSheetDbContext> opti
     public DbSet<Domain.Attendance.Internship> Internships { get; set; }
     public DbSet<Domain.Attendance.AttendanceSheet> AttendanceSheets { get; set; }
     public DbSet<Domain.Attendance.Signature> Signatures { get; set; }
+    public DbSet<PasswordToken> PasswordTokens { get; set; }
     #endregion DbSet Region - Do Not Delete
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

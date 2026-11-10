@@ -72,6 +72,22 @@ export function Pagination({ page, pageCount, href, label = dict.nav.pagination 
   );
 }
 
+/** Ancres d'une page longue (« Sur cette page : », planches 12 et 14). */
+export function AnchorNav({ label, items }: { label: string; items: Array<{ id: string; label: string }> }) {
+  return (
+    <nav aria-labelledby="sur-cette-page" className="flex flex-wrap items-baseline gap-x-30 gap-y-10">
+      <p id="sur-cette-page" className="text-sm text-gray-595">
+        {label}
+      </p>
+      {items.map((x) => (
+        <a key={x.id} href={`#${x.id}`}>
+          {x.label}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 /** Stepped process ODS. `current` : index de l'étape en cours (0 = première). */
 export function SteppedProcess({ steps, current, label }: { steps: string[]; current: number; label: string }) {
   return (

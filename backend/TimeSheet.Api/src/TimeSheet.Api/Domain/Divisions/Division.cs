@@ -40,6 +40,15 @@ public class Division : BaseEntity
 
     public IEnumerable<MatrixOverride> Overrides => _permissions.Select(p => new MatrixOverride(p.Role, p.Permission, p.Granted));
 
+    /// <summary>Remplace tous les réglages de la matrice (écran 12) : seuls les écarts à la matrice par défaut sont gardés.</summary>
+    public void ReplaceMatrix(IEnumerable<MatrixOverride> overrides)
+    {
+        var wanted = overrides.Where(o => o.Role != Role.PLATFORM_ADMIN && !PermissionRules.IsLocked(o.Role, o.Permission)).ToList();
+        // Mise à jour en place : une ligne gardée n'est ni supprimée ni recréée (même clé).
+        _permissions.RemoveAll(p => !wanted.Any(o => o.Role == p.Role && o.Permission == p.Permission));
+        foreach (var o in wanted) SetPermission(o.Role, o.Permission, o.Granted);
+    }
+
     protected Division() { } // EF
 }
 

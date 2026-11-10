@@ -14,10 +14,10 @@ public static class MailTemplates
     private static string Escape(string s) => DocumentHtml.Escape(s);
 
     /// <summary>Assemble un e-mail : salutation, paragraphes, lien, signature.</summary>
-    private static MailMessage Compose(string to, string subject, string firstName, IReadOnlyList<string> paragraphs, string url)
+    private static MailMessage Compose(string to, string subject, string firstName, IReadOnlyList<string> paragraphs, string url, string link = "Ouvrir la fiche")
     {
         var hello = $"Bonjour {firstName},";
-        var text = string.Join("\n\n", new[] { hello }.Concat(paragraphs).Append($"Ouvrir la fiche : {url}").Append(Signature));
+        var text = string.Join("\n\n", new[] { hello }.Concat(paragraphs).Append($"{link} : {url}").Append(Signature));
         var html = $"<div style=\"max-width:640px;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.4;color:#000000\">{DocumentHtml.Head([DocumentHtml.Issuer], subject, [], size: 14, upper: false)}<div style=\"padding:20px 0\">"
                    + string.Concat(new[] { hello }.Concat(paragraphs).Select(p => $"<p>{Escape(p)}</p>"))
                    + $"<p><a href=\"{Escape(url)}\" style=\"color:#000000;text-decoration:underline\">{Escape(url)}</a></p>"
@@ -82,4 +82,19 @@ public static class MailTemplates
             [count > 1
                 ? $"{count} fiches de l'équipe {team} attendent votre décision depuis plus de {days} jours ouvrés."
                 : $"{count} fiche de l'équipe {team} attend votre décision depuis plus de {days} jours ouvrés."], url);
+
+    /// <summary>Invitation (PROMPT.md §19) : premier mot de passe, lien valable 7 jours.</summary>
+    public static MailMessage Invitation(string to, string firstName, string division, string inviter, string url) =>
+        Compose(to, $"Votre accès à TimeSheet · {division}", firstName,
+            [$"{inviter} vous a créé un compte TimeSheet dans la division {division}. Choisissez votre mot de passe avec le lien ci-dessous, valable 7 jours."], url, "Choisir mon mot de passe");
+
+    /// <summary>Mot de passe oublié : lien valable une heure.</summary>
+    public static MailMessage Reset(string to, string firstName, string url) =>
+        Compose(to, "Réinitialisation de votre mot de passe TimeSheet", firstName,
+            ["Une demande de réinitialisation a été faite pour votre compte. Choisissez un nouveau mot de passe avec le lien ci-dessous, valable une heure. Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : votre mot de passe reste inchangé."], url, "Choisir un nouveau mot de passe");
+
+    /// <summary>Rappel du vendredi à 12:00 (écran 14) : la semaine en cours est incomplète, avant l'échéance.</summary>
+    public static MailMessage FillUpcoming(string to, string firstName, int week, string range, string done, string expected, string deadline, string url) =>
+        Compose(to, $"Semaine {week} incomplète : échéance {deadline}", firstName,
+            [$"Votre fiche de la semaine {week} ({range}) compte {done} sur {expected}. Pensez à la compléter et à la soumettre avant l'échéance, {deadline}."], url);
 }
