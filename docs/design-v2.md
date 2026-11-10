@@ -53,6 +53,7 @@ Avant, « En attente » portait un « i » (information) et quatre statuts jaune
 - **Pas de doublon** : une semaine présente dans « À faire » n'est pas répétée dans « Dernières semaines » avec la même action.
 - **« Mes projets » replié** pour un staff (titre et nombre de projets, dépliable) : budgets et activités ne servent pas au quotidien.
 - **Moins de cadres** : pas de carte dans une carte ; l'espacement (30 px entre blocs) sépare les sections.
+- **Semaine en cours sans sélecteur de semaine** : le tableau de bord montre la semaine courante ; on change de semaine sur l'écran de saisie, ou par « Dernières semaines ». Le numéro et la période sont écrits sous le titre.
 
 ## 6. File de validation (écrans 07 et 08, jalon 3)
 

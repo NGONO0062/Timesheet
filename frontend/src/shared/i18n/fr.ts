@@ -278,6 +278,8 @@ export const fr = {
     summary: "{filled} sur {expected} jours saisis",
     flagged: "{day} : journée signalée par votre manager ({project}). Réaffectez-la, ou gardez ce projet s'il est juste.",
     flagDay: "Signaler la journée du {day} ({project})",
+    goToFlagged: "Aller à la journée signalée",
+    resubmitHint: "Corrigez la journée signalée, puis soumettez à nouveau la fiche à {name}.",
     noChoiceTitle: "Aucun projet ouvert à la saisie",
     noChoiceText: "Vous n'êtes membre d'aucun projet en cours cette semaine. Votre manager vous ajoute aux projets ; l'absence reste toujours possible.",
   },

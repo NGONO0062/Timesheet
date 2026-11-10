@@ -4,6 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 // l'interface Vite (port 5173). Un serveur déjà lancé est réutilisé hors intégration continue.
 export default defineConfig({
   testDir: "e2e",
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   // Le hachage argon2id des connexions est coûteux : deux navigateurs à la fois suffisent.
   workers: 2,

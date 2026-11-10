@@ -109,7 +109,7 @@ export function AppShell({ viewer, children }: { viewer: Viewer; children: React
             </button>
           </div>
         </header>
-        <Dialog open={menu} onClose={() => setMenu(false)} className="relative z-50 lg:hidden">
+        <Dialog open={menu} onClose={() => setMenu(false)} className="fixed inset-0 z-50 lg:hidden">
           <DialogBackdrop className="fixed inset-0 bg-black/50" />
           <DialogPanel className="fixed inset-y-0 left-0 flex w-full max-w-nav-panel flex-col gap-20 overflow-y-auto border-r-2 border-black bg-black px-10 py-20 text-white">
             <div className="flex items-start justify-between gap-20 px-10">

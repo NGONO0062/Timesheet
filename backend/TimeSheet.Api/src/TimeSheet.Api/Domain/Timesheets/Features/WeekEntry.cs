@@ -16,6 +16,9 @@ public sealed record DecisionDto(string By, DateTimeOffset At, string? Reason);
 
 public sealed record RecentWeekDto(int Year, int Week, string Status);
 
+/// <summary>Événement de l'historique (écran 05) : soumise, rejetée, validée ; « par vous » pour la personne.</summary>
+public sealed record HistoryDto(string Type, string By, bool ByYou, DateTimeOffset At);
+
 /// <summary>Semaine de saisie (écrans 03, 04, 05), telle que l'interface l'affiche.</summary>
 public sealed record WeekDto(
     int Year,
@@ -33,7 +36,8 @@ public sealed record WeekDto(
     int SubmissionCount,
     string? Validator,
     DecisionDto? Decision,
-    IReadOnlyList<RecentWeekDto> Recent);
+    IReadOnlyList<RecentWeekDto> Recent,
+    IReadOnlyList<HistoryDto> History);
 
 public sealed record DayInput(DateOnly Date, Guid? Key);
 
@@ -43,6 +47,19 @@ public sealed record SaveResult(DateTimeOffset? SavedAt, string Status);
 public static class WeekEntry
 {
     public sealed record Query(int Year, int Week) : IRequest<WeekDto>;
+
+    /// <summary>Semaine courante sur l'horloge de l'application (lien « Saisie hebdomadaire »).</summary>
+    public sealed record CurrentQuery : IRequest<WeekRef>;
+
+    public sealed class CurrentHandler(IViewerAccessor viewers, TimeProvider clock) : IRequestHandler<CurrentQuery, WeekRef>
+    {
+        public async Task<WeekRef> Handle(CurrentQuery request, CancellationToken cancellationToken)
+        {
+            (await viewers.RequireAsync(cancellationToken)).Require(Permission.ENTER_TIME);
+            var current = WeekRules.CurrentWeek(clock.GetUtcNow());
+            return new WeekRef(current.Year, current.Week);
+        }
+    }
 
     /// <summary>Brouillon (sauvegarde automatique) ou soumission ; le serveur revérifie tout.</summary>
     public sealed record Command(int Year, int Week, IReadOnlyList<DayInput> Days, string? Comment, bool Submit) : IRequest<SaveResult>;
@@ -54,9 +71,15 @@ public static class WeekEntry
             var scope = (await viewers.RequireAsync(cancellationToken)).Require(Permission.ENTER_TIME).Scope;
             var week = WeekRequest.Parse(request.Year, request.Week);
             var frame = await entry.FrameAsync(scope, week, cancellationToken);
-            var sheet = await db.Timesheets.AsNoTracking().Include(t => t.Days)
+            var sheet = await db.Timesheets.AsNoTracking().Include(t => t.Days).Include(t => t.Events)
                 .FirstOrDefaultAsync(t => t.UserId == scope.UserId && t.WeekYear == week.Year && t.WeekNumber == week.Week, cancellationToken);
             var used = sheet?.Days.ToDictionary(d => d.Date) ?? [];
+
+            // Historique, du plus récent au plus ancien ; la création du brouillon n'y figure pas.
+            var events = sheet?.Events.Where(e => e.Type != "CREATED").OrderByDescending(e => e.At).ToList() ?? [];
+            var actorIds = events.Select(e => e.ActorId).Distinct().ToList();
+            var actors = await db.Users.AsNoTracking().Where(u => actorIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FirstName + " " + u.LastName, cancellationToken);
+            var history = events.Select(e => new HistoryDto(e.Type, actors.GetValueOrDefault(e.ActorId, ""), e.ActorId == scope.UserId, e.At)).ToList();
             var choices = (await entry.ChoicesAsync(scope, week, cancellationToken))
                 .Where(c => !c.Closed || used.Values.Any(d => d.ActivityId == c.Key))
                 .ToList();
@@ -99,7 +122,8 @@ public static class WeekEntry
                 sheet?.SubmissionCount ?? 0,
                 await entry.ValidatorNameAsync(scope, cancellationToken),
                 decision,
-                recent);
+                recent,
+                history);
         }
 
         public async Task<SaveResult> Handle(Command request, CancellationToken cancellationToken)

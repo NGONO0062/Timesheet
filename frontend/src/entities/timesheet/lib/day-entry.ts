@@ -6,13 +6,13 @@ import type { DayStatus } from "@/shared/lib/status";
 import { submitCheck, type SubmitCheck } from "./rules";
 
 /** Projet et activité ouverts à la saisie pour la personne (membre d'un projet en cours, ou absence). */
-export type DayChoice = { key: string; project: string; activity: string };
+export type DayChoice = { key: string; project: string; activity: string; /** Projet fermé depuis : lisible, plus choisissable. */ closed?: boolean };
 
 /** Choix d'une journée : la clé d'un DayChoice, ou null (rien de saisi). */
 export type DayValue = string | null;
 
 export function choiceLabel(choice: DayChoice): string {
-  return `${choice.project} · ${choice.activity}`;
+  return choice.closed ? `${choice.project} · ${t(dict.grid.entryClosed, { activity: choice.activity })}` : `${choice.project} · ${choice.activity}`;
 }
 
 /** Statut d'une journée : « À corriger » l'emporte, puis saisie faite, puis jour à venir ou à saisir. */

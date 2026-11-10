@@ -16,6 +16,12 @@ export async function login(page: Page, email: string, password = PASSWORD) {
   await page.getByRole("button", { name: "Se connecter" }).click();
 }
 
+/** Connexion réussie : attend de quitter l'écran de connexion (session établie). */
+export async function signedIn(page: Page, email: string, password = PASSWORD) {
+  await login(page, email, password);
+  await page.waitForURL((url) => !url.pathname.startsWith("/connexion"));
+}
+
 /** Violations axe sérieuses ou critiques de la page. */
 export async function axe(page: Page) {
   // Pointeur écarté : un lien survolé prend #f16e00 (3,0:1, compensé par le soulignement, §14).

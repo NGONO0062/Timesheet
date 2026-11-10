@@ -16,6 +16,9 @@ public sealed class EntryController(IMediator mediator) : ControllerBase
     [HttpGet("tableau-de-bord")]
     public Task<DashboardDto> Dashboard(CancellationToken cancellationToken) => mediator.Send(new Dashboard.Query(), cancellationToken);
 
+    [HttpGet("saisie/courante")]
+    public Task<WeekRef> Current(CancellationToken cancellationToken) => mediator.Send(new WeekEntry.CurrentQuery(), cancellationToken);
+
     [HttpGet("saisie/{year:int}/{week:int}")]
     public Task<WeekDto> Week(int year, int week, CancellationToken cancellationToken) => mediator.Send(new WeekEntry.Query(year, week), cancellationToken);
 

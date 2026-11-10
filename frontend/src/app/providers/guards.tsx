@@ -1,5 +1,6 @@
 // Accès aux routes (PROMPT.md §6). L'API fait les vrais contrôles à chaque requête ;
 // ici, l'interface évite seulement d'afficher ce qui serait refusé.
+import type { ReactNode } from "react";
 import { Navigate, Outlet, useLocation, useOutletContext } from "react-router";
 import { homeFor, navigationFor, useViewer, type Viewer } from "@/entities/viewer";
 import { LoginPage } from "@/pages/login";
@@ -53,6 +54,12 @@ export function Upcoming({ href, title, milestone }: { href: string; title: stri
   const viewer = useCurrentViewer();
   const allowed = href === "/parametres" || navigationFor(viewer).some((item) => item.href === href);
   return allowed ? <UpcomingPage title={title} milestone={milestone} home={homeFor(viewer)} /> : <NotFoundPage home={homeFor(viewer)} />;
+}
+
+/** Écran réservé à une permission : sans elle, la page n'existe pas pour l'utilisateur. */
+export function RequirePermission({ permission, children }: { permission: Viewer["permissions"][number]; children: ReactNode }) {
+  const viewer = useCurrentViewer();
+  return viewer.permissions.includes(permission) ? children : <NotFoundPage home={homeFor(viewer)} />;
 }
 
 export function NotFound() {

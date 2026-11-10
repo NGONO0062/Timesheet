@@ -1,6 +1,8 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
+import { DashboardPage } from "@/pages/dashboard";
 import { C1Page, C2aPage, C2bPage, C3Page, C4Page, DesignPage } from "@/pages/design";
-import { Home, NotFound, Protected, PublicOnly, Upcoming } from "./guards";
+import { CurrentWeekRedirect, WeekEntryPage } from "@/pages/week-entry";
+import { Home, NotFound, Protected, PublicOnly, RequirePermission, Upcoming } from "./guards";
 
 // Composants dans tous leurs états, à comparer aux planches de design/captures (développement seulement).
 const design: RouteObject[] = [
@@ -14,8 +16,6 @@ const design: RouteObject[] = [
 
 /** Écrans des jalons suivants (docs/reecriture.md) : présents dans la navigation, en préparation. */
 const UPCOMING: Array<[href: string, title: string, milestone: number]> = [
-  ["/tableau-de-bord", "Tableau de bord", 2],
-  ["/saisie", "Saisie hebdomadaire", 2],
   ["/validation", "Validation", 3],
   ["/projets", "Projets", 4],
   ["/reporting", "Reporting", 4],
@@ -28,6 +28,8 @@ const UPCOMING: Array<[href: string, title: string, milestone: number]> = [
   ["/taches", "Tâches", 8],
 ];
 
+const entry = (element: React.ReactNode) => <RequirePermission permission="ENTER_TIME">{element}</RequirePermission>;
+
 /** Routes de l'application. Les écrans s'ajoutent jalon par jalon. */
 export const router = createBrowserRouter([
   { path: "/connexion", element: <PublicOnly /> },
@@ -35,6 +37,10 @@ export const router = createBrowserRouter([
     element: <Protected />,
     children: [
       { index: true, element: <Home /> },
+      // Jalon 2 : saisie (écrans 02 à 05).
+      { path: "/tableau-de-bord", element: entry(<DashboardPage />) },
+      { path: "/saisie", element: entry(<CurrentWeekRedirect />) },
+      { path: "/saisie/:year/:week", element: entry(<WeekEntryPage />) },
       ...UPCOMING.map(([href, title, milestone]) => ({ path: href, element: <Upcoming href={href} title={title} milestone={milestone} /> })),
       { path: "*", element: <NotFound /> },
     ],

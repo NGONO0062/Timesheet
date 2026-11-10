@@ -34,7 +34,7 @@ type ModalProps = {
 /** Modal ODS. Réservée à ce qui engage : soumettre une semaine, signer, rejeter. */
 export function Modal({ open, onClose, title, children, footer, titleClassName }: ModalProps) {
   return (
-    <Dialog open={open} onClose={onClose} className="relative z-50">
+    <Dialog open={open} onClose={onClose} className="fixed inset-0 z-50">
       <DialogBackdrop className={BACKDROP} />
       <div className="fixed inset-0 flex items-start justify-center overflow-y-auto px-20 py-60">
         <DialogPanel className="flex w-full max-w-modal flex-col gap-20 rounded-lg border-2 border-black bg-white p-30">
@@ -75,7 +75,7 @@ export function Offcanvas({ open, onClose, title, children, footer, closeLabel =
     className,
   );
   return (
-    <Dialog open={open} onClose={onClose} className="relative z-50">
+    <Dialog open={open} onClose={onClose} className="fixed inset-0 z-50">
       <DialogBackdrop className={BACKDROP} />
       {onSubmit ? (
         <DialogPanel as="form" className={panel} onSubmit={onSubmit} noValidate>

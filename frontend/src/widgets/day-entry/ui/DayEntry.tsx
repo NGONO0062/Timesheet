@@ -111,7 +111,7 @@ export function DayEntry({ caption, days, expected, choices, values, onChange, r
                     >
                       <option value="">{dict.dayEntry.choose}</option>
                       {choices.map((c) => (
-                        <option key={c.key} value={c.key}>
+                        <option key={c.key} value={c.key} disabled={c.closed && c.key !== value}>
                           {choiceLabel(c)}
                         </option>
                       ))}

@@ -27,8 +27,9 @@ if (problems.Count > 0) throw new InvalidOperationException($"Configuration refu
 builder.ConfigureServices();
 var app = builder.Build();
 
-// « dotnet run -- --seed » : migrations, puis données de démonstration (développement seulement).
-if (args.Contains("--seed"))
+// « dotnet run -- --seed » : migrations, puis données de démonstration ; « --seed-e2e » : division
+// de test des tests de bout en bout, remise à zéro (développement seulement).
+if (args.Contains("--seed") || args.Contains("--seed-e2e"))
 {
     if (app.Environment.IsProduction()) throw new InvalidOperationException("Pas de données de démonstration en production.");
     var password = builder.Configuration["SEED_PASSWORD"];
@@ -36,7 +37,7 @@ if (args.Contains("--seed"))
     using var seedScope = app.Services.CreateScope();
     var db = seedScope.ServiceProvider.GetRequiredService<TimeSheetDbContext>();
     await db.Database.MigrateAsync();
-    Console.WriteLine(await DemoSeed.RunAsync(db, password));
+    Console.WriteLine(args.Contains("--seed-e2e") ? await E2eSeed.RunAsync(db, password) : await DemoSeed.RunAsync(db, password));
     return;
 }
 

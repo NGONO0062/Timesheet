@@ -181,8 +181,8 @@ export function TableScroll({ children, className, label }: { children: ReactNod
 /** Cellules de tableau ODS : à appliquer aux th et td (les styles de ligne sont dans TABLE). */
 export const TABLE =
   "w-full border-collapse " +
-  "[&_th]:border-b-2 [&_th]:border-gray-999 [&_th]:p-10 [&_th]:text-left [&_th]:align-middle " +
-  "[&_td]:border-b-2 [&_td]:border-gray-999 [&_td]:p-10 [&_td]:text-left [&_td]:align-middle " +
+  "[&_th]:border-b-2 [&_th]:border-gray-999 [&_th]:p-10 [&_th:not(.text-right)]:text-left [&_th]:align-middle " +
+  "[&_td]:border-b-2 [&_td]:border-gray-999 [&_td]:p-10 [&_td:not(.text-right)]:text-left [&_td]:align-middle " +
   "[&_thead_th]:border-black [&_thead_th]:font-bold [&_thead_th]:whitespace-nowrap " +
   "[&_tbody_th]:font-bold [&_tbody_tr:hover]:bg-gray-ddd " +
   "[&_tfoot_td]:border-t-2 [&_tfoot_td]:border-b-0 [&_tfoot_td]:border-black [&_tfoot_td]:font-bold " +
