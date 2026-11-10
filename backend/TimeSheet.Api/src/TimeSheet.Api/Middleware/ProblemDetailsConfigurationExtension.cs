@@ -23,7 +23,7 @@ public static class ProblemDetailsConfigurationExtension
         {
             Status = StatusCodes.Status422UnprocessableEntity,
             Title = ex.Code,
-            Extensions = { ["code"] = ex.Code },
+            Extensions = { ["code"] = ex.Code, ["fields"] = ex.Fields, ["value"] = ex.Detail },
         });
 
         // You can configure the middleware to re-throw certain types of exceptions, all exceptions or based on a predicate.

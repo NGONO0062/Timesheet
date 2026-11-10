@@ -14,7 +14,7 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
   server: {
-    port: 5173,
+    port: Number(process.env.TIMESHEET_WEB_PORT ?? 5173),
     strictPort: true,
     proxy: { "/api": { target: api, changeOrigin: false } },
   },

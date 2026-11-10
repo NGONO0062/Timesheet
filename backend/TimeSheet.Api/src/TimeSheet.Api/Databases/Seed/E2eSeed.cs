@@ -48,23 +48,26 @@ public static class E2eSeed
         var manager = await Account("valideur.e2e@exemple.com", "Martin", "Valideur", Role.MANAGER, null);
         var staff = await Account("saisie.e2e@exemple.com", "Sara", "Saisie", Role.STAFF, manager.Id);
 
-        if (!await db.Projects.AnyAsync(p => p.DivisionId == division.Id, cancellationToken))
-        {
-            var now = DateTimeOffset.UtcNow;
-            var project = Project.Create(division.Id, "TEST-01", "Projet de test", new DateOnly(2026, 1, 1), new DateOnly(2026, 12, 31), 100, ProjectStatus.IN_PROGRESS, now, manager.Id);
-            project.AddActivity("Analyse");
-            project.AddActivity("Atelier");
-            project.AddMember(staff.Id);
-            var paused = Project.Create(division.Id, "TEST-02", "Projet en pause", new DateOnly(2026, 1, 1), null, null, ProjectStatus.ON_HOLD, now, manager.Id);
-            paused.AddActivity("Rédaction");
-            paused.AddMember(staff.Id);
-            var absence = Project.Create(division.Id, "ABSENCE", "Absence", new DateOnly(2026, 1, 1), null, null, ProjectStatus.IN_PROGRESS, now, null, isSystem: true);
-            absence.AddActivity("Absence");
-            db.Projects.AddRange(project, paused, absence);
-        }
-
-        // Fiches de la division de test : on repart de zéro.
+        // Fiches, puis projets de la division de test : on repart de zéro (les tests en créent,
+        // en archivent et changent leur statut).
         db.Timesheets.RemoveRange(db.Timesheets.Where(t => t.DivisionId == division.Id));
+        await db.SaveChangesAsync(cancellationToken);
+        db.Projects.RemoveRange(db.Projects.Where(p => p.DivisionId == division.Id));
+        await db.SaveChangesAsync(cancellationToken);
+
+        var now = DateTimeOffset.UtcNow;
+        var project = Project.Create(division.Id, "TEST-01", "Projet de test", new DateOnly(2026, 1, 1), new DateOnly(2026, 12, 31), 100, ProjectStatus.IN_PROGRESS, now, manager.Id);
+        project.AddActivity("Analyse");
+        project.AddActivity("Atelier");
+        project.AddMember(staff.Id);
+        var paused = Project.Create(division.Id, "TEST-02", "Projet en pause", new DateOnly(2026, 1, 1), null, null, ProjectStatus.ON_HOLD, now, manager.Id);
+        paused.AddActivity("Rédaction");
+        paused.AddMember(staff.Id);
+        var done = Project.Create(division.Id, "TEST-03", "Projet terminé", new DateOnly(2026, 1, 5), new DateOnly(2026, 2, 27), 20, ProjectStatus.DONE, now, manager.Id);
+        done.AddActivity("Tests utilisateurs");
+        var absenceProject = Project.Create(division.Id, "ABSENCE", "Absence", new DateOnly(2026, 1, 1), null, null, ProjectStatus.IN_PROGRESS, now, null, isSystem: true);
+        absenceProject.AddActivity("Absence");
+        db.Projects.AddRange(project, paused, done, absenceProject);
         await db.SaveChangesAsync(cancellationToken);
 
         // File de Martin Valideur (écrans 07 et 08) : semaine 12 soumise par Alice, Bruno et

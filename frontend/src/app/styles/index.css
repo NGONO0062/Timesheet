@@ -63,6 +63,9 @@
   /* File de validation (planche 07) : filtres Personne et Période, colonne des cases à cocher. */
   --spacing-filter: 380px;
   --spacing-check-col: 40px;
+  /* Projets (planche 09) : colonne « Jours consommés » ; champ du budget (Offcanvas). */
+  --spacing-budget-col: 230px;
+  --container-budget: 200px;
   /* Grille de saisie : colonne Total, bouton de cellule signalée. */
   --spacing-grid-total: 110px;
   --spacing-cell: 60px;

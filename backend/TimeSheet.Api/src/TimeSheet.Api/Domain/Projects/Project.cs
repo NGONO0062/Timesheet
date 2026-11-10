@@ -64,6 +64,38 @@ public class Project : BaseEntity
         if (_members.All(m => m.UserId != userId)) _members.Add(new ProjectMember(Id, userId));
     }
 
+    public void RemoveMember(Guid userId) => _members.RemoveAll(m => m.UserId == userId);
+
+    public void RemoveActivity(Guid activityId) => _activities.RemoveAll(a => a.Id == activityId);
+
+    /// <summary>Champs du panneau de modification ; le code ne change jamais.</summary>
+    public void Update(string name, DateOnly start, DateOnly? end, int? budgetDays)
+    {
+        Name = name.Trim();
+        StartDate = start;
+        EndDate = end;
+        BudgetDays = budgetDays;
+    }
+
+    /// <summary>
+    /// Changement de statut : tous les passages sont permis, sans confirmation (§9.4). Renvoie
+    /// faux si le statut ne change pas.
+    /// </summary>
+    public bool ChangeStatus(ProjectStatus status, Guid by, DateTimeOffset now)
+    {
+        if (Status == status) return false;
+        Status = status;
+        StatusChangedAt = now;
+        StatusChangedById = by;
+        return true;
+    }
+
+    /// <summary>Archivage réversible : le projet quitte la liste, ses jours restent.</summary>
+    public void SetArchived(bool archived, DateTimeOffset now) => ArchivedAt = archived ? ArchivedAt ?? now : null;
+
+    /// <summary>Le statut ne change jamais tout seul : « Date de fin dépassée » laisse le manager décider.</summary>
+    public bool EndDatePassed(DateOnly today) => Status == ProjectStatus.IN_PROGRESS && EndDate is { } end && end < today;
+
     /// <summary>
     /// Ouvert à la saisie d'une semaine : non archivé, « En cours », et la période du projet
     /// recouvre la semaine. L'absence est toujours ouverte.

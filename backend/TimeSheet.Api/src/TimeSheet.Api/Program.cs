@@ -28,14 +28,26 @@ builder.ConfigureServices();
 var app = builder.Build();
 
 // « dotnet run -- --seed » : migrations, puis données de démonstration ; « --seed-e2e » : division
-// de test des tests de bout en bout, remise à zéro (développement seulement).
-if (args.Contains("--seed") || args.Contains("--seed-e2e"))
+// de test des tests de bout en bout, remise à zéro ; « --seed-fresh » : base des tests de bout en
+// bout recréée (démonstration et division de test), seulement sur une base « *_e2e »
+// (développement seulement).
+if (args.Contains("--seed") || args.Contains("--seed-e2e") || args.Contains("--seed-fresh"))
 {
     if (app.Environment.IsProduction()) throw new InvalidOperationException("Pas de données de démonstration en production.");
     var password = builder.Configuration["SEED_PASSWORD"];
     if (string.IsNullOrWhiteSpace(password)) throw new InvalidOperationException("SEED_PASSWORD est vide.");
     using var seedScope = app.Services.CreateScope();
     var db = seedScope.ServiceProvider.GetRequiredService<TimeSheetDbContext>();
+    if (args.Contains("--seed-fresh"))
+    {
+        var database = db.Database.GetDbConnection().Database;
+        if (!database.EndsWith("_e2e", StringComparison.Ordinal)) throw new InvalidOperationException($"--seed-fresh recrée la base : refusé sur « {database} » (base « *_e2e » attendue).");
+        await db.Database.EnsureDeletedAsync();
+        await db.Database.MigrateAsync();
+        Console.WriteLine(await DemoSeed.RunAsync(db, password));
+        Console.WriteLine(await E2eSeed.RunAsync(db, password));
+        return;
+    }
     await db.Database.MigrateAsync();
     Console.WriteLine(args.Contains("--seed-e2e") ? await E2eSeed.RunAsync(db, password) : await DemoSeed.RunAsync(db, password));
     return;

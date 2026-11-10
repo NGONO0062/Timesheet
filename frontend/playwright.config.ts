@@ -1,7 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Tests de bout en bout de la réécriture : l'API .NET (port 5000, base du seed) et
-// l'interface Vite (port 5173). Un serveur déjà lancé est réutilisé hors intégration continue.
+// Tests de bout en bout de la réécriture, isolés de l'application de développement : l'API
+// .NET sur le port 5100 et la base timesheet_api_e2e (recréée et lancée par e2e/global-setup.ts),
+// l'interface Vite sur le port 5174, qui relaie /api vers cette API.
+const WEB_PORT = 5174;
+
 export default defineConfig({
   testDir: "e2e",
   globalSetup: "./e2e/global-setup.ts",
@@ -13,7 +16,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: `http://localhost:${WEB_PORT}`,
     locale: "fr-FR",
     timezoneId: "Africa/Douala",
     trace: "retain-on-failure",
@@ -22,18 +25,11 @@ export default defineConfig({
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } } },
     { name: "mobile", use: { ...devices["Desktop Chrome"], viewport: { width: 375, height: 812 }, hasTouch: true } },
   ],
-  webServer: [
-    {
-      command: "dotnet run --project ../backend/TimeSheet.Api/src/TimeSheet.Api --launch-profile Development",
-      url: "http://localhost:5000/api/health",
-      reuseExistingServer: !process.env.CI,
-      timeout: 180_000,
-    },
-    {
-      command: "npm run dev",
-      url: "http://localhost:5173/connexion",
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-    },
-  ],
+  webServer: {
+    command: "npm run dev",
+    url: `http://localhost:${WEB_PORT}/connexion`,
+    env: { TIMESHEET_WEB_PORT: String(WEB_PORT), TIMESHEET_API_URL: "http://localhost:5100" },
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
 });
