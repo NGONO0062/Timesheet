@@ -2,7 +2,7 @@
 // Filtre, affichage et projets archivés sont gardés dans l'adresse. Le statut se change par
 // l'étiquette (ou en glissant la carte en colonnes), tout de suite, avec « Annuler ».
 import { useState } from "react";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import {
   budgetUsage,
   compareProjects,
@@ -144,9 +144,14 @@ function ProjectsView({ projects, team }: { projects: Project[]; team: Array<{ i
   );
 
   const editButton = (x: Project) => (
-    <Button variant="link" aria-label={t(p.editLabel, { name: x.name })} onClick={() => setPanel({ project: x })}>
-      {p.edit}
-    </Button>
+    <span className="flex flex-wrap items-center gap-x-20 gap-y-5">
+      <Button variant="link" aria-label={t(p.editLabel, { name: x.name })} onClick={() => setPanel({ project: x })}>
+        {p.edit}
+      </Button>
+      <Link to={`/taches?projet=${x.id}`} aria-label={t(dict.tasks.seeTasksLabel, { name: x.name })}>
+        {dict.tasks.seeTasks}
+      </Link>
+    </span>
   );
 
   const list =

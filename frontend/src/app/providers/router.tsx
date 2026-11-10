@@ -9,11 +9,12 @@ import { ProjectsPage } from "@/pages/projects";
 import { AuditPage, OnboardingPage, PlatformDivisionPage, PlatformPage } from "@/pages/platform";
 import { ReportingPage } from "@/pages/reporting";
 import { SettingsPage } from "@/pages/settings";
+import { TasksPage } from "@/pages/tasks";
 import { C1Page, C2aPage, C2bPage, C3Page, C4Page, DesignPage } from "@/pages/design";
 import { ValidationQueuePage } from "@/pages/validation-queue";
 import { ValidationReviewPage } from "@/pages/validation-review";
 import { CurrentWeekRedirect, WeekEntryPage } from "@/pages/week-entry";
-import { Home, NotFound, Protected, PublicOnly, RequireIntern, RequirePermission, RequirePlatformAdmin, Upcoming } from "./guards";
+import { Home, NotFound, Protected, PublicOnly, RequireIntern, RequirePermission, RequirePlatformAdmin, RequireTasks } from "./guards";
 
 // Composants dans tous leurs états, à comparer aux planches de design/captures (développement seulement).
 const design: RouteObject[] = [
@@ -23,11 +24,6 @@ const design: RouteObject[] = [
   { path: "/design/c2-b", element: <C2bPage /> },
   { path: "/design/c3", element: <C3Page /> },
   { path: "/design/c4", element: <C4Page /> },
-];
-
-/** Écrans des jalons suivants (docs/reecriture.md) : présents dans la navigation, en préparation. */
-const UPCOMING: Array<[href: string, title: string, milestone: number]> = [
-  ["/taches", "Tâches", 8],
 ];
 
 const entry = (element: React.ReactNode) => <RequirePermission permission="ENTER_TIME">{element}</RequirePermission>;
@@ -68,7 +64,8 @@ export const router = createBrowserRouter([
       { path: "/plateforme/journal", element: <RequirePlatformAdmin><AuditPage /></RequirePlatformAdmin> },
       { path: "/plateforme/divisions/nouvelle", element: <RequirePlatformAdmin><OnboardingPage /></RequirePlatformAdmin> },
       { path: "/plateforme/divisions/:id", element: <RequirePlatformAdmin><PlatformDivisionPage /></RequirePlatformAdmin> },
-      ...UPCOMING.map(([href, title, milestone]) => ({ path: href, element: <Upcoming href={href} title={title} milestone={milestone} /> })),
+      // Jalon 8 : tableau Kanban d'un projet (écran 15) : membres des projets et ceux qui les gèrent.
+      { path: "/taches", element: <RequireTasks><TasksPage /></RequireTasks> },
       { path: "*", element: <NotFound /> },
     ],
   },

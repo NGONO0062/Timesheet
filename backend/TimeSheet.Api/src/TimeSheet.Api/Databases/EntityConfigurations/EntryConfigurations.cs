@@ -108,3 +108,20 @@ public sealed class TimesheetEventConfiguration : IEntityTypeConfiguration<Times
         builder.HasOne<User>().WithMany().HasForeignKey(e => e.ActorId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+/// <summary>Tâches du tableau Kanban (écran 15) : lues par projet, colonne et position.</summary>
+public sealed class ProjectTaskConfiguration : IEntityTypeConfiguration<Domain.Tasks.ProjectTask>
+{
+    public void Configure(EntityTypeBuilder<Domain.Tasks.ProjectTask> builder)
+    {
+        builder.ToTable("Tasks");
+        builder.HasKey(t => t.Id);
+        builder.Property(t => t.Title).HasMaxLength(Domain.Tasks.TaskRules.TitleMax);
+        builder.Property(t => t.Status).HasConversion<string>().HasMaxLength(20);
+        builder.HasIndex(t => new { t.ProjectId, t.Status, t.Position });
+        builder.HasIndex(t => t.DivisionId);
+        builder.HasOne<Division>().WithMany().HasForeignKey(t => t.DivisionId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<Project>().WithMany().HasForeignKey(t => t.ProjectId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<User>().WithMany().HasForeignKey(t => t.CreatedById).OnDelete(DeleteBehavior.Cascade);
+    }
+}

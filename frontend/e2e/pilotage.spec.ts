@@ -51,7 +51,7 @@ test.describe("projets (écran 09)", () => {
   test("création avec erreurs, statut avec « Annuler », colonnes, archivage", async ({ page }) => {
     desktop();
     await open(page, MARTIN, "/projets", "Projets");
-    await expect(page.getByText("3 projets · 1 en cours")).toBeVisible();
+    await expect(page.getByText("4 projets · 2 en cours")).toBeVisible();
 
     // Panneau de création : erreurs sous les champs, focus sur la première.
     await page.getByRole("button", { name: "Nouveau projet" }).click();
@@ -81,7 +81,7 @@ test.describe("projets (écran 09)", () => {
     await expect(page.getByRole("status").filter({ hasText: "Projet « Projet de test e2e » créé avec le statut « En cours »." })).toBeVisible();
     await expect(row(page, "Projet de test e2e")).toContainText(/0 \/ 30\sjours · 0\s%/);
     await expect(row(page, "Projet de test e2e")).toContainText("TESTS-2026-01");
-    await expect(page.getByText("4 projets · 2 en cours")).toBeVisible();
+    await expect(page.getByText("5 projets · 3 en cours")).toBeVisible();
 
     // Statut : changement immédiat, puis « Annuler ».
     const trigger = () => row(page, "Projet terminé").getByRole("button", { name: /^Statut de Projet terminé/ });

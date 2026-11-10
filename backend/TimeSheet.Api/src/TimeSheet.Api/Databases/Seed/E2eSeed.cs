@@ -101,6 +101,16 @@ public static class E2eSeed
         }
         await db.SaveChangesAsync(cancellationToken);
 
+        // Tableau des tâches (écran 15) : David voit le projet terminé (lecture seule) et un projet
+        // à lui pour le test sur mobile, qui tourne en parallèle de celui du bureau (TEST-01).
+        var david = await db.Users.FirstAsync(u => u.Email == "david.e2e@exemple.com", cancellationToken);
+        (await db.Projects.Include(p => p.Members).FirstAsync(p => p.DivisionId == division.Id && p.Code == "TEST-03", cancellationToken)).AddMember(david.Id);
+        var watch = Project.Create(division.Id, "TEST-04", "Veille et formation", new DateOnly(2026, 1, 1), new DateOnly(2026, 12, 31), null, ProjectStatus.IN_PROGRESS, now, manager.Id);
+        watch.AddActivity("Lecture");
+        watch.AddMember(david.Id);
+        db.Projects.Add(watch);
+        await db.SaveChangesAsync(cancellationToken);
+
         // Fiche de présence (écran 06) : Inès Stage, stagiaire de Martin (horaires 08:30 – 17:30),
         // les quatre semaines de février 2026 validées, la fiche générée le 9 mars, à signer.
         var ines = await Account("stagiaire.e2e@exemple.com", "Inès", "Stage", Role.STAFF, manager.Id);

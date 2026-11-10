@@ -2,9 +2,9 @@
 // ici, l'interface évite seulement d'afficher ce qui serait refusé.
 import type { ReactNode } from "react";
 import { Navigate, Outlet, useLocation, useOutletContext } from "react-router";
-import { homeFor, navigationFor, useViewer, type Viewer } from "@/entities/viewer";
+import { homeFor, useViewer, type Viewer } from "@/entities/viewer";
 import { LoginPage } from "@/pages/login";
-import { NotFoundPage, UpcomingPage } from "@/pages/upcoming";
+import { NotFoundPage } from "@/pages/upcoming";
 import { Spinner } from "@/shared/ui/Display";
 import { AppShell } from "@/widgets/app-shell";
 
@@ -46,16 +46,6 @@ export function Home() {
   return <Navigate to={homeFor(useCurrentViewer())} replace />;
 }
 
-/**
- * Écran d'un jalon suivant. Seul un lien de la navigation du profil (ou les Paramètres)
- * y mène ; sinon, la page n'existe pas pour lui.
- */
-export function Upcoming({ href, title, milestone }: { href: string; title: string; milestone: number }) {
-  const viewer = useCurrentViewer();
-  const allowed = href === "/parametres" || navigationFor(viewer).some((item) => item.href === href);
-  return allowed ? <UpcomingPage title={title} milestone={milestone} home={homeFor(viewer)} /> : <NotFoundPage home={homeFor(viewer)} />;
-}
-
 /** Écran réservé à une permission : sans elle, la page n'existe pas pour l'utilisateur. */
 export function RequirePermission({ permission, children }: { permission: Viewer["permissions"][number]; children: ReactNode }) {
   const viewer = useCurrentViewer();
@@ -76,4 +66,11 @@ export function RequireIntern({ children }: { children: ReactNode }) {
 export function RequirePlatformAdmin({ children }: { children: ReactNode }) {
   const viewer = useCurrentViewer();
   return viewer.role === "PLATFORM_ADMIN" ? children : <NotFoundPage home={homeFor(viewer)} />;
+}
+
+/** Écran 15 : ouvert à qui saisit ses temps ou gère des projets ; sinon, la page n'existe pas. */
+export function RequireTasks({ children }: { children: ReactNode }) {
+  const viewer = useCurrentViewer();
+  const allowed = viewer.permissions.includes("ENTER_TIME") || viewer.permissions.includes("MANAGE_PROJECTS");
+  return allowed ? children : <NotFoundPage home={homeFor(viewer)} />;
 }

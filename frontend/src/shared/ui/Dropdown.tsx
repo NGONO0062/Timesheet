@@ -49,6 +49,9 @@ export function Dropdown({ children, buttonClassName, buttonLabel, items, label,
       </MenuButton>
       <MenuItems
         static={staticOpen}
+        // Menu non modal : le reste de la page n'est ni rendu inerte ni bloqué au défilement. Un
+        // menu dont la ligne change de place (carte déplacée) ne laisse ainsi rien de caché.
+        modal={false}
         // Planche : la liste reste sous le bouton, dans le flux ; sinon, elle flotte et se replace.
         anchor={staticOpen ? undefined : { to: "bottom start", gap: 5, padding: 10 }}
         aria-label={label}
