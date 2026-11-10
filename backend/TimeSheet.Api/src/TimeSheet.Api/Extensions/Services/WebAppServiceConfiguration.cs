@@ -24,6 +24,8 @@ public static class WebAppServiceConfiguration
         // Horloge de l'application : TIMESHEET_NOW en démonstration, l'heure réelle sinon.
         builder.Services.AddSingleton<TimeProvider>(new AppClock(builder.Configuration["TIMESHEET_NOW"]));
         builder.Services.AddSingleton(Log.Logger);
+        // Impression PDF : un Chromium pour toute l'API (Services/Export/PdfPrinter.cs).
+        builder.Services.AddSingleton<TimeSheet.Api.Services.Export.IPdfPrinter, TimeSheet.Api.Services.Export.PdfPrinter>();
         builder.Services.AddProblemDetails(ProblemDetailsConfigurationExtension.ConfigureProblemDetails)
             .AddProblemDetailsConventions();
 

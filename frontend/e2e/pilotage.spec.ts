@@ -131,3 +131,50 @@ test.describe("projets (écran 09)", () => {
     expect(await axe(page)).toEqual([]);
   });
 });
+
+test.describe("reporting (écran 10)", () => {
+  test("indicateurs, axes et périmètre dans l'adresse, exports CSV, Excel et PDF, accès", async ({ page }) => {
+    desktop();
+    await open(page, SAMUEL, "/reporting?de=2026-10&a=2026-12", "Reporting");
+    await expect(page.getByLabel("De la semaine")).toHaveValue("2026-10");
+    await expect(page.getByLabel("À la semaine")).toHaveValue("2026-12");
+    const kpis = page.getByRole("list", { name: "Indicateurs de la période" });
+    await expect(kpis).toContainText("Jours saisis");
+    await expect(kpis).toContainText(/sur 90\sjours de capacité \(6 personnes, 3 semaines\)/);
+    await expect(page.getByRole("figure", { name: "Jours par projet, du 2 au 20 mars 2026" })).toBeVisible();
+    const detail = page.getByRole("table", { name: "Jours par projet du 2 au 20 mars 2026" });
+    await expect(detail.locator("tbody").getByRole("rowheader")).toHaveCount(4);
+    await expect(detail.locator("tfoot").getByRole("rowheader")).toHaveText("Total");
+    expect(await axe(page)).toEqual([]);
+
+    await page.getByRole("button", { name: "Personne" }).click();
+    await expect(page).toHaveURL(/axe=person/);
+    await expect(page.getByRole("heading", { name: "Détail par personne" })).toBeVisible();
+    await page.getByLabel("Périmètre").selectOption({ label: "Aïcha Ndongo" });
+    await expect(page).toHaveURL(/personne=/);
+    await expect(page.getByRole("table", { name: /^Jours par personne/ }).locator("tbody").getByRole("rowheader")).toHaveText(["Aïcha Ndongo"]);
+
+    // Exports : mêmes filtres que l'écran.
+    await page.getByRole("button", { name: "Exporter" }).click();
+    const csvHref = await page.getByRole("menuitem", { name: "CSV" }).getAttribute("href");
+    expect(csvHref).toMatch(/axe=person/);
+    expect(csvHref).toMatch(/personne=/);
+    for (const [format, type] of [["csv", "text/csv"], ["xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"], ["pdf", "application/pdf"]] as const) {
+      const r = await page.request.get((csvHref ?? "").replace("format=csv", `format=${format}`));
+      expect(r.status(), format).toBe(200);
+      expect(r.headers()["content-type"]).toContain(type);
+      expect(r.headers()["content-disposition"]).toContain(`filename=Reporting_2026-S10_2026-S12.${format}`);
+      const body = await r.body();
+      if (format === "csv") expect(body.toString("utf8")).toContain("Aïcha Ndongo");
+      if (format === "xlsx") expect(body.subarray(0, 2).toString()).toBe("PK");
+      if (format === "pdf") expect(body.subarray(0, 5).toString()).toBe("%PDF-");
+    }
+
+    // Sans la permission : ni l'écran, ni les exports.
+    await page.context().clearCookies();
+    await signedIn(page, AICHA);
+    await page.goto("/reporting");
+    await expect(page.getByRole("heading", { name: "Page introuvable" })).toBeVisible();
+    expect((await page.request.get("/api/v1/reporting/export?format=csv")).status()).toBe(404);
+  });
+});

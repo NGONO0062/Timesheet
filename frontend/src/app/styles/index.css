@@ -62,6 +62,8 @@
   --spacing-status-col: 220px;
   /* File de validation (planche 07) : filtres Personne et Période, colonne des cases à cocher. */
   --spacing-filter: 380px;
+  /* Reporting (planche 10) : listes « De la semaine » et « À la semaine ». */
+  --spacing-week-filter: 280px;
   --spacing-check-col: 40px;
   /* Projets (planche 09) : colonne « Jours consommés » ; champ du budget (Offcanvas). */
   --spacing-budget-col: 230px;
@@ -232,6 +234,16 @@
 /* Bloc de traçabilité de la signature : libellés à gauche, valeurs à droite. */
 @utility grid-cols-trace {
   grid-template-columns: auto minmax(0, 1fr);
+}
+
+/* Graphique en barres (planche 10) : libellé, barre, valeur. */
+@utility grid-cols-chart-row {
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr) 80px;
+}
+
+/* Reporting (planche 10) : barres 3 parts, colonnes empilées 2 parts. */
+@utility grid-cols-report {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
 }
 
 /* Écran de connexion (bureau) : colonne noire 1 part, formulaire 2 parts. */
