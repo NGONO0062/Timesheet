@@ -53,9 +53,28 @@ if (args.Contains("--seed") || args.Contains("--seed-e2e") || args.Contains("--s
     return;
 }
 
+// « --admin-plateforme adresse "Prénom" "Nom" » : première mise en service, production comprise.
+var adminIndex = Array.IndexOf(args, "--admin-plateforme");
+if (adminIndex >= 0)
+{
+    using var adminScope = app.Services.CreateScope();
+    var services = adminScope.ServiceProvider;
+    var db = services.GetRequiredService<TimeSheetDbContext>();
+    await db.Database.MigrateAsync();
+    string? Arg(int i) => adminIndex + i < args.Length ? args[adminIndex + i] : null;
+    Console.WriteLine(await PlatformAdmin.CreateAsync(db, services.GetRequiredService<TimeSheet.Api.Domain.Users.Features.IPasswordLinks>(),
+        services.GetRequiredService<TimeSheet.Api.Services.Audit.IAuditWriter>(), builder.Configuration["APP_URL"] ?? "http://localhost:5173", Arg(1), Arg(2), Arg(3)));
+    return;
+}
+
 // Adresse du client transmise par le proxy d'entrée (limitation des tentatives par poste).
 // Le proxy doit remplacer l'en-tête reçu du client (docs/exploitation.md).
-app.UseForwardedHeaders(new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto, ForwardLimit = 1 });
+// Le proxy est un autre conteneur (pas le poste local) : le premier relais est cru, quelle que
+// soit son adresse. L'application ne doit donc être joignable qu'à travers lui.
+var forwarded = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto, ForwardLimit = 1 };
+forwarded.KnownIPNetworks.Clear();
+forwarded.KnownProxies.Clear();
+app.UseForwardedHeaders(forwarded);
 app.UseSecurityHeaders();
 if (!builder.Environment.IsDevelopment())
 {
@@ -65,12 +84,39 @@ if (!builder.Environment.IsDevelopment())
 app.UseProblemDetails();
 
 app.UseSerilogRequestLogging();
+
+// Image de production : l'interface (frontend/dist, copiée dans wwwroot) est servie par l'API,
+// sur la même origine (cookie de session, pas de CORS). Les fichiers de /assets portent une
+// empreinte dans leur nom : ils se gardent en cache ; index.html est relu à chaque fois.
+var spa = Directory.Exists(Path.Combine(app.Environment.ContentRootPath, "wwwroot"));
+if (spa)
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl =
+            ctx.Context.Request.Path.StartsWithSegments("/assets") ? "public, max-age=31536000, immutable" : "no-cache",
+    });
+}
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHealthChecks("api/health").AllowAnonymous();
 app.MapControllers();
+// Toute adresse de l'interface (/saisie/2026/12…) rend index.html ; une adresse /api inconnue reste un 404.
+if (spa)
+{
+    // Page publique : elle ne contient aucune donnée (l'API reste protégée, connexion comprise).
+    app.MapFallbackToFile("index.html", new StaticFileOptions
+    {
+        OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache",
+    }).AllowAnonymous();
+    app.MapFallback("api/{**rest}", context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return Task.CompletedTask;
+    }).AllowAnonymous();
+}
 
 app.UseSwaggerExtension(builder.Configuration, builder.Environment);
 

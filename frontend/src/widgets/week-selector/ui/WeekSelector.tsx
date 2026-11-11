@@ -82,11 +82,12 @@ export function WeekSelector({ week, current, onNavigate, allowFutureWeeks, rece
   const box = large ? "size-control-lg" : "size-control";
   return (
     <div className="flex flex-wrap items-center gap-10" role="group" aria-label={dict.week.group}>
-      <div className={cx("flex items-stretch", large && "w-full")}>
+      <div className={cx("flex items-stretch", large ? "w-full" : "w-full md:w-auto")}>
         <button className={cx(ARROW, box, "rounded-l-md")} type="button" aria-label={t(dict.week.previous, { week: prev.week })} onClick={() => onNavigate(prev)}>
           <Icon name="left" />
         </button>
-        <div className={cx("flex", large ? "min-w-0 flex-1" : "min-w-week-label")}>
+        {/* Mobile : le libellé prend la place entre les flèches ; bureau : largeur fixe (planche C1). */}
+        <div className={cx("flex", large ? "min-w-0 flex-1" : "min-w-0 flex-1 md:min-w-week-label")}>
           <Dropdown
             label={dict.week.group}
             checkSide="start"

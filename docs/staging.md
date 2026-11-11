@@ -13,7 +13,7 @@ powershell -ExecutionPolicy Bypass -File deploy\staging\demarrer-local.ps1
 ```
 
 - Application : http://localhost:3000. E-mails de l'application : http://localhost:8025 (Mailpit, rien ne part vraiment).
-- Base vide : créer le premier compte (dans `deploy/staging`) avec `docker compose -f compose.yml -f compose.local.yml run --rm outils npm run plateforme:admin -- adresse "Prénom" "Nom"`, puis ouvrir le lien affiché.
+- Base vide : créer le premier compte (dans `deploy/staging`) avec `docker compose -f compose.yml -f compose.local.yml run --rm app --admin-plateforme adresse "Prénom" "Nom"`, puis ouvrir le lien affiché.
 - Données de démonstration à la place : ajouter `-Demo` à la commande, sur une base vide.
 - Arrêter : `docker compose -f compose.yml -f compose.local.yml stop`. Tout effacer : `down -v` au lieu de `stop`.
 
@@ -99,30 +99,27 @@ nano .env
 |---|---|
 | `DOMAIN` | L'IP du serveur, points remplacés par des tirets, suivie de `.sslip.io`. Ex. : `141-147-10-20.sslip.io`. |
 | `POSTGRES_PASSWORD` | Résultat de `openssl rand -hex 24` |
-| `AUTH_SECRET` | Résultat de `openssl rand -base64 32` |
 | `TASKS_SECRET` | Résultat de `openssl rand -hex 32` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | Les valeurs de Brevo (étape 6) |
 | `SMTP_FROM` | `TimeSheet <adresse validée chez Brevo>` |
 
-Laisser `DEMO_PROFILES="false"`, `TIMESHEET_NOW=""` et `SEED_PASSWORD=""`.
+Laisser `ASPNETCORE_ENVIRONMENT="Production"`, `DEMO_PROFILES="false"`, `TIMESHEET_NOW=""` et `SEED_PASSWORD=""`. Les clés des sessions se créent toutes seules au premier démarrage, dans le volume de l'application.
 
 Pour lancer une commande `openssl`, ouvrir une seconde connexion `ssh`, ou quitter `nano` (Ctrl+X), lancer la commande, copier le résultat et rouvrir le fichier. Enregistrer dans `nano` : Ctrl+O, Entrée, puis Ctrl+X.
 
 ## 8. Démarrer
 
 ```
-docker compose --profile outils build
-docker compose up -d db
-docker compose run --rm outils npx prisma migrate deploy
+docker compose build app
 docker compose up -d
 ```
 
-La première construction prend 10 à 20 minutes.
+La première construction prend 10 à 20 minutes. La base se met à jour toute seule au démarrage de l'application.
 
 ## 9. Créer le premier compte
 
 ```
-docker compose run --rm outils npm run plateforme:admin -- votre.adresse@exemple.com "Prénom" "Nom"
+docker compose run --rm app --admin-plateforme votre.adresse@exemple.com "Prénom" "Nom"
 ```
 
 La commande affiche un lien. L'ouvrir dans le navigateur, choisir un mot de passe, puis se connecter sur `https://<DOMAIN>`.
@@ -138,8 +135,7 @@ Après de nouveaux changements poussés sur GitHub :
 ```
 cd ~/Timesheet && git pull
 cd deploy/staging
-docker compose --profile outils build
-docker compose run --rm outils npx prisma migrate deploy
+docker compose build app
 docker compose up -d
 ```
 
@@ -151,14 +147,15 @@ docker compose up -d
 | Lire les messages de l'application | `docker compose logs -f app` (Ctrl+C pour sortir) |
 | Arrêter | `docker compose stop` |
 | Sauvegarder la base | `docker compose exec db pg_dump -U timesheet timesheet > sauvegarde.sql` |
+| Sauvegarder les PDF signés et les clés des sessions | `docker compose cp app:/app/storage ./sauvegarde-storage` |
 | **Tout effacer** (base et PDF compris) | `docker compose down -v` |
 
 ## Variante : données de démonstration
 
 Pour montrer les écrans des maquettes (comptes fictifs `@exemple.com`, mars 2026) au lieu d'un vrai test. Sur un staging vide seulement : sinon, tout effacer d'abord (`docker compose down -v`, puis l'étape 8).
 
-1. Dans `.env` : `SEED_PASSWORD` (un mot de passe d'essai), `TIMESHEET_NOW="2026-03-19T09:42:00Z"`, `DEMO_PROFILES="true"`.
-2. Après l'étape 8 : `docker compose run --rm outils npx prisma db seed`, puis `docker compose up -d`.
+1. Dans `.env` : `ASPNETCORE_ENVIRONMENT="Staging"` (la production refuse les comptes fictifs), `SEED_PASSWORD` (un mot de passe d'essai), `TIMESHEET_NOW="2026-03-19T09:42:00Z"`, `DEMO_PROFILES="true"`.
+2. À l'étape 8, avant `docker compose up -d` : `docker compose up -d db`, puis `docker compose run --rm app --seed`.
 
 Les e-mails vers les adresses `@exemple.com` n'arrivent nulle part.
 

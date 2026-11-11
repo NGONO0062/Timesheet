@@ -97,7 +97,8 @@ export function SteppedProcess({ steps, current, label }: { steps: string[]; cur
           key={step}
           className={cx(
             "flex min-h-control flex-1 items-center gap-5 py-10 pr-20 font-bold",
-            i === 0 ? "step-first pl-20" : "step-arrow pl-30",
+            // Mobile : l'étape en cours seule, sans flèche (le texte « Étape n sur N » suit).
+            i === current ? cx("pl-20", i === 0 ? "md:step-first" : "md:step-arrow md:pl-30") : cx("hidden md:flex", i === 0 ? "step-first pl-20" : "step-arrow pl-30"),
             i < current ? "bg-black text-white" : i === current ? "bg-active text-black" : "bg-gray-ddd text-black",
           )}
           aria-current={i === current ? "step" : undefined}

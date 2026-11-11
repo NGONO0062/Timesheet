@@ -31,6 +31,7 @@ public static class WebAppServiceConfiguration
 
         // Pas de CORS : l'interface est servie par le même hôte (/api relayé), les cookies restent SameSite=Strict.
         builder.Services.AddCookieSession(builder.Environment);
+        builder.Services.AddSessionKeys(builder.Configuration, builder.Environment);
         builder.Services.AddInfrastructure(builder.Environment, builder.Configuration);
 
         builder.Services.AddControllers()

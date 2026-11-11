@@ -125,7 +125,7 @@ function WeekBlocks({ week, threshold }: { week: IsoWeek; threshold: number }) {
         </ul>
       )}
 
-      <div className="grid items-stretch gap-20 lg:grid-cols-report">
+      <div className="grid grid-cols-1 items-stretch gap-20 lg:grid-cols-report">
         <section className={cx(CARD, "gap-20")} aria-labelledby="titre-equipes">
           <h2 className="text-h4" id="titre-equipes">
             {t(d.teamsTitle, { week: week.week })}

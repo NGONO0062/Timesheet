@@ -1,11 +1,8 @@
 # Environnement de staging : tout TimeSheet sur un seul serveur Linux.
-# Application, PostgreSQL, HTTPS (Caddy) et tâches planifiées. Guide : docs/staging.md.
-# Les valeurs viennent de deploy/staging/.env (modèle : .env.example, à côté).
+# Application (API .NET qui sert aussi l'interface), PostgreSQL, HTTPS (Caddy) et tâches
+# planifiées. Guide : docs/staging.md. Les valeurs viennent de deploy/staging/.env
+# (modèle : .env.example, à côté).
 name: timesheet-staging
-
-x-base: &base
-  DATABASE_URL: postgresql://timesheet:${POSTGRES_PASSWORD:?}@db:5432/timesheet?schema=public
-  APP_URL: https://${DOMAIN:?}
 
 services:
   db:
@@ -23,34 +20,23 @@ services:
       timeout: 5s
       retries: 20
 
+  # Image de deploy/Dockerfile. Les migrations s'appliquent au démarrage. Commandes de mise
+  # en service (docs/staging.md) : docker compose run --rm app --admin-plateforme …
   app:
-    build: ../..
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile
     image: timesheet:staging
     restart: unless-stopped
     env_file: .env
     environment:
-      <<: *base
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      TimeSheetApi__ConnectionStrings__TimeSheetApi: Host=db;Port=5432;Database=timesheet;Username=timesheet;Password=${POSTGRES_PASSWORD:?}
+      APP_URL: https://${DOMAIN:?}
       STORAGE_DIR: /app/storage
-      # Sinon le serveur Next n'écoute que sur le nom du conteneur.
-      HOSTNAME: 0.0.0.0
     volumes:
-      - pdf-data:/app/storage
-    depends_on:
-      db:
-        condition: service_healthy
-
-  # Mise en service (migrations, admin plateforme, données de démonstration) :
-  # étape « build » de l'image, qui a la CLI Prisma. Lancé à la demande seulement :
-  #   docker compose run --rm outils npx prisma migrate deploy
-  outils:
-    build:
-      context: ../..
-      target: build
-    image: timesheet:staging-outils
-    profiles: [outils]
-    env_file: .env
-    environment:
-      <<: *base
+      # PDF signés et clés des sessions : à sauvegarder avec la base.
+      - app-data:/app/storage
     depends_on:
       db:
         condition: service_healthy
@@ -85,6 +71,6 @@ services:
 
 volumes:
   db-data:
-  pdf-data:
+  app-data:
   caddy-data:
   caddy-config:

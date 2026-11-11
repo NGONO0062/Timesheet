@@ -3,6 +3,7 @@ namespace TimeSheet.Api.Extensions.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using TimeSheet.Api.Services.Access;
 
 public static class AuthServiceExtension
@@ -52,5 +53,18 @@ public static class AuthServiceExtension
         {
             options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
         });
+    }
+
+    /// <summary>
+    /// Clés qui signent les cookies de session : gardées sur disque, pour qu'un redémarrage ou une
+    /// nouvelle version ne déconnecte personne, et partagées si plusieurs instances tournent.
+    /// <c>DATA_PROTECTION_DIR</c>, sinon « cles-session » dans <c>STORAGE_DIR</c> (volume sauvegardé).
+    /// Ce dossier est un secret : accès réservé à l'application.
+    /// </summary>
+    public static void AddSessionKeys(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment env)
+    {
+        var storage = configuration["STORAGE_DIR"] is { Length: > 0 } dir ? dir : Path.Combine(env.ContentRootPath, "storage");
+        var keys = configuration["DATA_PROTECTION_DIR"] is { Length: > 0 } explicitDir ? explicitDir : Path.Combine(storage, "cles-session");
+        services.AddDataProtection().SetApplicationName("TimeSheet").PersistKeysToFileSystem(new DirectoryInfo(keys));
     }
 }

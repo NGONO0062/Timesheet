@@ -168,7 +168,8 @@ export function TableScroll({ children, className, label }: { children: ReactNod
   return (
     <div
       ref={ref}
-      className={cx("overflow-x-auto", className)}
+      // Positionné : un libellé masqué (sr-only, en absolu) reste dans la zone qui défile.
+      className={cx("relative overflow-x-auto", className)}
       tabIndex={scrollable ? 0 : undefined}
       role={scrollable ? "region" : undefined}
       aria-label={scrollable ? name : undefined}
