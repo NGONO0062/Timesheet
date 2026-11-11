@@ -6,7 +6,7 @@ test-results/
 .env
 .env.local
 /storage/
-# Fichiers signés de l'API de développement (STORAGE_DIR par défaut).
+# Clés des sessions de l'API de développement (STORAGE_DIR par défaut).
 backend/TimeSheet.Api/src/TimeSheet.Api/storage/
 
 # Claude Code (worktrees locaux)

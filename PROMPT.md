@@ -4,13 +4,15 @@ Tu vas coder **TimeSheet**, une application web interne d'Orange Cameroun pour g
 
 Lis ce document en entier, puis `design/README.md`, avant d'écrire la première ligne de code.
 
+> **Périmètre modifié le 11 novembre 2026 : la partie RH est retirée.** L'application ne gère plus la fiche de présence des stagiaires, les stages, la signature électronique ni l'envoi aux RH. Elle se concentre sur la gestion et le suivi des projets ; la saisie du temps et sa validation hebdomadaire restent, parce qu'elles donnent le consommé de chaque projet. Les §9.7 et §9.8, l'écran 6, les composants 3 et 4 (§11) et le jalon 5 (§21) ne s'appliquent plus. Les mentions du stage, des horaires habituels, du mode de signature, des PDF signés et de l'adresse des RH qui restent ailleurs dans ce document (§8, §11, §16 à §20) sont caduques. Détail : `docs/reecriture.md`, « Améliorations après la bascule ».
+
 ---
 
 ## 1. Le produit
 
 - Application multi-division : chaque division est un tenant isolé (utilisateurs, rôles, projets, règles, données).
 - Division pilote : **CX Expertise**. Rattachement : Direction **DEC**, Département **CX**, Service **CX Expertise**.
-- Les collaborateurs saisissent leurs heures par projet et par jour, semaine par semaine. Le manager valide ou rejette. Chaque mois, l'application produit la fiche de présence du stagiaire au modèle RH **OCM/PS-01/SE/049**, la fait signer, puis l'envoie **par e-mail** aux RH avec le PDF en pièce jointe.
+- Les collaborateurs saisissent leurs heures par projet et par jour, semaine par semaine. Le manager valide ou rejette. Le temps validé donne le consommé de chaque projet, suivi face à son budget.
 - Interface en français. Desktop d'abord (1280 px), mobile pris en charge (375 px).
 - Nom affiché : le mot **TimeSheet**, « Time » en `#f16e00` et « Sheet » en blanc sur fond noir. Il n'y a pas de logo. N'en dessine pas, et n'utilise pas le logo Orange.
 
@@ -158,7 +160,7 @@ L'application doit se comprendre sans mode d'emploi. Ces règles s'appliquent à
 
 | Rôle | Liens |
 |---|---|
-| Staff | Tableau de bord, Saisie hebdomadaire, Fiche de présence |
+| Staff | Tableau de bord, Saisie hebdomadaire |
 | Manager | Validation, Projets, Reporting |
 | Owner | Vue division, Validation, Projets, Reporting |
 | Admin division | Administration, Reporting |
@@ -168,7 +170,7 @@ La navigation se calcule à partir des permissions effectives de l'utilisateur, 
 
 ## 7. Rôles et permissions
 
-Cinq rôles : `STAFF` (stagiaires compris), `MANAGER` (N+1), `OWNER` (N+2), `DIVISION_ADMIN`, `PLATFORM_ADMIN`.
+Cinq rôles : `STAFF`, `MANAGER` (N+1), `OWNER` (N+2), `DIVISION_ADMIN`, `PLATFORM_ADMIN`.
 
 Matrice par défaut. Elle est modifiable par division sur l'écran 12.
 
@@ -238,7 +240,7 @@ AuditLog            id, at, actorId?, actorLabel, divisionId?, action, objectLab
 
 L'écran se lit de haut en bas, du plus urgent au moins urgent.
 
-- **À faire** : la liste des actions en attente, chacune avec son bouton. Une ligne par semaine manquante (« Semaine 11 non saisie », bouton « Saisir la semaine 11 »), une ligne par fiche de présence à signer (bouton « Signer ma fiche »), une ligne par fiche rejetée à corriger. Le compte est écrit à côté du titre. Sans action : « Rien à faire pour l'instant. »
+- **À faire** : la liste des actions en attente, chacune avec son bouton. Une ligne par semaine manquante (« Semaine 11 non saisie », bouton « Saisir la semaine 11 »), une ligne par fiche rejetée à corriger. Le compte est écrit à côté du titre. Sans action : « Rien à faire pour l'instant. »
 - **Semaine en cours** : statut, sélecteur de semaine, heures saisies sur heures attendues, barre de progression avec le pourcentage écrit, statut de chaque jour, échéance. Elle porte le seul bouton primaire de l'écran, « Continuer la saisie ».
 - **Mes projets** : les projets dont l'utilisateur est membre, sauf les projets terminés. Pour chacun : code, date de fin ou de début, étiquette de statut, activités, heures de la semaine. Un projet qui n'est pas « En cours » affiche « Saisie pas encore ouverte » ou « Saisie fermée » à la place des heures.
 - **Dernières semaines** : les quatre dernières, avec période, heures, statut et action (Continuer, Saisir, Consulter).
@@ -308,31 +310,11 @@ L'écran se lit de haut en bas, du plus urgent au moins urgent.
 
 ### 9.7 Fiche de présence RH
 
-- Modèle papier : **FICHE DE PRESENCE STAGIAIRE**, référence **OCM/PS-01/SE/049**, A4 paysage, une page. Le gabarit est déjà intégré : `design/ecrans/06-Fiche-RH.html`, classes `.ts-sheet*`.
-- Une fiche par stagiaire et par mois, générée quand toutes les semaines du mois sont validées.
-- Contenu :
-  - en-tête : titre, référence, « Version : 1.0 », « Mise à jour le : 15/06/2023 » ;
-  - NOM ET PRENOM DU STAGIAIRE ;
-  - NATURE DU STAGE : Académique, Professionnel ou Graduate (une case cochée) ;
-  - ENTITE D'AFFECTATION : Direction, Département, Service ;
-  - PERIODE DE STAGE : Du … Au … ;
-  - six blocs de semaine, chacun avec lundi à vendredi et les colonnes Arrivée et Départ ; les blocs non utilisés restent en pointillés ;
-  - Nombre de jours d'absence, Observation, Nom et signature du superviseur ;
-  - pied : « Interne Orange Cameroun », « Page 1/1 ».
-- Arrivée et Départ : la grille de saisie ne les collecte pas. Ils viennent des horaires habituels du stagiaire (écran Paramètres, 08:00 et 17:00 par défaut), pour chaque jour où il a saisi des heures.
-- Circuit, affiché en Stepped process : Fiche générée → Votre signature → Signature du superviseur → E-mail aux RH.
-- Le modèle papier ne prévoit que la signature du superviseur. Celle du stagiaire certifie la fiche dans l'application, reste dans l'historique et n'est pas imprimée sur le PDF. Celle du superviseur est imprimée dans la case prévue.
-- Après la signature du superviseur, le PDF est envoyé par e-mail à l'adresse RH de la division. L'envoi est automatique si le réglage est activé, sinon il se fait par un bouton. L'écran montre le canal, le destinataire, la pièce jointe et l'état.
-- Nom du fichier : `Fiche_presence_AAAA-MM_NOM.pdf`.
-- Mise en page proforma : le mot TimeSheet et l'émetteur en tête, cartouche, trois blocs, tous les champs du modèle papier gardés (décision du 12/10/2026, `docs/questions-ouvertes.md`, points 80 et 81).
+Retirée le 11 novembre 2026 (voir l'encadré en tête du document).
 
 ### 9.8 Signature électronique
 
-- Deux modes : tracé (souris, doigt, stylet) et validation par mot de passe. Le second existe pour le clavier et les lecteurs d'écran : il doit toujours être proposé.
-- Avant de signer, une case « Je certifie l'exactitude des informations de cette fiche de présence » doit être cochée.
-- Bloc de traçabilité toujours visible : signataire et rôle, date, heure (UTC+1), méthode, document. Après signature s'ajoute l'empreinte SHA-256 du PDF signé.
-- Une signature posée ne se modifie plus. Elle n'est annulée que si le superviseur rejette la fiche.
-- Mode mot de passe : nouvelle vérification du mot de passe côté serveur, avec limitation des tentatives.
+Retirée le 11 novembre 2026, avec la fiche de présence.
 
 ### 9.9 Administration de division
 
@@ -340,7 +322,7 @@ Une page à ancres : Utilisateurs, Rôles et permissions, Workflows, Règles de 
 
 - **Utilisateurs** : recherche, invitation par e-mail, changement de rôle, rattachement à un manager, activation ou désactivation, pagination. Un compte désactivé ne peut plus se connecter mais ses données restent.
 - **Rôles et permissions** : la matrice du §7.
-- **Workflows** : étapes du circuit, adresse e-mail des RH (obligatoire), délai de relance (2, 3 ou 5 jours ouvrés), délégation au N+2.
+- **Workflows** : étapes du circuit, délai de relance (2, 3 ou 5 jours ouvrés), délégation au N+2.
 - **Règles de saisie** : jours ouvrés, échéance (vendredi ou lundi suivant, avec l'heure), seuil d'alerte, saisie des semaines futures, verrouillage après validation.
 - Chaque interrupteur a son état écrit à côté (Actif / Désactivé).
 
@@ -348,15 +330,14 @@ Une page à ancres : Utilisateurs, Rôles et permissions, Workflows, Règles de 
 
 - Liste des divisions : nom, identifiant du tenant, administrateur, nombre d'utilisateurs, état, date de création.
 - Onboarding en cinq étapes : Identité, Administrateur, Rôles et workflow, Règles de saisie, Récapitulatif. La progression est enregistrée à chaque étape et peut être reprise. À l'étape 2, on choisit de copier la configuration de CX Expertise (rôles, workflow, règles, jamais les données) ou de partir d'une configuration vierge. L'invitation de l'administrateur part à la fin.
-- Journal d'audit : lecture seule. Filtres Division, Type d'action, Du, Au, Acteur ou objet. Pagination, export. On y trouve les connexions (échecs compris), soumissions, validations, rejets, signatures, envois aux RH, modifications de règles et de permissions, gestion des utilisateurs et des divisions.
+- Journal d'audit : lecture seule. Filtres Division, Type d'action, Du, Au, Acteur ou objet. Pagination, export. On y trouve les connexions (échecs compris), soumissions, validations, rejets, modifications de règles et de permissions, gestion des utilisateurs et des divisions.
 
 ### 9.11 Paramètres (tous les rôles)
 
-- Profil et stage : lecture seule, géré par l'admin de division, avec un lien « Signaler une erreur ».
-- Horaires habituels : arrivée et départ au format `hh:mm`.
-- Notifications : rappel de saisie le vendredi à 12:00 si la semaine est incomplète ; e-mail à la validation ; e-mail au rejet ; rappel quand une fiche de présence attend une signature.
+- Profil : lecture seule, géré par l'admin de division, avec un lien « Signaler une erreur ».
+- Notifications : rappel de saisie le vendredi à 12:00 si la semaine est incomplète ; e-mail à la validation ; e-mail au rejet.
 - Sécurité : changement de mot de passe.
-- Préférences : langue (Français, English), mode de signature par défaut, reprise automatique des lignes de la semaine précédente.
+- Préférences : langue (Français ; English pas encore disponible).
 
 ### 9.12 Tâches (tableau Kanban)
 
@@ -382,7 +363,7 @@ Ajout du 13/10/2026 (jalon 9, `docs/questions-ouvertes.md`, point 83). La saisie
 | 3 | Saisie hebdomadaire | `/saisie/[annee]/[semaine]` | `03-Saisie-hebdo`, `03-Saisie-hebdo-mobile` |
 | 4 | Confirmation de soumission | modale de l'écran 3 | `04-Confirmation` |
 | 5 | Fiche rejetée | état de l'écran 3 | `05-Fiche-rejetee` |
-| 6 | Ma fiche de présence RH | `/fiche-presence/[annee]/[mois]` | `06-Fiche-RH` |
+| 6 | Retiré le 11 novembre 2026 (fiche de présence RH) | | |
 | 7 | File de validation | `/validation` | `07-File-validation` |
 | 8 | Détail d'une fiche | `/validation/[id]` | `08-Detail-fiche` |
 | 9 | Gestion des projets | `/projets` | `09-Projets`, `09-Projets-colonnes`, `09-Projets-creation` |
@@ -467,7 +448,7 @@ Chaque écran de données a quatre états : normal, vide, chargement, erreur. Le
 Le script de seed reproduit les maquettes, pour qu'on puisse comparer écran par écran.
 
 - Division CX Expertise, créée le 5 janvier 2026. Trois équipes : Parcours (Samuel Etoga, 6 personnes), Études (Hélène Nkoa, 5), Data CX (Olivier Manga, 4). 20 comptes actifs et 1 désactivé.
-- Comptes de référence : Aïcha Ndongo (Staff, stagiaire, stage professionnel du 05/01/2026 au 26/06/2026), Samuel Etoga (Manager), Brigitte Mbarga (Owner), Paul Tchouta (Admin division), Rose Ekambi (Admin plateforme).
+- Comptes de référence : Aïcha Ndongo (Staff), Samuel Etoga (Manager), Brigitte Mbarga (Owner), Paul Tchouta (Admin division), Rose Ekambi (Admin plateforme).
 - Équipe de Samuel Etoga : Aïcha Ndongo, Kevin Fotso, Laure Bikoï, Ibrahim Njoya, Sandrine Mvondo, Yannick Essomba.
 - Projets en cours : Refonte parcours souscription (CX-2026-01, 960 h), Baromètre NPS T1 2026 (CX-2026-02, 400 h), Cartographie des irritants (CX-2026-03, 600 h), Veille et formation (CX-2026-00, sans budget). Terminé : Tests d'usage appli mobile (CX-2026-04, 320 h). En pause : Refonte FAQ en ligne (CX-2026-05, 300 h). À démarrer : Enquête boutiques T2 2026 (CX-2026-06, 240 h, début le 6 avril 2026).
 - Semaine de référence : semaine 12 de 2026, du 16 au 20 mars.

@@ -124,7 +124,7 @@ docker compose run --rm app --admin-plateforme votre.adresse@exemple.com "Préno
 
 La commande affiche un lien. L'ouvrir dans le navigateur, choisir un mot de passe, puis se connecter sur `https://<DOMAIN>`.
 
-Ce compte est l'**admin plateforme**. Il crée une division (onboarding) ; l'administrateur de la division reçoit une invitation par e-mail et invite ensuite les autres personnes. Penser à renseigner l'adresse e-mail des RH de la division (Administration → Workflows) avant de tester la fiche de présence.
+Ce compte est l'**admin plateforme**. Il crée une division (onboarding) ; l'administrateur de la division reçoit une invitation par e-mail et invite ensuite les autres personnes.
 
 Les relances (chaque jour ouvré à 07:00) et le rappel de saisie (vendredi à 12:00, heure de Douala) partent tout seuls.
 
@@ -147,7 +147,7 @@ docker compose up -d
 | Lire les messages de l'application | `docker compose logs -f app` (Ctrl+C pour sortir) |
 | Arrêter | `docker compose stop` |
 | Sauvegarder la base | `docker compose exec db pg_dump -U timesheet timesheet > sauvegarde.sql` |
-| Sauvegarder les PDF signés et les clés des sessions | `docker compose cp app:/app/storage ./sauvegarde-storage` |
+| Sauvegarder les clés des sessions | `docker compose cp app:/app/storage ./sauvegarde-storage` |
 | **Tout effacer** (base et PDF compris) | `docker compose down -v` |
 
 ## Variante : données de démonstration

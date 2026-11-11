@@ -13,10 +13,10 @@ Choix et écarts avec le guide Orange : `docs/reecriture.md`.
 | Dossier (`backend/TimeSheet.Api/src/TimeSheet.Api/`) | Contenu | Règle |
 |---|---|---|
 | `Controllers/v1/` | Routes `/api/v1/…` : lecture des entrées, envoi d'une commande ou d'une requête MediatR. | Aucune règle métier dans un contrôleur. |
-| `Domain/<Domaine>/` | Entités et règles pures (`*Rules.cs`) : semaines ISO, saisie, validation, fiche de présence, projets, reporting, administration, plateforme, tâches. | Testées sans base (`tests/…UnitTests`). |
+| `Domain/<Domaine>/` | Entités et règles pures (`*Rules.cs`) : semaines ISO, saisie, validation, projets, reporting, administration, plateforme, tâches. | Testées sans base (`tests/…UnitTests`). |
 | `Domain/<Domaine>/Features/` | Gestionnaires MediatR : portée, permission, lecture et écriture des données, journal d'audit. | Chaque requête relit l'utilisateur connecté (`IViewerAccessor`) et filtre sur sa division. |
 | `Databases/` | `TimeSheetDbContext`, configurations EF, migrations, seeds (démonstration, tests de bout en bout, premier admin plateforme). | Migrations appliquées au démarrage, sous verrou PostgreSQL. |
-| `Services/` | Accès (utilisateur connecté, portée), audit, e-mails (gabarits purs et envoi), exports (CSV, Excel, PDF), stockage des PDF signés, horloge. | |
+| `Services/` | Accès (utilisateur connecté, portée), audit, e-mails (gabarits purs et envoi), exports (CSV, Excel, PDF), horloge. | |
 | `Exceptions/`, `Middleware/` | Erreurs : 404 (ressource absente ou hors portée), 422 avec un code et les champs en erreur ; en-têtes de sécurité. | L'interface traduit les codes en messages. |
 
 ## Interface (Feature-Sliced Design)
@@ -26,8 +26,8 @@ Choix et écarts avec le guide Orange : `docs/reecriture.md`.
 | Couche | Contenu |
 |---|---|
 | `entities/` | Par domaine : types de l'API, requêtes et écritures TanStack Query, règles d'affichage pures testées. |
-| `features/` | Actions réutilisables : connexion, saisie de la semaine, signature, champs de configuration d'une division, édition de projet. |
-| `widgets/` | Blocs d'écran partagés : coque, sélecteur de semaine, saisie par jour, graphiques, fiche de présence, journal d'audit, onglets de validation. |
+| `features/` | Actions réutilisables : connexion, saisie de la semaine, champs de configuration d'une division, édition de projet. |
+| `widgets/` | Blocs d'écran partagés : coque, sélecteur de semaine, saisie par jour, graphiques, journal d'audit. |
 | `pages/` | Un dossier par écran (ou groupe d'écrans). |
 | `shared/` | Composants ODS reproduits en Tailwind (`ui/`), accès à l'API (`api/`), textes (`i18n/fr.ts`), formats (`lib/format.ts`), statuts (`lib/status.ts`). |
 

@@ -35,7 +35,7 @@ services:
       APP_URL: https://${DOMAIN:?}
       STORAGE_DIR: /app/storage
     volumes:
-      # PDF signés et clés des sessions : à sauvegarder avec la base.
+      # Clés des sessions : à sauvegarder avec la base.
       - app-data:/app/storage
     depends_on:
       db:

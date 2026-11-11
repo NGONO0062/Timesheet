@@ -1,6 +1,8 @@
 # TimeSheet
 
-Application interne Orange Cameroun : projets, temps de travail, fiche de présence RH. Spécification complète dans `PROMPT.md`. Maquettes dans `design/`.
+Application interne Orange Cameroun : gestion et suivi des projets, temps de travail. Spécification d'origine dans `PROMPT.md`. Maquettes dans `design/`.
+
+La partie RH (fiche de présence, stages, signature, envoi aux RH) a été retirée le 11 novembre 2026 : ne pas la réintroduire sans décision. La saisie du temps et sa validation restent, parce qu'elles donnent le consommé de chaque projet (`docs/reecriture.md`).
 
 ## Règles à ne jamais enfreindre
 
@@ -43,7 +45,7 @@ Application interne Orange Cameroun : projets, temps de travail, fiche de prése
 - Horloge : `TimeProvider` de l'application (`Services/AppClock.cs`), jamais `DateTime.Now` pour une règle métier. `TIMESHEET_NOW` (démonstration) part du jeudi 19 mars 2026, semaine 12. Fenêtres de sécurité en heure réelle (`AuditEntry.RecordedAt`).
 - Saisie en jours entiers (point 82) : une journée par jour, sur un seul projet ; `FrenchFormat.Days`.
 - E-mails : gabarits dans `Services/Mail/MailTemplates.cs` (Mailpit en développement) ; préférences de notification de l'utilisateur (écran 14) respectées avant chaque envoi.
-- PDF : gabarits HTML imprimés par Chromium (`Services/Export/`) ; fiche de présence : un seul gabarit pour l'aperçu et le PDF (`Domain/Attendance/SheetHtml.cs`), PDF signés dans `STORAGE_DIR`.
+- PDF : gabarits HTML imprimés par Chromium (`Services/Export/`), pour les exports du reporting et du journal d'audit. `STORAGE_DIR` ne garde plus que les clés des sessions.
 - Seeds : `Databases/Seed/` (`DemoSeed`, `E2eSeed` pour les divisions de test `*.e2e@exemple.com`, `PlatformAdmin`). CX Expertise n'est jamais modifiée par les tests.
 - Interface : `frontend/src/`, Feature-Sliced Design (`app` > `pages` > `widgets` > `features` > `entities` > `shared`). Composants ODS dans `shared/ui/`, textes dans `shared/i18n/fr.ts`, formats dans `shared/lib/format.ts`, statuts dans `shared/lib/status.ts` et `<StatusBadge>`. Thème Tailwind : `app/styles/index.css` ; contrôle : `scripts/check-styles.mjs`.
 - Données de l'interface : requêtes et écritures TanStack Query dans `entities/<domaine>/api/` ; règles d'affichage pures dans `entities/<domaine>/lib/` (testées par Vitest).

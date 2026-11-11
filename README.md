@@ -1,6 +1,6 @@
 # TimeSheet
 
-Application interne Orange Cameroun : projets, temps de travail hebdomadaires, validation par le manager, fiche de présence RH des stagiaires, pilotage, tâches, administration multi-divisions.
+Application interne Orange Cameroun : gestion et suivi des projets, temps de travail hebdomadaires, validation par le manager, pilotage, tâches, administration multi-divisions.
 
 - Spécification complète : `PROMPT.md`. Maquettes et captures de référence : `design/`.
 - Règles de l'équipe (design system, sécurité, méthode) : `CLAUDE.md`.
@@ -40,13 +40,13 @@ Mot de passe : `SEED_PASSWORD` de `appsettings.Development.json`. Tous les noms 
 
 | Compte | Rôle | Écrans principaux |
 |---|---|---|
-| aicha.ndongo@exemple.com | Staff, stagiaire | Tableau de bord, saisie, fiche de présence, tâches |
+| aicha.ndongo@exemple.com | Staff | Tableau de bord, saisie, tâches |
 | samuel.etoga@exemple.com | Manager | Validation, projets, reporting |
 | brigitte.mbarga@exemple.com | Owner | Vue consolidée de la division |
 | paul.tchouta@exemple.com | Admin de division | Administration de la division |
 | rose.ekambi@exemple.com | Admin plateforme | Divisions, onboarding, journal d'audit |
 
-`DEMO_PROFILES` (actif en développement) affiche ces profils sur l'écran de connexion. Les e-mails (invitations, validations, rappels, fiche de présence aux RH) arrivent dans Mailpit : http://localhost:8025.
+`DEMO_PROFILES` (actif en développement) affiche ces profils sur l'écran de connexion. Les e-mails (invitations, validations, rappels) arrivent dans Mailpit : http://localhost:8025.
 
 ## Commandes
 
@@ -65,7 +65,6 @@ Mot de passe : `SEED_PASSWORD` de `appsettings.Development.json`. Tous les noms 
 | 1 | Connexion, mot de passe oublié, invitation | `/connexion`, `/mot-de-passe-oublie`, `/invitation/:jeton` | Tous |
 | 2 | Tableau de bord | `/tableau-de-bord` | Qui saisit ses temps |
 | 3–5 | Saisie hebdomadaire (par jour), soumission, fiche rejetée | `/saisie/:annee/:semaine` | Qui saisit ses temps |
-| 6 | Fiche de présence RH | `/fiche-presence/:annee/:mois` | Stagiaires ; superviseur dans `/validation/presence` |
 | 7–8 | File de validation, détail d'une fiche | `/validation`, `/validation/:id` | Managers, owners |
 | 9 | Projets | `/projets` | Managers, owners, admin de division |
 | 10 | Reporting et exports | `/reporting` | Managers, owners, admin de division |

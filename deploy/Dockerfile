@@ -1,6 +1,6 @@
 # Image de production TimeSheet (réécriture) : l'API .NET 10 sert aussi l'interface (Vite,
-# fichiers statiques dans wwwroot), sur la même origine. Chromium pour les PDF (fiche de
-# présence, exports). PostgreSQL est géré à part : la chaîne de connexion est fournie à
+# fichiers statiques dans wwwroot), sur la même origine. Chromium pour les PDF (exports
+# du reporting et du journal). PostgreSQL est géré à part : la chaîne de connexion est fournie à
 # l'exécution. Les migrations s'appliquent au démarrage (verrou PostgreSQL).
 #
 #   docker build -f deploy/Dockerfile -t timesheet:<version> .
