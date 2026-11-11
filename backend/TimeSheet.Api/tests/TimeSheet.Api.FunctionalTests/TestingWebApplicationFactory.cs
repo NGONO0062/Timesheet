@@ -45,6 +45,8 @@ public class TestingWebApplicationFactory : WebApplicationFactory<Program>, IAsy
         {
             services.RemoveAll<TimeSheet.Api.Services.Mail.IMailSender>();
             services.AddSingleton<TimeSheet.Api.Services.Mail.IMailSender, TestUtilities.RecordingMailSender>();
+            // Requêtes SQL comptées (TestUtilities.SqlCommandCounter).
+            services.ConfigureDbContext<TimeSheetDbContext>(options => options.AddInterceptors(new TestUtilities.SqlCommandCounter()));
         });
     }
 

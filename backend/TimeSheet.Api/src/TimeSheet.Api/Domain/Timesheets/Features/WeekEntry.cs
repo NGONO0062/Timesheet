@@ -67,13 +67,17 @@ public static class WeekEntry
     /// <summary>Brouillon (sauvegarde automatique) ou soumission ; le serveur revérifie tout.</summary>
     public sealed record Command(int Year, int Week, IReadOnlyList<DayInput> Days, string? Comment, bool Submit) : IRequest<SaveResult>;
 
-    public sealed class Handler(TimeSheetDbContext db, IViewerAccessor viewers, IEntryContext entry, IAuditWriter audit) : IRequestHandler<Query, WeekDto>, IRequestHandler<Command, SaveResult>
+    public sealed class Handler(TimeSheetDbContext db, IViewerAccessor viewers, IEntryContext entry, IAuditWriter audit, TimeProvider clock) : IRequestHandler<Query, WeekDto>, IRequestHandler<Command, SaveResult>
     {
         public async Task<WeekDto> Handle(Query request, CancellationToken cancellationToken)
         {
             var scope = (await viewers.RequireAsync(cancellationToken)).Require(Permission.ENTER_TIME).Scope;
             var week = WeekRequest.Parse(request.Year, request.Week);
-            var frame = await entry.FrameAsync(scope, week, cancellationToken);
+            // La semaine demandée et les quatre dernières (« Semaines récentes ») : cadres lus en une fois.
+            var currentWeek = WeekRules.CurrentWeek(clock.GetUtcNow());
+            var recentWeeks = Enumerable.Range(0, 4).Select(i => currentWeek.Shift(-i)).ToList();
+            var frames = await entry.FramesAsync(scope, [week, .. recentWeeks], cancellationToken);
+            var frame = frames[week];
             var sheet = await db.Timesheets.AsNoTracking().Include(t => t.Days).Include(t => t.Events)
                 .FirstOrDefaultAsync(t => t.UserId == scope.UserId && t.WeekYear == week.Year && t.WeekNumber == week.Week, cancellationToken);
             var used = sheet?.Days.ToDictionary(d => d.Date) ?? [];
@@ -94,7 +98,6 @@ public static class WeekEntry
                 decision = new DecisionDto(by, decidedAt, sheet.RejectionReason);
             }
 
-            var recentWeeks = Enumerable.Range(0, 4).Select(i => frame.Current.Shift(-i)).ToList();
             var oldestYear = recentWeeks[^1].Year;
             var recentSheets = await db.Timesheets.AsNoTracking()
                 .Where(t => t.UserId == scope.UserId && t.WeekYear >= oldestYear)
@@ -104,8 +107,7 @@ public static class WeekEntry
             foreach (var w in recentWeeks)
             {
                 var stored = recentSheets.FirstOrDefault(s => s.WeekYear == w.Year && s.WeekNumber == w.Week)?.Status;
-                var wFrame = w == week ? frame : await entry.FrameAsync(scope, w, cancellationToken);
-                recent.Add(new RecentWeekDto(w.Year, w.Week, WeekRules.Display(stored, wFrame.Deadline, frame.Now).ToString()));
+                recent.Add(new RecentWeekDto(w.Year, w.Week, WeekRules.Display(stored, frames[w].Deadline, frame.Now).ToString()));
             }
 
             var editable = frame.IsOpen && (sheet is null || WeekRules.IsEditable(sheet.Status, frame.Settings.LockAfterValidation));

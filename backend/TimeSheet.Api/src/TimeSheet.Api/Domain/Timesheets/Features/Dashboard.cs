@@ -47,7 +47,7 @@ public static class Dashboard
         {
             var viewer = (await viewers.RequireAsync(cancellationToken)).Require(Permission.ENTER_TIME);
             var scope = viewer.Scope;
-            var current = await entry.FrameAsync(scope, WeekRules.CurrentWeek(clock.GetUtcNow()), cancellationToken);
+            var currentWeek = WeekRules.CurrentWeek(clock.GetUtcNow());
 
             var sheets = await db.Timesheets.AsNoTracking().Include(t => t.Days).Where(t => t.UserId == scope.UserId).ToListAsync(cancellationToken);
             var user = await db.Users.AsNoTracking().FirstAsync(u => u.Id == scope.UserId, cancellationToken);
@@ -55,20 +55,26 @@ public static class Dashboard
             // Les semaines antérieures à l'arrivée ne comptent pas (première fiche, ou création du compte).
             var arrival = sheets.Select(s => s.Week).Append(IsoWeek.Of(WeekRules.DoualaDay(user.CreatedOn))).Min();
 
-            async Task<WeekSummaryDto> Summary(IsoWeek week)
+            // Semaines regardées : la semaine en cours et les précédentes, depuis l'arrivée. Leurs
+            // cadres (réglages, jours fériés) sont lus en une fois, pas semaine par semaine.
+            var pastWeeks = new List<IsoWeek>();
+            for (var w = currentWeek.Shift(-1); w >= arrival && pastWeeks.Count < LookBackWeeks; w = w.Shift(-1)) pastWeeks.Add(w);
+            var frames = await entry.FramesAsync(scope, [currentWeek, .. pastWeeks], cancellationToken);
+            var current = frames[currentWeek];
+
+            WeekSummaryDto Summary(IsoWeek week)
             {
-                var frame = week == current.Week ? current : await entry.FrameAsync(scope, week, cancellationToken);
+                var frame = frames[week];
                 var sheet = sheets.FirstOrDefault(s => s.Week == week);
                 var expectedDays = frame.Days.Where(d => d.Expected > 0).Select(d => d.Date).ToHashSet();
                 var filled = sheet?.Days.Count(d => expectedDays.Contains(d.Date)) ?? 0;
                 return new WeekSummaryDto(week.Year, week.Week, week.Monday, filled, expectedDays.Count, WeekRules.Display(sheet?.Status, frame.Deadline, current.Now).ToString(), frame.Deadline);
             }
 
-            var past = new List<WeekSummaryDto>();
-            for (var w = current.Current.Shift(-1); w >= arrival && past.Count < LookBackWeeks; w = w.Shift(-1)) past.Add(await Summary(w));
+            var past = pastWeeks.Select(Summary).ToList();
 
             // Une fiche rejetée est à corriger, semaine en cours comprise (§9.1).
-            var currentSummary = await Summary(current.Week);
+            var currentSummary = Summary(current.Week);
             var todo = past.Prepend(currentSummary).Where(s => s.Status == nameof(DisplayStatus.REJECTED)).Select(s => new TodoDto("rejected", s))
                 .Concat(past.Where(s => s.Status == nameof(DisplayStatus.MISSING)).OrderBy(s => s.Monday).Select(s => new TodoDto("missing", s)))
                 .ToList();

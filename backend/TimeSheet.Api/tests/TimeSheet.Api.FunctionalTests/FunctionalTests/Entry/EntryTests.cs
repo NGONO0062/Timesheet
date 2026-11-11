@@ -136,6 +136,45 @@ public class EntryTests : TestBase
     }
 
     [Fact]
+    public async Task le_tableau_de_bord_et_la_saisie_lisent_reglages_et_jours_feries_une_seule_fois()
+    {
+        var s = await NewDivision();
+        // Arrivée il y a dix semaines : le tableau de bord remonte huit semaines, le maximum.
+        // Un jour férié il y a deux semaines : cette semaine-là n'attend que quatre jours.
+        var old = s.Current.Shift(-10);
+        var holidayWeek = s.Current.Shift(-2);
+        await WithDb(async db =>
+        {
+            var divisionId = db.Users.Single(u => u.Id == s.Staff.Id).DivisionId!.Value;
+            var sheet = Timesheet.Create(divisionId, s.Staff.Id, old, DateTimeOffset.UtcNow);
+            sheet.SaveDraft(Enumerable.Range(0, 5).ToDictionary(i => old.Monday.AddDays(i), _ => s.Open), null, DateTimeOffset.UtcNow);
+            db.Timesheets.Add(sheet);
+            db.Holidays.Add(Holiday.Create(divisionId, holidayWeek.Monday, "Jour férié de test"));
+            await db.SaveChangesAsync();
+        });
+
+        TestUtilities.SqlCommandCounter.Reset();
+        var dashboard = await FactoryClient.GetFromJsonAsync<JsonElement>("api/v1/tableau-de-bord");
+        var dashboardQueries = TestUtilities.SqlCommandCounter.Count;
+        var expected = dashboard.GetProperty("todo").EnumerateArray()
+            .ToDictionary(t => t.GetProperty("week").GetProperty("week").GetInt32(), t => t.GetProperty("week").GetProperty("expected").GetInt32());
+        expected.Should().HaveCount(Domain.Timesheets.Features.Dashboard.LookBackWeeks);
+        expected[holidayWeek.Week].Should().Be(4);
+        expected.Where(e => e.Key != holidayWeek.Week).Should().OnlyContain(e => e.Value == 5);
+
+        TestUtilities.SqlCommandCounter.Reset();
+        var week = await FactoryClient.GetFromJsonAsync<JsonElement>(Path(s.Current));
+        var weekQueries = TestUtilities.SqlCommandCounter.Count;
+        week.GetProperty("recent").GetArrayLength().Should().Be(4);
+
+        // Session comprise. Mesuré le 11 novembre 2026 : 11 et 13 requêtes ; avant, 27 et 19, avec
+        // deux lectures (réglages, jours fériés) par semaine regardée. La marge laisse ajouter
+        // une lecture ou deux, pas revenir à une lecture par semaine.
+        dashboardQueries.Should().BeInRange(1, 14);
+        weekQueries.Should().BeInRange(1, 16);
+    }
+
+    [Fact]
     public async Task une_semaine_en_cours_rejetee_est_a_faire_avec_sa_journee_signalee()
     {
         var s = await NewDivision();

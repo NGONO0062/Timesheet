@@ -8,8 +8,7 @@ using TimeSheet.Api.Exceptions;
 using TimeSheet.Api.Services;
 using TimeSheet.Api.Services.Access;
 
-/// <summary>Choix d'une journée : une activité d'un projet ouvert à la personne.</summary>
-/// <summary>Choix d'une journée. <c>Absence</c> : projet système (congé, maladie), jamais repris d'une semaine à l'autre.</summary>
+/// <summary>Choix d'une journée : une activité d'un projet ouvert à la personne. <c>Absence</c> : projet système (congé, maladie), jamais repris d'une semaine à l'autre.</summary>
 public sealed record DayChoiceDto(Guid Key, string Project, string Activity, string Code, bool Closed, bool Absence = false);
 
 /// <summary>Jour ouvré d'une semaine : 1 journée attendue, 0 si férié.</summary>
@@ -24,6 +23,12 @@ public sealed record WeekFrame(IsoWeek Week, IsoWeek Current, DateTimeOffset Now
 public interface IEntryContext : ITimeSheetApiScopedService
 {
     Task<WeekFrame> FrameAsync(DivisionScope scope, IsoWeek week, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Cadres de plusieurs semaines : les réglages et les jours fériés sont lus une seule fois,
+    /// quel que soit le nombre de semaines (tableau de bord, semaines récentes, décisions groupées).
+    /// </summary>
+    Task<IReadOnlyDictionary<IsoWeek, WeekFrame>> FramesAsync(DivisionScope scope, IReadOnlyCollection<IsoWeek> weeks, CancellationToken cancellationToken);
 
     /// <summary>Projets en cours dont la personne est membre, qui couvrent la semaine, plus l'absence.</summary>
     Task<List<DayChoiceDto>> ChoicesAsync(DivisionScope scope, IsoWeek week, CancellationToken cancellationToken);
@@ -42,20 +47,32 @@ public sealed record ValidatorInfo(Guid Id, string Email, string FirstName, stri
 
 public sealed class EntryContext(TimeSheetDbContext db, TimeProvider clock) : IEntryContext
 {
-    public async Task<WeekFrame> FrameAsync(DivisionScope scope, IsoWeek week, CancellationToken cancellationToken)
+    public async Task<WeekFrame> FrameAsync(DivisionScope scope, IsoWeek week, CancellationToken cancellationToken) =>
+        (await FramesAsync(scope, [week], cancellationToken))[week];
+
+    public async Task<IReadOnlyDictionary<IsoWeek, WeekFrame>> FramesAsync(DivisionScope scope, IReadOnlyCollection<IsoWeek> weeks, CancellationToken cancellationToken)
     {
+        if (weeks.Count == 0) return new Dictionary<IsoWeek, WeekFrame>();
         var settings = await db.DivisionSettings.AsNoTracking().FirstOrDefaultAsync(s => s.DivisionId == scope.DivisionId, cancellationToken)
                        ?? DivisionSettings.Defaults(scope.DivisionId);
-        var monday = week.Monday;
+        // Une seule lecture des jours fériés, du premier lundi au dernier dimanche demandés.
+        var first = weeks.Min().Monday;
+        var last = weeks.Max().Monday.AddDays(6);
         var holidays = await db.Holidays.AsNoTracking()
-            .Where(h => h.DivisionId == scope.DivisionId && h.Date >= monday && h.Date <= monday.AddDays(6))
+            .Where(h => h.DivisionId == scope.DivisionId && h.Date >= first && h.Date <= last)
             .ToDictionaryAsync(h => h.Date, h => h.Label, cancellationToken);
         var now = clock.GetUtcNow();
         var today = WeekRules.DoualaDay(now);
-        var days = WeekRules.WorkingDays(week, settings.WorkingDays)
-            .Select(d => new FrameDay(d, holidays.ContainsKey(d) ? 0 : 1, holidays.GetValueOrDefault(d), d > today))
-            .ToList();
-        return new WeekFrame(week, WeekRules.CurrentWeek(now), now, WeekRules.Deadline(week, settings.DeadlineDay, settings.DeadlineTime), days, settings);
+        var current = WeekRules.CurrentWeek(now);
+        var frames = new Dictionary<IsoWeek, WeekFrame>();
+        foreach (var week in weeks.Distinct())
+        {
+            var days = WeekRules.WorkingDays(week, settings.WorkingDays)
+                .Select(d => new FrameDay(d, holidays.ContainsKey(d) ? 0 : 1, holidays.GetValueOrDefault(d), d > today))
+                .ToList();
+            frames[week] = new WeekFrame(week, current, now, WeekRules.Deadline(week, settings.DeadlineDay, settings.DeadlineTime), days, settings);
+        }
+        return frames;
     }
 
     public async Task<List<DayChoiceDto>> ChoicesAsync(DivisionScope scope, IsoWeek week, CancellationToken cancellationToken)

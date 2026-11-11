@@ -344,6 +344,8 @@ public static class Validation
             var userIds = decided.Select(s => s.UserId).ToList();
             var people = await db.Users.AsNoTracking().Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, cancellationToken);
             var appUrl = (configuration["APP_URL"] ?? "http://localhost:5173").TrimEnd('/');
+            // Décision groupée : les cadres des semaines décidées sont lus en une fois.
+            var frames = await entry.FramesAsync(viewer.Scope, decided.Select(s => s.Week).Distinct().ToList(), cancellationToken);
             foreach (var sheet in decided)
             {
                 var person = people[sheet.UserId];
@@ -355,7 +357,7 @@ public static class Validation
 
                 // Préférence de l'écran 14 : la personne peut couper ces e-mails.
                 if (!person.Wants(validated ? Users.NotificationKind.Validated : Users.NotificationKind.Rejected)) continue;
-                var frame = await entry.FrameAsync(viewer.Scope, week, cancellationToken);
+                var frame = frames[week];
                 var range = FrenchFormat.Range(frame.Days[0].Date, frame.Days[^1].Date);
                 var url = $"{appUrl}/saisie/{week.Year}/{week.Week}";
                 var message = validated
