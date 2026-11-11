@@ -70,4 +70,15 @@ public sealed class AdministrationController(IMediator mediator) : ControllerBas
         await mediator.Send(new Administration.RulesCommand(body), cancellationToken);
         return NoContent();
     }
+
+    /// <summary>Jours fériés de la division : un jour férié n'attend aucune saisie.</summary>
+    [HttpGet("jours-feries")]
+    public Task<HolidaysDto> Holidays(CancellationToken cancellationToken) => mediator.Send(new Holidays.Query(), cancellationToken);
+
+    [HttpPost("jours-feries")]
+    [Consumes("application/json")]
+    public Task<HolidayAdded> AddHoliday([FromBody] HolidayInput body, CancellationToken cancellationToken) => mediator.Send(new Holidays.AddCommand(body), cancellationToken);
+
+    [HttpDelete("jours-feries/{id:guid}")]
+    public Task<HolidayRow> RemoveHoliday(Guid id, CancellationToken cancellationToken) => mediator.Send(new Holidays.RemoveCommand(id), cancellationToken);
 }

@@ -2,10 +2,11 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VIEWER_KEY } from "@/entities/viewer";
 import { api } from "@/shared/api/http";
-import type { Admin, DivisionRole, Matrix, Rules, UserInput, UsersPage, Workflow } from "./types";
+import type { Admin, DivisionRole, Holiday, HolidayAdded, Holidays, Matrix, Rules, UserInput, UsersPage, Workflow } from "./types";
 
 const ADMIN_KEY = ["administration"] as const;
 const USERS_KEY = [...ADMIN_KEY, "utilisateurs"] as const;
+const HOLIDAYS_KEY = [...ADMIN_KEY, "jours-feries"] as const;
 
 export function useAdmin() {
   return useQuery({ queryKey: ADMIN_KEY, queryFn: () => api<Admin>("/administration"), staleTime: 0 });
@@ -81,4 +82,25 @@ export function useSaveWorkflow() {
 export function useSaveRules() {
   const refresh = useRefresh();
   return useMutation({ mutationFn: (rules: Rules) => api<null>("/administration/regles", { method: "PUT", json: rules }), onSuccess: refresh });
+}
+
+export function useHolidays() {
+  return useQuery({ queryKey: HOLIDAYS_KEY, queryFn: () => api<Holidays>("/administration/jours-feries"), staleTime: 0 });
+}
+
+/** Un jour férié change les jours à saisir : tout ce qui est en cache (saisie, tableau de bord, reporting) est à relire. */
+function useRefreshAll() {
+  const client = useQueryClient();
+  return () => client.invalidateQueries();
+}
+
+/** `date` au format jj/mm/aaaa, comme saisie. */
+export function useAddHoliday() {
+  const refresh = useRefreshAll();
+  return useMutation({ mutationFn: (input: { date: string; label: string }) => api<HolidayAdded>("/administration/jours-feries", { method: "POST", json: input }), onSuccess: refresh });
+}
+
+export function useRemoveHoliday() {
+  const refresh = useRefreshAll();
+  return useMutation({ mutationFn: (id: string) => api<Holiday>(`/administration/jours-feries/${id}`, { method: "DELETE" }), onSuccess: refresh });
 }

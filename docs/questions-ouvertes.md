@@ -175,3 +175,7 @@ Les points restés ouverts ont été tranchés (délégation du porteur du proje
     - **Démarrage refusé en production** (`instrumentation.ts`) si `APP_URL` est vide, ou si `DEMO_PROFILES` vaut `"true"` sur une adresse qui n'est pas locale. Le staging sur ce poste (`localhost`) garde ses profils de démonstration.
     - **Tâches planifiées** : un en-tête accentué renvoyait une erreur 500 au lieu de 401 ; contrôle commun dans `lib/scheduled.ts`.
     - **Administration** : rouvrir « Modifier » juste après un enregistrement montrait l'ancien état de la ligne (stage décoché) tant que le rafraîchissement du serveur n'était pas arrivé ; la ligne prend maintenant tout de suite les valeurs enregistrées.
+
+## Améliorations après la bascule (novembre 2026)
+
+86. **Jour férié ajouté après coup.** L'administrateur peut ajouter un jour férié à une date où des journées sont déjà saisies (jour férié déclaré tard, ou décrété). Choix provisoire : l'ajout est accepté, les journées déjà saisies ne sont ni supprimées ni modifiées, et le message d'ajout donne leur nombre (« 2 journées sont déjà saisies ce jour-là : vérifiez les fiches concernées. »). Conséquences : ce jour n'est plus attendu dans la semaine ; une fiche encore en brouillon perd cette journée au prochain enregistrement ; une fiche soumise ou validée la garde. À trancher avec les RH : faut-il refuser l'ajout, ou rouvrir les fiches concernées ?

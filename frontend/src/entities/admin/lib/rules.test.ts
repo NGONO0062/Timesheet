@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "@/shared/api/http";
 import type { Matrix } from "../api/types";
-import { adminMessage, fieldMessages, isLocked, ruleOf, toggleMatrix } from "./rules";
+import { adminMessage, fieldMessages, holidaysOfYear, holidayYears, isLocked, ruleOf, toggleMatrix } from "./rules";
 
 const matrix: Matrix = {
   STAFF: ["ENTER_TIME"],
@@ -9,6 +9,29 @@ const matrix: Matrix = {
   OWNER: ["VALIDATE_TEAM", "MANAGE_PROJECTS", "VIEW_REPORTING", "VIEW_DIVISION"],
   DIVISION_ADMIN: ["MANAGE_PROJECTS", "VIEW_REPORTING", "VIEW_DIVISION", "ADMINISTER_DIVISION"],
 };
+
+describe("jours fériés", () => {
+  const rows = [
+    { id: "b", date: "2026-05-01", label: "Fête du Travail" },
+    { id: "c", date: "2027-01-01", label: "Jour de l'An" },
+    { id: "a", date: "2026-01-01", label: "Jour de l'An" },
+  ];
+
+  it("ne garde que l'année affichée, dans l'ordre des dates", () => {
+    expect(holidaysOfYear(rows, 2026).map((h) => h.id)).toEqual(["a", "b"]);
+    expect(holidaysOfYear(rows, 2027).map((h) => h.id)).toEqual(["c"]);
+    expect(holidaysOfYear(rows, 2028)).toEqual([]);
+  });
+
+  it("propose les années de l'API, et l'année affichée même vidée", () => {
+    expect(holidayYears([2026, 2027], 2026)).toEqual([2026, 2027]);
+    expect(holidayYears([2026, 2027], 2029)).toEqual([2026, 2027, 2029]);
+  });
+
+  it("a un message pour chaque refus de l'API", () => {
+    for (const code of ["holidayDate", "holidayLabel", "holidayTaken", "holidayNotFound"]) expect(adminMessage(code)).not.toBe(adminMessage("unknown"));
+  });
+});
 
 describe("administration de division : règles d'affichage", () => {
   it("coche une permission dans l'ordre de la planche, et la retire", () => {

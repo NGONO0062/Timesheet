@@ -224,3 +224,69 @@ test("stagiaire : déclarée dans la fenêtre « Modifier », fiche de présence
   await expect(page.getByText("Professionnel", { exact: true })).toBeVisible();
   await expect(page.getByText("Du 05/01/2026 au 26/06/2026")).toBeVisible();
 });
+
+test("jours fériés : ajout contrôlé, effet sur la saisie, suppression avec « Annuler »", async ({ page }) => {
+  test.setTimeout(90_000); // parcours long : admin, collaboratrice, puis admin
+  await openAdmin(page, ADMIN, "/administration#jours-feries");
+  const section = page.getByRole("region", { name: "Jours fériés" });
+  await expect(section.getByRole("heading", { name: "Aucun jour férié en 2026" })).toBeVisible();
+  const date = section.getByLabel("Date");
+  const label = section.getByLabel("Libellé");
+  const add = section.getByRole("button", { name: "Ajouter le jour férié" });
+
+  // Date et libellé contrôlés par le serveur : les messages sous les champs, le premier en erreur a le focus.
+  await date.fill("31/02/2026");
+  await add.click();
+  await expect(section.getByText("Saisissez une date au format jj/mm/aaaa, entre 2000 et 2100.")).toBeVisible();
+  await expect(section.getByText("Saisissez un libellé de 80 caractères au plus.")).toBeVisible();
+  await expect(date).toBeFocused();
+
+  // Un mercredi d'une semaine passée (semaine 2), loin des semaines que lisent les autres tests.
+  await date.fill("07/01/2026");
+  await label.fill("Fête de test");
+  await add.click();
+  await expect(section.getByRole("status").filter({ hasText: "Jour férié ajouté : mercredi 7 janvier 2026, Fête de test." })).toBeVisible();
+  const table = section.getByRole("table", { name: "Jours fériés de 2026" });
+  await expect(table.getByRole("row", { name: /Mercredi 7 janvier 2026 Fête de test/ })).toBeVisible();
+  await expect(section.getByText("1 jour férié en 2026")).toBeVisible();
+  // Formulaire vidé, prêt pour le suivant.
+  await expect(date).toHaveValue("");
+  await expect(date).toBeFocused();
+
+  // Un seul jour férié par date.
+  await date.fill("07/01/2026");
+  await label.fill("Autre");
+  await add.click();
+  await expect(section.getByText("Un jour férié existe déjà à cette date.")).toBeVisible();
+
+  // Une autre année : la liste y passe pour montrer le jour ajouté.
+  await date.fill("01/05/2027");
+  await label.fill("Fête du Travail");
+  await add.click();
+  await expect(section.getByLabel("Année")).toHaveValue("2027");
+  await expect(section.getByRole("table", { name: "Jours fériés de 2027" }).getByRole("row", { name: /Samedi 1 mai 2027 Fête du Travail/ })).toBeVisible();
+  expect(await axe(page)).toEqual([]);
+
+  // Effet : la collaboratrice n'a plus ce mercredi à saisir.
+  await page.context().clearCookies();
+  await signedIn(page, RULES);
+  await page.goto("/saisie/2026/2");
+  await expect(page.getByRole("row", { name: /Mer 7 janvier/ })).toContainText("Jour férié");
+  await expect(page.getByLabel(/Mercredi 7 janvier/)).toHaveCount(0);
+
+  // Suppression tout de suite, avec « Annuler » ; puis suppression pour de bon.
+  await openAdmin(page, ADMIN, "/administration#jours-feries");
+  const remove = section.getByRole("button", { name: "Supprimer le jour férié du 7 janvier 2026 : Fête de test" });
+  await remove.click();
+  const removed = section.getByRole("status").filter({ hasText: "Jour férié du 7 janvier 2026 supprimé (Fête de test) : ce jour est de nouveau à saisir." });
+  await expect(section.getByRole("heading", { name: "Aucun jour férié en 2026" })).toBeVisible();
+  await removed.getByRole("button", { name: "Annuler" }).click();
+  await expect(section.getByRole("status").filter({ hasText: "Modification annulée." })).toBeVisible();
+  await expect(table.getByRole("row", { name: /Mercredi 7 janvier 2026 Fête de test/ })).toBeVisible();
+  await remove.click();
+  await expect(section.getByRole("heading", { name: "Aucun jour férié en 2026" })).toBeVisible();
+  await page.context().clearCookies();
+  await signedIn(page, RULES);
+  await page.goto("/saisie/2026/2");
+  await expect(page.getByRole("row", { name: /Mer 7 janvier/ })).not.toContainText("Jour férié");
+});

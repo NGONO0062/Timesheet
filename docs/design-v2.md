@@ -72,5 +72,6 @@ Avant, « En attente » portait un « i » (information) et quatre statuts jaune
 - tableau de bord et file de validation selon §5 et §6 ;
 - tableau Kanban des tâches (écran 15) ;
 - gestion d'une division côté plateforme (point 71) ;
+- bloc « Jours fériés » de l'administration de la division (écran 12) : liste par année, formulaire d'ajout, suppression avec « Annuler » ;
 - page « Page introuvable », écran « en préparation », messages d'erreur ajoutés depuis les maquettes ;
 - les planches C1 à C4 mises à jour selon §2 à §4.

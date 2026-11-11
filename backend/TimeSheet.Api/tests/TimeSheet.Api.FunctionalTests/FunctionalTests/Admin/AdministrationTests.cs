@@ -245,4 +245,78 @@ public class AdministrationTests : TestBase
         (await FactoryClient.PostAsJsonAsync($"api/v1/compte/liens{link}", new { next = "Chef-equipe-2026", confirm = "Chef-equipe-2026" })).StatusCode.Should().Be(HttpStatusCode.NoContent);
         await SignIn(s.Hugo.Email, "Chef-equipe-2026");
     }
+
+    [Fact]
+    public async Task jours_feries_ajout_doublon_effet_sur_la_saisie_suppression()
+    {
+        var s = await NewDivision();
+        var other = await NewDivision();
+        var week = WeekRules.CurrentWeek(DateTimeOffset.UtcNow);
+        var monday = week.Monday;
+        var tuesday = monday.AddDays(1);
+        static string Typed(DateOnly d) => d.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        const string Route = "api/v1/administration/jours-feries";
+        async Task<JsonElement> WeekDays() => (await Body(await FactoryClient.GetAsync($"api/v1/saisie/{week.Year}/{week.Week}"))).GetProperty("days");
+
+        // Théo a déjà saisi son mardi.
+        await WithDb(async db =>
+        {
+            var project = Project.Create(s.DivisionId, "JF-1", "Projet", new DateOnly(2000, 1, 1), null, null, ProjectStatus.IN_PROGRESS, DateTimeOffset.UtcNow, null);
+            var activity = project.AddActivity("Analyse");
+            project.AddMember(s.Theo.Id);
+            db.Projects.Add(project);
+            var sheet = Timesheet.Create(s.DivisionId, s.Theo.Id, week, DateTimeOffset.UtcNow);
+            sheet.SaveDraft(new Dictionary<DateOnly, Guid> { [tuesday] = activity.Id }, null, DateTimeOffset.UtcNow);
+            db.Timesheets.Add(sheet);
+            await db.SaveChangesAsync();
+        });
+
+        // Réservé à l'administration de la division.
+        await SignIn(s.Theo.Email);
+        (await FactoryClient.GetAsync(Route)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await FactoryClient.PostAsJsonAsync(Route, new { date = Typed(monday), label = "Jour férié" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await WeekDays())[0].GetProperty("expected").GetInt32().Should().Be(1);
+
+        await SignIn(s.Ada.Email);
+        var year = WeekRules.DoualaDay(DateTimeOffset.UtcNow).Year;
+        var empty = await Body(await FactoryClient.GetAsync(Route));
+        empty.GetProperty("rows").GetArrayLength().Should().Be(0);
+        empty.GetProperty("currentYear").GetInt32().Should().Be(year);
+        empty.GetProperty("years").EnumerateArray().Select(y => y.GetInt32()).Should().Equal(year, year + 1);
+
+        // Date et libellé contrôlés ; un seul jour férié par date.
+        (await Rule(await FactoryClient.PostAsJsonAsync(Route, new { date = "31/02/2026", label = " " }))).Fields.Should().Equal("holidayDate", "holidayLabel");
+        var added = await Body(await FactoryClient.PostAsJsonAsync(Route, new { date = Typed(monday), label = "  Fête   de test " }));
+        added.GetProperty("label").GetString().Should().Be("Fête de test");
+        added.GetProperty("date").GetString().Should().Be(monday.ToString("yyyy-MM-dd"));
+        added.GetProperty("enteredDays").GetInt32().Should().Be(0);
+        var id = added.GetProperty("id").GetGuid();
+        (await Rule(await FactoryClient.PostAsJsonAsync(Route, new { date = Typed(monday), label = "Autre" }))).Fields.Should().Equal("holidayTaken");
+        // Un jour déjà saisi : l'administrateur est prévenu, la journée reste enregistrée.
+        var second = await Body(await FactoryClient.PostAsJsonAsync(Route, new { date = Typed(tuesday), label = "Pont" }));
+        second.GetProperty("enteredDays").GetInt32().Should().Be(1);
+        (await Body(await FactoryClient.GetAsync(Route))).GetProperty("rows").EnumerateArray().Select(r => r.GetProperty("label").GetString()).Should().Equal("Fête de test", "Pont");
+
+        // Effet : le lundi n'attend plus de saisie, et porte le libellé.
+        await SignIn(s.Theo.Email);
+        var days = await WeekDays();
+        days[0].GetProperty("expected").GetInt32().Should().Be(0);
+        days[0].GetProperty("holiday").GetString().Should().Be("Fête de test");
+        days[2].GetProperty("expected").GetInt32().Should().Be(1);
+
+        // Cloisonnement : une autre division ne le voit pas et ne peut pas le supprimer.
+        await SignIn(other.Ada.Email);
+        (await Body(await FactoryClient.GetAsync(Route))).GetProperty("rows").GetArrayLength().Should().Be(0);
+        (await Rule(await FactoryClient.DeleteAsync($"{Route}/{id}"))).Code.Should().Be("holidayNotFound");
+
+        // Suppression : le jour redevient à saisir ; le journal garde les deux gestes.
+        await SignIn(s.Ada.Email);
+        (await Body(await FactoryClient.DeleteAsync($"{Route}/{id}"))).GetProperty("label").GetString().Should().Be("Fête de test");
+        (await Rule(await FactoryClient.DeleteAsync($"{Route}/{id}"))).Code.Should().Be("holidayNotFound");
+        var journal = await ExecuteDbContextAsync(db => db.AuditLog.Where(a => a.DivisionId == s.DivisionId && a.Action.StartsWith("HOLIDAY_")).Select(a => new { a.Action, a.ObjectLabel }).ToListAsync());
+        journal.Select(a => a.Action).Should().BeEquivalentTo("HOLIDAY_ADDED", "HOLIDAY_ADDED", "HOLIDAY_REMOVED");
+        journal.Should().Contain(a => a.Action == "HOLIDAY_REMOVED" && a.ObjectLabel == $"{FrenchFormat.Date(monday)} · Fête de test");
+        await SignIn(s.Theo.Email);
+        (await WeekDays())[0].GetProperty("expected").GetInt32().Should().Be(1);
+    }
 }

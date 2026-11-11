@@ -3,7 +3,7 @@
 import type { Permission } from "@/entities/viewer";
 import { ApiError } from "@/shared/api/http";
 import { dict } from "@/shared/i18n";
-import type { DivisionRole, Matrix, Weekday } from "../api/types";
+import type { DivisionRole, Holiday, Matrix, Weekday } from "../api/types";
 
 export const DIVISION_ROLES: DivisionRole[] = ["STAFF", "MANAGER", "OWNER", "DIVISION_ADMIN"];
 export const PERMISSIONS: Permission[] = ["ENTER_TIME", "VALIDATE_TEAM", "MANAGE_PROJECTS", "VIEW_REPORTING", "VIEW_DIVISION", "ADMINISTER_DIVISION"];
@@ -38,6 +38,16 @@ export const isLocked = (role: DivisionRole, permission: Permission) => role ===
 
 export function toggleMatrix(m: Matrix, role: DivisionRole, permission: Permission, on: boolean): Matrix {
   return { ...m, [role]: on ? PERMISSIONS.filter((p) => p === permission || m[role].includes(p)) : m[role].filter((p) => p !== permission) };
+}
+
+/** Jours fériés d'une année, dans l'ordre des dates (`date` au format aaaa-mm-jj). */
+export function holidaysOfYear(rows: readonly Holiday[], year: number): Holiday[] {
+  return rows.filter((h) => Number(h.date.slice(0, 4)) === year).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Années de la liste « Année » : celles de l'API, plus l'année affichée si elle n'a plus de jour férié. */
+export function holidayYears(years: readonly number[], shown: number): number[] {
+  return [...new Set([...years, shown])].sort((a, b) => a - b);
 }
 
 /** Réponse 422 de l'API : son code et ses champs en erreur. */

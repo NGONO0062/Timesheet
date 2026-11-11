@@ -38,6 +38,15 @@ export type Rules = {
   lockAfterValidation: boolean;
 };
 
+/** Jour férié de la division ; `date` au format aaaa-mm-jj. */
+export type Holiday = { id: string; date: string; label: string };
+
+/** `years` : années qui ont un jour férié, l'année en cours et la suivante. */
+export type Holidays = { currentYear: number; years: number[]; rows: Holiday[] };
+
+/** `enteredDays` : journées déjà saisies ce jour-là dans la division. */
+export type HolidayAdded = Holiday & { enteredDays: number };
+
 export type Admin = {
   divisionName: string;
   managers: Array<{ id: string; name: string }>;

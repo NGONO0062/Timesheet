@@ -1,5 +1,5 @@
 // Écran 12 : administration de la division (PROMPT.md §9.9, planche 12-Admin-division).
-// Une page à ancres : Utilisateurs, Rôles et permissions, Workflows, Règles de saisie.
+// Une page à ancres : Utilisateurs, Rôles et permissions, Workflows, Règles de saisie, Jours fériés.
 // Chaque bloc s'enregistre seul ; une saisie non enregistrée reste à l'écran en cas d'échec.
 // Un seul bouton primaire : « Inviter un utilisateur ».
 import { useEffect, useState, type FormEvent } from "react";
@@ -10,6 +10,7 @@ import { dict, t } from "@/shared/i18n";
 import { Button } from "@/shared/ui/Button";
 import { Alert, Placeholder } from "@/shared/ui/Display";
 import { AnchorNav } from "@/shared/ui/Navigation";
+import { HolidaysSection } from "./HolidaysSection";
 import { UsersSection } from "./UsersSection";
 
 const a = dict.admin;
@@ -189,6 +190,7 @@ function Loaded({ admin }: { admin: Admin }) {
             { id: "permissions", label: a.permissionsTitle },
             { id: "workflows", label: a.workflowTitle },
             { id: "regles", label: a.rulesTitle },
+            { id: "jours-feries", label: a.holidays.title },
           ]}
         />
       </div>
@@ -196,6 +198,7 @@ function Loaded({ admin }: { admin: Admin }) {
       <PermissionsSection initial={admin.matrix} />
       <WorkflowSection initial={admin.workflow} />
       <RulesSection initial={admin.rules} />
+      <HolidaysSection />
     </main>
   );
 }
