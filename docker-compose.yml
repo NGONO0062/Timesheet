@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: timesheet
       POSTGRES_PASSWORD: timesheet
-      POSTGRES_DB: timesheet
+      POSTGRES_DB: timesheet_api
     ports:
       - "5432:5432"
     volumes:

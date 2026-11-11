@@ -1,21 +1,19 @@
 # Dossier de passation TimeSheet
 
-## Comment s'en servir
+## Par où commencer
 
-1. Crée un dossier vide pour le projet et copie dedans tout le contenu de ce dossier : `PROMPT.md`, `CLAUDE.md` et `design/`.
-2. Ouvre Claude Code dans ce dossier.
-3. Envoie ce message :
+1. `README.md` : ce que fait l'application, comment la lancer en local, les comptes de démonstration.
+2. `PROMPT.md` : la spécification complète (produit, design system, données, règles métier, écrans, tests). Elle décrit le produit ; la technique a changé depuis (voir le point 4).
+3. `design/` : feuille de style, planches en HTML et captures de référence. Voir `design/README.md`. Règles visuelles revues : `docs/design-v2.md`.
+4. `docs/reecriture.md` : pourquoi et comment l'application a été réécrite sur la stack Orange (.NET et React), jalon par jalon, avec les écarts assumés. La première version (Next.js, Prisma) n'est plus dans le dépôt ; elle reste lisible dans l'historique Git (commit 5833734).
+5. `docs/exploitation.md` et `docs/staging.md` : mise en production et environnement d'essai.
 
-   > Lis PROMPT.md en entier, puis design/README.md. Dis-moi ce que tu as compris et les points de la stack qui te posent un problème, puis lance le jalon 0.
+## Travailler avec Claude Code
 
-4. À la fin de chaque jalon, Claude Code s'arrête et attend. Compare ses écrans aux images de `design/captures/`, puis réponds « jalon suivant » ou dis ce qu'il faut corriger.
+- `CLAUDE.md` contient les règles que Claude Code relit à chaque session (couleurs, graisses, espacements, sécurité, méthode, commandes).
+- Méthode : un changement à la fois ; tests, comparaison avec `design/captures/`, commit, résumé, puis accord.
 
-## Contenu
+## Points encore ouverts
 
-- `PROMPT.md` : la spécification complète (produit, design system, données, règles métier, écrans, tests, jalons).
-- `CLAUDE.md` : les règles que Claude Code relit à chaque session.
-- `design/` : feuille de style, 29 planches en HTML, 29 captures, sources du prototype. Voir `design/README.md`.
-
-## Avant de lancer
-
-Relis le §20 de `PROMPT.md` (points ouverts). Chaque ligne a une valeur par défaut. Si l'une d'elles est fausse, corrige-la dans le fichier avant de commencer : c'est moins cher que de la corriger dans le code.
+- `docs/questions-ouvertes.md` : choix faits pendant le développement et points à confirmer (ce document cite encore des fichiers de la première version : les règles restent valables, les chemins sont ceux de l'historique).
+- `docs/exploitation.md`, section « Avant la mise en production » : ce qui reste à faire par l'exploitation, dont la première construction de l'image.

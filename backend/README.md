@@ -6,7 +6,7 @@ Backend de la réécriture sur la stack Orange (voir `docs/reecriture.md`) : .NE
 
 - SDK .NET 10 ; outils : `dotnet tool install -g craftsman --version 0.29.0` et `dotnet tool install -g dotnet-ef --version 10.0.14`.
 - Craftsman est compilé pour .NET 8 : le lancer avec `DOTNET_ROLL_FORWARD=Major` s'il n'y a que .NET 10.
-- PostgreSQL sur `localhost:5432`, utilisateur `timesheet` (le même que l'application actuelle). Créer une fois la base de développement : `createdb -h localhost -U timesheet timesheet_api` (les tests recréent les leurs).
+- PostgreSQL sur `localhost:5432`, utilisateur `timesheet` (`docker compose up -d` à la racine crée la base `timesheet_api`). Sans Docker : `createdb -h localhost -U timesheet timesheet_api` une fois (les tests recréent les leurs).
 
 ## Commandes (depuis `backend/`)
 

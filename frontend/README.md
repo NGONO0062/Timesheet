@@ -7,7 +7,8 @@ Frontend de la réécriture sur la stack Orange (voir `docs/reecriture.md`) : Re
 - Installation : `npm install`.
 - Développement : `npm run dev` (http://localhost:5173 ; `/api` est relayé vers l'API .NET sur http://localhost:5000, ou `TIMESHEET_API_URL`). Composants : http://localhost:5173/design.
 - Contrôles : `npm run check` (TypeScript, ESLint avec les frontières des couches, contrôle de style, tests Vitest).
-- Tests de bout en bout : `npm run test:e2e` (lance l'API .NET et Vite, ou réutilise ceux qui tournent ; base du seed).
+- Tests de bout en bout : `npm run test:e2e` (pile à eux : base `timesheet_api_e2e` recréée, API sur le port 5100, interface sur le 5174 ; la base de développement n'est jamais touchée). Sous Windows, depuis PowerShell.
+- Production : `npm run build`, puis `deploy/Dockerfile` copie `dist/` dans l'API, qui sert l'interface.
 - Construction : `npm run build` (dossier `dist/`).
 
 ## Organisation (Feature-Sliced Design)
