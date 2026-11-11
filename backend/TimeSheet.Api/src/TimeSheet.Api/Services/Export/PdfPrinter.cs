@@ -9,7 +9,7 @@ public interface IPdfPrinter
     /// distante) en PDF A4. <paramref name="footer"/> : gabarit du pied répété sur chaque page
     /// (<see cref="DocumentHtml.PdfFooter"/>).
     /// </summary>
-    Task<byte[]> PrintAsync(string html, bool landscape = false, string? footer = null, bool fullBleed = false);
+    Task<byte[]> PrintAsync(string html, bool landscape = false, string? footer = null);
 }
 
 /// <summary>
@@ -41,7 +41,7 @@ public sealed class PdfPrinter : IPdfPrinter, IAsyncDisposable
         }
     }
 
-    public async Task<byte[]> PrintAsync(string html, bool landscape = false, string? footer = null, bool fullBleed = false)
+    public async Task<byte[]> PrintAsync(string html, bool landscape = false, string? footer = null)
     {
         var browser = await BrowserAsync();
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions { JavaScriptEnabled = false, Offline = true });
@@ -52,12 +52,10 @@ public sealed class PdfPrinter : IPdfPrinter, IAsyncDisposable
             Format = "A4",
             Landscape = landscape,
             PrintBackground = true,
-            // Pleine page : le gabarit fixe lui-même ses marges (fiche de présence, jalon 5).
-            Margin = fullBleed ? new Margin { Top = "0", Right = "0", Bottom = "0", Left = "0" } : new Margin { Top = "15mm", Right = "15mm", Bottom = "20mm", Left = "15mm" },
+            Margin = new Margin { Top = "15mm", Right = "15mm", Bottom = "20mm", Left = "15mm" },
             DisplayHeaderFooter = footer is not null,
             HeaderTemplate = "<span></span>",
             FooterTemplate = footer ?? "<span></span>",
-            PreferCSSPageSize = fullBleed,
         });
     }
 

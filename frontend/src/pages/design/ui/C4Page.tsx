@@ -131,20 +131,6 @@ export function C4Page() {
           />
         </Card>
 
-        <Card>
-          <h2 className="text-h5">Fiche de présence RH (un mois)</h2>
-          <StatusTable
-            caption="Statuts d'une fiche de présence"
-            kind="attendance"
-            rows={[
-              ["GENERATED", "Générée, la signature du stagiaire est attendue."],
-              ["SIGNED_BY_INTERN", "Signée par le stagiaire."],
-              ["SIGNED_BY_SUPERVISOR", "Signée par le superviseur, prête à partir."],
-              ["SENT", "E-mail parti avec le PDF en pièce jointe."],
-            ]}
-          />
-        </Card>
-
         <Card muted className="col-span-full">
           <h2 className="text-h5">Règles d&apos;usage</h2>
           <ul className="flex list-disc flex-col gap-10 pl-20">

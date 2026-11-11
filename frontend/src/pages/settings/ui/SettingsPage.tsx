@@ -6,8 +6,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import {
   useChangePassword,
-  useSavePreferences,
-  useSaveHours,
   useSettings,
   useToggleNotification,
   type NotificationKind,
@@ -18,7 +16,7 @@ import { ApiError } from "@/shared/api/http";
 import { dict, t } from "@/shared/i18n";
 import { Button } from "@/shared/ui/Button";
 import { Alert, Card, ListGroup, ListGroupItem, Placeholder } from "@/shared/ui/Display";
-import { Radio, RadioGroup, RequiredLegend, SelectField, Switch, TextField } from "@/shared/ui/Form";
+import { RequiredLegend, SelectField, Switch, TextField } from "@/shared/ui/Form";
 import { AnchorNav } from "@/shared/ui/Navigation";
 
 const s = dict.settings;
@@ -88,55 +86,6 @@ function Facts({ title, rows }: { title: string; rows: Array<[string, string]> }
         ))}
       </dl>
     </Card>
-  );
-}
-
-function HoursForm({ initial }: { initial: { arrival: string; departure: string } }) {
-  const save = useSaveHours();
-  const [arrival, setArrival] = useState(initial.arrival);
-  const [departure, setDeparture] = useState(initial.departure);
-  const [errors, setErrors] = useState<{ arrival?: string; departure?: string }>({});
-  const [notice, setNotice] = useState<Notice>(null);
-  const [failure, setFailure] = useState<string | null>(null);
-
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setNotice(null);
-    setFailure(null);
-    save.mutate(
-      { arrival, departure },
-      {
-        onSuccess: () => {
-          setErrors({});
-          setNotice({ text: s.hoursSaved });
-        },
-        onError: (err) => {
-          const rule = ruleOf(err);
-          if (rule.code === "time" || rule.code === "order") {
-            const next = Object.fromEntries(rule.fields.map((f) => [f, message(rule.code)]));
-            setErrors(next);
-            document.getElementById(next.arrival ? "heure-arrivee" : "heure-depart")?.focus();
-          } else setFailure(message(rule.code));
-        },
-      },
-    );
-  }
-
-  return (
-    <form className="flex flex-col gap-10" onSubmit={onSubmit} noValidate>
-      <div className="flex flex-wrap items-start gap-20">
-        <TextField id="heure-arrivee" label={s.arrival} required inputMode="numeric" className="w-hours" value={arrival} error={errors.arrival} aria-describedby="format-horaires" onChange={(e) => setArrival(e.target.value)} />
-        <TextField id="heure-depart" label={s.departure} required inputMode="numeric" className="w-hours" value={departure} error={errors.departure} aria-describedby="format-horaires" onChange={(e) => setDeparture(e.target.value)} />
-        <Button className="md:mt-text" type="submit" disabled={save.isPending}>
-          {s.saveHours}
-        </Button>
-      </div>
-      <p className="text-sm text-gray-595" id="format-horaires">
-        {s.hoursFormat}
-      </p>
-      <Saved notice={notice} onClose={() => setNotice(null)} />
-      <Failure text={failure} onClose={() => setFailure(null)} />
-    </form>
   );
 }
 
@@ -244,88 +193,31 @@ function PasswordForm() {
   );
 }
 
-type Preferences = { locale: "fr" | "en"; defaultSignatureMode: "DRAWN" | "PASSWORD" };
-
-function PreferencesForm({ initial }: { initial: Preferences }) {
-  const save = useSavePreferences();
-  const [saved, setSaved] = useState(initial);
-  const [values, setValues] = useState(initial);
-  const [notice, setNotice] = useState<Notice>(null);
-  const [failure, setFailure] = useState<string | null>(null);
-  const dirty = JSON.stringify(values) !== JSON.stringify(saved);
-
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setNotice(null);
-    setFailure(null);
-    save.mutate(values, {
-      onSuccess: () => {
-        setSaved(values);
-        setNotice({ text: s.preferencesSaved });
-      },
-      onError: (err) => setFailure(message(ruleOf(err).code)),
-    });
-  }
-
+/** Interface en français seulement pour l'instant (questions ouvertes, point 53) : rien à enregistrer. */
+function LanguageField() {
   return (
-    <form className="flex flex-col gap-20" onSubmit={onSubmit} noValidate>
-      <div className="grid gap-20 md:grid-cols-3">
-        {/* Interface en français seulement pour l'instant (questions ouvertes, point 53). */}
-        <SelectField label={s.language} hint={s.languageUnavailable} value={values.locale} onChange={(e) => setValues((v) => ({ ...v, locale: e.target.value === "en" ? "en" : "fr" }))}>
-          <option value="fr">{s.languages.fr}</option>
-          <option value="en" disabled>
-            {s.languages.en}
-          </option>
-        </SelectField>
-        <RadioGroup legend={s.signatureMode}>
-          {(["DRAWN", "PASSWORD"] as const).map((m) => (
-            <Radio key={m} name="mode-signature" label={s.modes[m]} checked={values.defaultSignatureMode === m} onChange={() => setValues((v) => ({ ...v, defaultSignatureMode: m }))} />
-          ))}
-        </RadioGroup>
-      </div>
-      <div className="flex flex-wrap justify-end gap-10">
-        <Button
-          disabled={!dirty || save.isPending}
-          onClick={() => {
-            setValues(saved);
-            setNotice(null);
-          }}
-        >
-          {s.cancel}
-        </Button>
-        <Button type="submit" disabled={save.isPending}>
-          {s.savePreferences}
-        </Button>
-      </div>
-      <Saved notice={notice} onClose={() => setNotice(null)} />
-      <Failure text={failure} onClose={() => setFailure(null)} />
-    </form>
+    <div className="grid gap-20 md:grid-cols-3">
+      <SelectField label={s.language} hint={s.languageUnavailable} value="fr" onChange={() => undefined}>
+        <option value="fr">{s.languages.fr}</option>
+        <option value="en" disabled>
+          {s.languages.en}
+        </option>
+      </SelectField>
+    </div>
   );
 }
 
 function Loaded({ me }: { me: Settings }) {
-  const internship = me.internship;
   const account: Array<[string, string]> = [
     [s.name, me.name],
     [s.email, me.email],
     [s.role, roleLabel(me.role as Role)],
   ];
   if (me.division) account.push([s.division, me.division]);
-  if (me.manager) account.push([internship ? s.supervisor : s.manager, me.manager]);
-  const internshipRows: Array<[string, string]> | null = internship
-    ? [
-        [s.kind, s.kinds[internship.kind]],
-        [s.direction, internship.direction],
-        [s.department, internship.department],
-        [s.service, internship.service],
-        [s.period, t(s.periodValue, { start: internship.start, end: internship.end })],
-      ]
-    : null;
+  if (me.manager) account.push([s.manager, me.manager]);
   const reportHref = me.adminEmails.length ? `mailto:${me.adminEmails.join(",")}?subject=${encodeURIComponent(s.reportSubject)}` : null;
-  const profileTitle = internship ? s.profileTitle : s.profileTitleStaff;
   const sections = [
-    { id: "profil", label: profileTitle },
-    ...(internship ? [{ id: "horaires", label: s.hoursTitle }] : []),
+    { id: "profil", label: s.profileTitle },
     ...(me.notifications.length ? [{ id: "notifications", label: s.notificationsTitle }] : []),
     { id: "securite", label: s.securityTitle },
     { id: "preferences", label: s.preferencesTitle },
@@ -342,10 +234,9 @@ function Loaded({ me }: { me: Settings }) {
       </div>
 
       <section id="profil" aria-labelledby="titre-profil" className="flex scroll-mt-20 flex-col gap-20">
-        <h2 id="titre-profil">{profileTitle}</h2>
+        <h2 id="titre-profil">{s.profileTitle}</h2>
         <div className="grid gap-20 md:grid-cols-2">
           <Facts title={s.accountCard} rows={account} />
-          {internshipRows && <Facts title={s.internshipCard} rows={internshipRows} />}
         </div>
         <p className="text-sm text-gray-595">
           {s.managedBy}
@@ -357,14 +248,6 @@ function Loaded({ me }: { me: Settings }) {
           )}
         </p>
       </section>
-
-      {internship && (
-        <section id="horaires" aria-labelledby="titre-horaires" className="flex scroll-mt-20 flex-col gap-20">
-          <h2 id="titre-horaires">{s.hoursTitle}</h2>
-          <p>{s.hoursIntro}</p>
-          <HoursForm initial={{ arrival: me.usualArrival, departure: me.usualDeparture }} />
-        </section>
-      )}
 
       {me.notifications.length > 0 && (
         <section id="notifications" aria-labelledby="titre-notifications" className="flex scroll-mt-20 flex-col gap-20">
@@ -380,7 +263,7 @@ function Loaded({ me }: { me: Settings }) {
 
       <section id="preferences" aria-labelledby="titre-preferences" className="flex scroll-mt-20 flex-col gap-20">
         <h2 id="titre-preferences">{s.preferencesTitle}</h2>
-        <PreferencesForm initial={{ locale: me.locale, defaultSignatureMode: me.defaultSignatureMode }} />
+        <LanguageField />
       </section>
     </main>
   );

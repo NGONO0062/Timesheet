@@ -9,7 +9,6 @@ public enum NotificationKind
     FillReminder,
     Validated,
     Rejected,
-    SignatureReminder,
 }
 
 public enum TokenKind

@@ -2,7 +2,6 @@
 // principale (la plus urgente), pas de doublon entre « À faire » et « Dernières semaines »,
 // « Mes projets » replié, pas de carte dans une carte.
 import { Link } from "react-router";
-import { attendanceHref, monthLabel } from "@/entities/attendance";
 import { dayOf, useDashboard, type Dashboard, type WeekSummary } from "@/entities/timesheet";
 import { dict, t } from "@/shared/i18n";
 import { cx } from "@/shared/lib/cx";
@@ -45,9 +44,9 @@ const fromToOf = (w: WeekSummary) => formatFromTo(...daysOf(w));
 
 type TodoItem = { key: string; tone: "warning" | "danger"; title: string; detail: string; detailShort: string; action: string; href: string };
 
-/** Actions « À faire » : semaines rejetées, semaines manquantes, puis fiches de présence à signer. */
+/** Actions « À faire » : semaines rejetées, puis semaines manquantes. */
 function todoItems(data: Dashboard): TodoItem[] {
-  const weeks = data.todo.map((item): TodoItem => {
+  return data.todo.map((item): TodoItem => {
     const w = item.week;
     if (item.kind === "missing") {
       return {
@@ -70,19 +69,6 @@ function todoItems(data: Dashboard): TodoItem[] {
       href: weekHref(w),
     };
   });
-  const sheets = data.attendance.map((s): TodoItem => {
-    const params = { hours: formatDays(s.validatedDays), date: formatDate(zonedDay(new Date(s.generatedAt))) };
-    return {
-      key: `presence-${s.year}-${s.month}`,
-      tone: "warning",
-      title: t(d.attendanceTitle, { month: monthLabel(s.year, s.month).toLowerCase() }),
-      detail: t(d.attendanceDetail, params),
-      detailShort: t(d.attendanceDetailShort, params),
-      action: d.attendanceAction,
-      href: attendanceHref(s.year, s.month),
-    };
-  });
-  return [...weeks, ...sheets];
 }
 
 function Todo({ items }: { items: TodoItem[] }) {
@@ -319,7 +305,7 @@ export function DashboardPage() {
   }
   const data = query.data;
   const todo = todoItems(data);
-  const subtitle = [data.isIntern ? d.intern : null, data.divisionName, data.managerName ? t(d.managerOf, { name: data.managerName }) : null].filter(Boolean).join(" · ");
+  const subtitle = [data.divisionName, data.managerName ? t(d.managerOf, { name: data.managerName }) : null].filter(Boolean).join(" · ");
   return (
     <main className="flex flex-col gap-60">
       <div className="flex flex-col gap-10">

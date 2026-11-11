@@ -10,7 +10,6 @@ export const PERMISSIONS: Permission[] = ["ENTER_TIME", "VALIDATE_TEAM", "MANAGE
 export const WEEKDAYS: Weekday[] = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
 export const REMINDER_DAYS = [2, 3, 5] as const;
 export const DEADLINE_DAYS = ["FRIDAY", "MONDAY"] as const;
-export const INTERNSHIP_KINDS = ["ACADEMIC", "PROFESSIONAL", "GRADUATE"] as const;
 
 /** Matrice par défaut d'une division (§7), avant tout réglage. */
 export const DEFAULT_MATRIX: Matrix = {

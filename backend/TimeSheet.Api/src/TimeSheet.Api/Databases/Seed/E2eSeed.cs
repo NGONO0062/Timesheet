@@ -2,7 +2,6 @@ namespace TimeSheet.Api.Databases.Seed;
 
 using Microsoft.EntityFrameworkCore;
 using TimeSheet.Api.Domain.Access;
-using TimeSheet.Api.Domain.Attendance;
 using TimeSheet.Api.Domain.Divisions;
 using TimeSheet.Api.Domain.Projects;
 using TimeSheet.Api.Domain.Timesheets;
@@ -51,11 +50,8 @@ public static class E2eSeed
 
         // Fiches, puis projets de la division de test : on repart de zéro (les tests en créent,
         // en archivent et changent leur statut).
-        db.AttendanceSheets.RemoveRange(db.AttendanceSheets.Where(s => s.DivisionId == division.Id));
         db.Timesheets.RemoveRange(db.Timesheets.Where(t => t.DivisionId == division.Id));
         await db.SaveChangesAsync(cancellationToken);
-        // Fiche de présence signée : envoyée aux RH, sans attendre (écran 06).
-        (await db.DivisionSettings.FirstAsync(s => s.DivisionId == division.Id, cancellationToken)).WithHr("rh.e2e@exemple.com", autoSend: true);
         db.Projects.RemoveRange(db.Projects.Where(p => p.DivisionId == division.Id));
         await db.SaveChangesAsync(cancellationToken);
 
@@ -120,13 +116,10 @@ public static class E2eSeed
         db.Timesheets.Add(remiSheet);
         await db.SaveChangesAsync(cancellationToken);
 
-        // Fiche de présence (écran 06) : Inès Stage, stagiaire de Martin (horaires 08:30 – 17:30),
-        // les quatre semaines de février 2026 validées, la fiche générée le 9 mars, à signer.
+        // Inès Stage, de l'équipe de Martin : les quatre semaines de février 2026 validées
+        // (historique de la file de validation et du reporting).
         var ines = await Account("stagiaire.e2e@exemple.com", "Inès", "Stage", Role.STAFF, manager.Id);
-        ines.SetUsualHours("08:30", "17:30");
         testProject.AddMember(ines.Id);
-        if (!await db.Internships.AnyAsync(i => i.UserId == ines.Id, cancellationToken))
-            db.Internships.Add(Internship.Create(ines.Id, InternshipKind.ACADEMIC, "DEC", "Tests", "Recette", new DateOnly(2026, 1, 5), new DateOnly(2026, 6, 26)));
         for (var week = 6; week <= 9; week++)
         {
             var iso = new IsoWeek(2026, week);
@@ -137,7 +130,6 @@ public static class E2eSeed
             sheet.Validate(manager.Id, friday.AddDays(3));
             db.Timesheets.Add(sheet);
         }
-        db.AttendanceSheets.Add(AttendanceSheet.Generate(division.Id, ines.Id, 2026, 2, new DateTimeOffset(2026, 3, 9, 8, 0, 0, douala).ToUniversalTime()));
         await db.SaveChangesAsync(cancellationToken);
         await AdminDivisionAsync(db, hash, cancellationToken);
         return "Division de test prête (valideur.e2e, saisie.e2e, alice/bruno/chloe/david.e2e, stagiaire.e2e) ; division d'administration de test (admin.e2e, chef.e2e, regle.e2e, cible.e2e, reglages.e2e, stage.e2e).";
@@ -155,7 +147,7 @@ public static class E2eSeed
         if (await db.Divisions.AnyAsync(d => d.Slug == AdminSlug, cancellationToken)) return;
         var division = Division.Create("Division d'administration de test", AdminSlug, "TEST", status: DivisionStatus.ACTIVE);
         db.Divisions.Add(division);
-        db.DivisionSettings.Add(DivisionSettings.Defaults(division.Id).WithHr("rh.e2e@exemple.com", autoSend: true));
+        db.DivisionSettings.Add(DivisionSettings.Defaults(division.Id));
         await db.SaveChangesAsync(cancellationToken);
 
         User Account(string email, string first, string last, Role role)
@@ -171,7 +163,7 @@ public static class E2eSeed
         var team = Domain.Teams.Team.Create(division.Id, "Équipe test", chef.Id);
         db.Teams.Add(team);
         // Rita : saisie de la semaine 12 (règles appliquées) ; Théo : rôle et compte changés ;
-        // Sacha : écran Paramètres ; Inès : déclarée stagiaire par l'admin.
+        // Sacha : écran Paramètres ; Inès : compte de plus dans la liste.
         var members = new[]
         {
             Account("regle.e2e@exemple.com", "Rita", "Règle", Role.STAFF),

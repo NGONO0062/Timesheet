@@ -82,15 +82,15 @@ public class PlatformTests : TestBase
         (await Body(await FactoryClient.PutAsJsonAsync($"api/v1/plateforme/onboarding/{id}/administrateur", new { fullName = "Nadia Nouvelle", email, config = "BLANK" })))
             .GetProperty("step").GetInt32().Should().Be(3);
 
-        // Étape 3 : l'adresse des RH est obligatoire ; Staff reçoit le reporting.
+        // Étape 3 : le délai de relance est contrôlé ; Staff reçoit le reporting.
         var onboarding = await Body(await FactoryClient.GetAsync($"api/v1/plateforme/onboarding/{id}"));
         onboarding.GetProperty("admin").GetProperty("email").GetString().Should().Be(email);
         onboarding.GetProperty("config").GetString().Should().Be("BLANK");
         var matrix = onboarding.GetProperty("matrix").Deserialize<Dictionary<string, string[]>>()!;
         matrix["STAFF"] = [.. matrix["STAFF"], "VIEW_REPORTING"];
-        var workflow = new { hrEmail = "", hrAutoSend = true, reminderAfterWorkingDays = 3, delegateToOwner = true };
-        (await Rule(await FactoryClient.PutAsJsonAsync($"api/v1/plateforme/onboarding/{id}/roles", new { matrix, workflow }))).Fields.Should().Equal("hrEmail");
-        (await Body(await FactoryClient.PutAsJsonAsync($"api/v1/plateforme/onboarding/{id}/roles", new { matrix, workflow = workflow with { hrEmail = "rh@exemple.com" } })))
+        var workflow = new { reminderAfterWorkingDays = 4, delegateToOwner = true };
+        (await Rule(await FactoryClient.PutAsJsonAsync($"api/v1/plateforme/onboarding/{id}/roles", new { matrix, workflow }))).Fields.Should().Equal("reminder");
+        (await Body(await FactoryClient.PutAsJsonAsync($"api/v1/plateforme/onboarding/{id}/roles", new { matrix, workflow = workflow with { reminderAfterWorkingDays = 5 } })))
             .GetProperty("step").GetInt32().Should().Be(4);
 
         // Étape 4 : règles de saisie.
@@ -109,7 +109,7 @@ public class PlatformTests : TestBase
         row.GetProperty("admin").GetString().Should().Be("Nadia Nouvelle");
         row.GetProperty("users").GetInt32().Should().Be(1);
         var settings = await ExecuteDbContextAsync(db => db.DivisionSettings.AsNoTracking().FirstAsync(s => s.DivisionId == id));
-        (settings.HrEmail, settings.FillAlertThreshold).Should().Be(("rh@exemple.com", 75));
+        (settings.ReminderAfterWorkingDays, settings.FillAlertThreshold).Should().Be((5, 75));
 
         // Suspension, puis « Annuler » : l'ancien état est renvoyé.
         var suspended = await Body(await FactoryClient.PutAsJsonAsync($"api/v1/plateforme/divisions/{id}/etat", new { status = "SUSPENDED" }));

@@ -103,18 +103,13 @@ public class AdministrationTests : TestBase
             .Fields.Should().Equal("email", "firstName");
         (await Rule(await FactoryClient.PostAsJsonAsync("api/v1/administration/utilisateurs", new { email = s.Hugo.Email, firstName = "Nina", lastName = "Invitée", role = "STAFF" })))
             .Fields.Should().Equal("emailTaken");
-        var invite = new
-        {
-            email, firstName = "Nina", lastName = "Invitée", role = "STAFF", managerId = s.Hugo.Id,
-            internship = new { kind = "PROFESSIONAL", direction = "DEC", department = "CX", service = "Parcours", start = "05/01/2026", end = "26/06/2026" },
-        };
+        var invite = new { email, firstName = "Nina", lastName = "Invitée", role = "STAFF", managerId = s.Hugo.Id };
         (await FactoryClient.PostAsJsonAsync("api/v1/administration/utilisateurs", invite)).StatusCode.Should().Be(HttpStatusCode.OK);
         var mail = RecordingMailSender.To(email).Should().ContainSingle().Subject;
         mail.Subject.Should().Be($"Votre accès à TimeSheet · Division {s.Tag}");
         var row = (await Body(await FactoryClient.GetAsync("api/v1/administration/utilisateurs?recherche=Nina"))).GetProperty("rows")[0];
         row.GetProperty("invited").GetBoolean().Should().BeTrue();
         row.GetProperty("manager").GetString().Should().Be("Hugo Essai");
-        row.GetProperty("internship").GetProperty("end").GetString().Should().Be("26/06/2026");
 
         // Nouvel envoi : l'ancien lien n'est plus valable.
         var first = LinkIn(mail, "invitation");
@@ -129,7 +124,7 @@ public class AdministrationTests : TestBase
         (await FactoryClient.PostAsJsonAsync($"api/v1/compte/liens{link}", new { next = "Invitation-2026-ok", confirm = "Invitation-2026-ok" })).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await Rule(await FactoryClient.PostAsJsonAsync($"api/v1/compte/liens{link}", new { next = "Invitation-2026-ok", confirm = "Invitation-2026-ok" }))).Code.Should().Be("expired");
         await SignIn(email, "Invitation-2026-ok");
-        (await Body(await FactoryClient.GetAsync("api/v1/auth/moi"))).GetProperty("isIntern").GetBoolean().Should().BeTrue();
+        (await Body(await FactoryClient.GetAsync("api/v1/auth/moi"))).GetProperty("firstName").GetString().Should().Be("Nina");
 
         var actions = await ExecuteDbContextAsync(db => db.AuditLog.Where(a => a.DivisionId == s.DivisionId).Select(a => a.Action).ToListAsync());
         actions.Should().Contain(["USER_ROLE_CHANGED", "USER_DEACTIVATED", "USER_ACTIVATED", "USER_INVITED", "INVITATION_ACCEPTED"]);
@@ -152,9 +147,9 @@ public class AdministrationTests : TestBase
         saved.GetProperty("STAFF").EnumerateArray().Select(p => p.GetString()).Should().Equal("ENTER_TIME", "VIEW_REPORTING");
         saved.GetProperty("DIVISION_ADMIN").EnumerateArray().Select(p => p.GetString()).Should().Equal("ADMINISTER_DIVISION");
 
-        (await Rule(await FactoryClient.PutAsJsonAsync("api/v1/administration/workflow", new { hrEmail = "rh", hrAutoSend = true, reminderAfterWorkingDays = 4, delegateToOwner = true })))
-            .Fields.Should().Equal("hrEmail", "reminder");
-        (await FactoryClient.PutAsJsonAsync("api/v1/administration/workflow", new { hrEmail = "RH@Exemple.cm", hrAutoSend = false, reminderAfterWorkingDays = 5, delegateToOwner = false }))
+        (await Rule(await FactoryClient.PutAsJsonAsync("api/v1/administration/workflow", new { reminderAfterWorkingDays = 4, delegateToOwner = true })))
+            .Fields.Should().Equal("reminder");
+        (await FactoryClient.PutAsJsonAsync("api/v1/administration/workflow", new { reminderAfterWorkingDays = 5, delegateToOwner = false }))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         (await Rule(await FactoryClient.PutAsJsonAsync("api/v1/administration/regles",
@@ -165,7 +160,7 @@ public class AdministrationTests : TestBase
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         var settings = await ExecuteDbContextAsync(db => db.DivisionSettings.AsNoTracking().FirstAsync(x => x.DivisionId == s.DivisionId));
-        settings.HrEmail.Should().Be("rh@exemple.cm");
+        (settings.ReminderAfterWorkingDays, settings.DelegateToOwner).Should().Be((5, false));
         settings.WorkingDays.Should().Equal(DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday);
         settings.DeadlineDay.Should().Be(DayOfWeek.Monday);
         settings.FillAlertThreshold.Should().Be(70);
@@ -182,24 +177,26 @@ public class AdministrationTests : TestBase
     }
 
     [Fact]
-    public async Task parametres_notifications_preferences_et_mot_de_passe()
+    public async Task parametres_notifications_et_mot_de_passe()
     {
         var s = await NewDivision();
         await SignIn(s.Theo.Email);
         var me = await Body(await FactoryClient.GetAsync("api/v1/parametres"));
         me.GetProperty("manager").GetString().Should().Be("Hugo Essai");
         me.GetProperty("adminEmails").EnumerateArray().Select(e => e.GetString()).Should().Equal(s.Ada.Email);
-        // Staff sans stage : pas de rappel de signature.
+        // Notifications de qui saisit : rappel de saisie et décisions.
         me.GetProperty("notifications").EnumerateArray().Select(n => n.GetProperty("kind").GetString()).Should().Equal("fillReminder", "validated", "rejected");
 
-        (await Rule(await FactoryClient.PutAsJsonAsync("api/v1/parametres/horaires", new { arrival = "8h", departure = "17:00" }))).Fields.Should().Equal("arrival");
-        (await Rule(await FactoryClient.PutAsJsonAsync("api/v1/parametres/horaires", new { arrival = "17:00", departure = "08:00" }))).Code.Should().Be("order");
-        (await FactoryClient.PutAsJsonAsync("api/v1/parametres/horaires", new { arrival = "08:30", departure = "17:30" })).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        // Plus de fiche de présence : ni stage, ni horaires habituels, ni mode de signature.
+        me.TryGetProperty("internship", out _).Should().BeFalse();
+        me.TryGetProperty("usualArrival", out _).Should().BeFalse();
+        (await FactoryClient.PutAsJsonAsync("api/v1/parametres/horaires", new { arrival = "08:30", departure = "17:30" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await FactoryClient.GetAsync("api/v1/fiche-presence")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         var toggled = await Body(await FactoryClient.PutAsJsonAsync("api/v1/parametres/notifications/validated", new { enabled = false }));
         toggled.GetProperty("previous").GetBoolean().Should().BeTrue();
-        (await FactoryClient.PutAsJsonAsync("api/v1/parametres/preferences", new { locale = "fr", defaultSignatureMode = "PASSWORD" })).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await Body(await FactoryClient.GetAsync("api/v1/auth/moi"))).GetProperty("defaultSignatureMode").GetString().Should().Be("PASSWORD");
+        (await FactoryClient.PutAsJsonAsync("api/v1/parametres/preferences", new { locale = "fr" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        me.GetProperty("locale").GetString().Should().Be("fr");
 
         // Fiche validée par Hugo : Théo a coupé cet e-mail, il ne part pas.
         var sheetId = await WithDb(async db =>

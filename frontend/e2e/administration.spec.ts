@@ -76,7 +76,6 @@ test("CX Expertise : utilisateurs, recherche, pagination, permissions, accessibi
   await expect(page.getByRole("switch", { name: "Validation par l'owner (N+2)" })).toBeDisabled();
   await expect(page.getByText("Pas encore disponible : les fiches sont validées en une étape, par le manager (N+1).")).toBeVisible();
   await expect(page.getByText("Désactivée", { exact: true })).toBeVisible();
-  await expect(page.getByText("Automatique", { exact: true })).toBeVisible();
   // Saisie en jours entiers (point 82) : ni unité, ni heures par jour, ni pas à régler.
   await expect(page.getByLabel("Heures attendues par jour")).toHaveCount(0);
   await expect(page.getByLabel("Pas de saisie")).toHaveCount(0);
@@ -179,50 +178,6 @@ test("invitation : e-mail, choix du mot de passe, première connexion", async ({
   await page.goto(link);
   await expect(page.getByRole("alert").filter({ hasText: "Ce lien n'est plus valable" })).toBeVisible();
   expect(await axe(page)).toEqual([]);
-});
-
-test("stagiaire : déclarée dans la fenêtre « Modifier », fiche de présence et stage dans les Paramètres", async ({ page }) => {
-  await openAdmin(page, ADMIN);
-  await page.getByLabel("Rechercher un utilisateur").fill("Inès");
-  await page.getByRole("button", { name: "Rechercher" }).click();
-  await expect(page.getByText("Utilisateurs 1 à 1 sur 1")).toBeVisible();
-  await page.getByRole("button", { name: "Modifier Inès Stage" }).click();
-  const dialog = page.getByRole("dialog", { name: "Modifier Inès Stage" });
-  await dialog.getByLabel("Stagiaire").check();
-  await expect(dialog.getByRole("group", { name: "Stage, repris sur la fiche de présence" })).toBeVisible();
-  await dialog.getByRole("button", { name: "Enregistrer" }).click();
-  await expect(dialog.getByText("Saisissez la direction.")).toBeVisible();
-  await expect(dialog.getByLabel("Direction")).toBeFocused();
-
-  await dialog.getByLabel("Nature du stage").selectOption({ label: "Professionnel" });
-  await dialog.getByLabel("Direction").fill("DEC");
-  await dialog.getByLabel("Département").fill("Expérience client");
-  await dialog.getByLabel("Service").fill("Parcours");
-  await dialog.getByLabel("Début du stage").fill("05/01/2026");
-  await dialog.getByLabel("Fin du stage").fill("04/01/2026");
-  await dialog.getByRole("button", { name: "Enregistrer" }).click();
-  await expect(dialog.getByText("Saisissez une date de fin au format jj/mm/aaaa, après la date de début.")).toBeVisible();
-  await dialog.getByLabel("Fin du stage").fill("26/06/2026");
-  expect(await axe(page)).toEqual([]);
-  await dialog.getByRole("button", { name: "Enregistrer" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Inès Stage : modifications enregistrées." })).toBeVisible();
-
-  // Rôle Manager : le bloc disparaît, un manager n'est pas stagiaire.
-  await page.getByRole("button", { name: "Modifier Inès Stage" }).click();
-  await expect(dialog.getByLabel("Stagiaire")).toBeChecked();
-  await expect(dialog.getByLabel("Fin du stage")).toHaveValue("26/06/2026");
-  await dialog.getByLabel("Rôle").selectOption({ label: "Manager" });
-  await expect(dialog.getByLabel("Stagiaire")).toHaveCount(0);
-  await dialog.getByRole("button", { name: "Annuler" }).click();
-
-  await page.context().clearCookies();
-  await signedIn(page, "stage.e2e@exemple.com");
-  await page.getByRole("navigation", { name: "Navigation principale" }).getByRole("link", { name: "Fiche de présence" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Ma fiche de présence" })).toBeVisible();
-  await page.goto("/parametres");
-  await expect(page.getByRole("heading", { name: "Profil et stage" })).toBeVisible();
-  await expect(page.getByText("Professionnel", { exact: true })).toBeVisible();
-  await expect(page.getByText("Du 05/01/2026 au 26/06/2026")).toBeVisible();
 });
 
 test("jours fériés : ajout contrôlé, effet sur la saisie, suppression avec « Annuler »", async ({ page }) => {

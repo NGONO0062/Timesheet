@@ -2,7 +2,7 @@
 // division (onboarding, étape 1). Purs et testés.
 import type { AuditFilters } from "../api/types";
 
-export const AUDIT_CATEGORIES = ["LOGIN", "SUBMISSIONS", "VALIDATIONS", "REJECTIONS", "REMINDERS", "SIGNATURES", "HR", "RULES", "USERS", "PROJECTS", "DIVISIONS"] as const;
+export const AUDIT_CATEGORIES = ["LOGIN", "SUBMISSIONS", "VALIDATIONS", "REJECTIONS", "REMINDERS", "RULES", "USERS", "PROJECTS", "DIVISIONS"] as const;
 
 /** Filtres lus dans l'adresse : division, type, du, au, q, page. */
 export function parseAuditParams(p: URLSearchParams): AuditFilters {

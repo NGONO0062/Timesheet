@@ -7,8 +7,8 @@ import { axe, login } from "./helpers";
 // de la page (les tableaux larges défilent dans leur zone). Lecture seule.
 const TOURS: Array<[string | null, string[]]> = [
   [null, ["/connexion", "/mot-de-passe-oublie", "/invitation/lien-qui-n-existe-pas-0000", "/reinitialisation/lien-qui-n-existe-pas-0000"]],
-  ["aicha.ndongo@exemple.com", ["/tableau-de-bord", "/saisie/2026/12", "/saisie/2026/11", "/fiche-presence", "/taches", "/parametres"]],
-  ["samuel.etoga@exemple.com", ["/tableau-de-bord", "/validation", "/validation?statut=VALIDATED", "/validation/presence", "/projets", "/projets?vue=colonnes", "/reporting", "/parametres"]],
+  ["aicha.ndongo@exemple.com", ["/tableau-de-bord", "/saisie/2026/12", "/saisie/2026/11", "/taches", "/parametres"]],
+  ["samuel.etoga@exemple.com", ["/tableau-de-bord", "/validation", "/validation?statut=VALIDATED", "/projets", "/projets?vue=colonnes", "/reporting", "/parametres"]],
   ["brigitte.mbarga@exemple.com", ["/division", "/validation", "/projets", "/reporting"]],
   ["paul.tchouta@exemple.com", ["/administration", "/parametres"]],
   ["rose.ekambi@exemple.com", ["/plateforme", "/plateforme/journal", "/plateforme/divisions/nouvelle", "/parametres"]],

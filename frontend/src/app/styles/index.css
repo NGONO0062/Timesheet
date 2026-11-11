@@ -71,10 +71,8 @@
   /* Grille de saisie : colonne Total, bouton de cellule signalée. */
   --spacing-grid-total: 110px;
   --spacing-cell: 60px;
-  /* Zone de signature : cadre de 200 px. */
+  /* Squelette de chargement d'un bloc : 200 px. */
   --spacing-pad: 200px;
-  /* Fiche de présence : hauteur de la feuille A4 paysage (squelette de chargement). */
-  --spacing-sheet-h: 794px;
   /* Écrans 12 et 14 : champ d'heure (échéance), horaires et seuil, formulaires étroits. */
   --spacing-time: 100px;
   --spacing-hours: 160px;
@@ -237,7 +235,7 @@
   box-shadow: 0 0 0 2px var(--color-white);
 }
 
-/* Bloc de traçabilité de la signature : libellés à gauche, valeurs à droite. */
+/* Liste de faits (récapitulatifs) : libellés à gauche, valeurs à droite. */
 @utility grid-cols-trace {
   grid-template-columns: auto minmax(0, 1fr);
 }
@@ -258,10 +256,5 @@
 }
 @utility flex-login {
   flex: 2 1 480px;
-}
-
-/* Écran 06 : signature 3 parts, traçabilité et envoi aux RH 2 parts. */
-@utility grid-cols-sign {
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
 }
 

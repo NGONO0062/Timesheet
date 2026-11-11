@@ -7,7 +7,6 @@ import {
   adminMessage,
   DIVISION_ROLES,
   fieldMessages,
-  INTERNSHIP_KINDS,
   ruleOf,
   useAdminUsers,
   useChangeRole,
@@ -17,13 +16,12 @@ import {
   type Admin,
   type AdminUser,
   type DivisionRole,
-  type InternshipInput,
 } from "@/entities/admin";
 import { roleLabel } from "@/entities/viewer";
 import { dict, t } from "@/shared/i18n";
 import { Button, buttonClass } from "@/shared/ui/Button";
 import { Alert, Badge, Placeholder, Table } from "@/shared/ui/Display";
-import { Checkbox, DateField, InputGroup, RequiredLegend, SelectField, Switch, TextField } from "@/shared/ui/Form";
+import { InputGroup, RequiredLegend, SelectField, Switch, TextField } from "@/shared/ui/Form";
 import { Pagination } from "@/shared/ui/Navigation";
 import { Modal } from "@/shared/ui/Overlay";
 import { EmptyState } from "@/shared/ui/States";
@@ -34,9 +32,7 @@ const a = dict.admin;
 
 type Notice = { tone: "success" | "danger"; text: string; undo?: () => void } | null;
 
-type Form = { firstName: string; lastName: string; email: string; role: DivisionRole; managerId: string; intern: boolean; internship: InternshipInput };
-
-const NO_INTERNSHIP: InternshipInput = { kind: "ACADEMIC", direction: "", department: "", service: "", start: "", end: "" };
+type Form = { firstName: string; lastName: string; email: string; role: DivisionRole; managerId: string };
 
 const IDS: Record<string, string> = {
   firstName: "utilisateur-prenom",
@@ -44,15 +40,8 @@ const IDS: Record<string, string> = {
   email: "utilisateur-email",
   role: "utilisateur-role",
   manager: "utilisateur-manager",
-  internRole: "utilisateur-role",
-  internKind: "stage-nature",
-  internDirection: "stage-direction",
-  internDepartment: "stage-departement",
-  internService: "stage-service",
-  internStart: "stage-debut",
-  internEnd: "stage-fin",
 };
-const ORDER = ["firstName", "lastName", "email", "role", "internRole", "manager", "internKind", "internDirection", "internDepartment", "internService", "internStart", "internEnd"];
+const ORDER = ["firstName", "lastName", "email", "role", "manager"];
 
 function UserModal({ managers, editing, onClose, onDone }: { managers: Admin["managers"]; editing: AdminUser | null; onClose: () => void; onDone: (text: string) => void }) {
   const save = useSaveUser();
@@ -65,22 +54,17 @@ function UserModal({ managers, editing, onClose, onDone }: { managers: Admin["ma
           email: editing.email,
           role: editing.role,
           managerId: editing.managerId ?? "",
-          intern: Boolean(editing.internship),
-          internship: editing.internship ?? NO_INTERNSHIP,
         }
-      : { firstName: "", lastName: "", email: "", role: "STAFF", managerId: "", intern: false, internship: NO_INTERNSHIP },
+      : { firstName: "", lastName: "", email: "", role: "STAFF", managerId: "" },
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState<string | null>(null);
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }));
-  const setInternship = (patch: Partial<InternshipInput>) => setForm((f) => ({ ...f, internship: { ...f.internship, ...patch } }));
-  // Seul un compte Staff peut être stagiaire : le bloc disparaît avec un autre rôle.
-  const intern = form.role === "STAFF" && form.intern;
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setFailure(null);
-    const user = { email: form.email, firstName: form.firstName, lastName: form.lastName, role: form.role, managerId: form.managerId || null, internship: intern ? form.internship : null };
+    const user = { email: form.email, firstName: form.firstName, lastName: form.lastName, role: form.role, managerId: form.managerId || null };
     save.mutate(
       { id: editing?.id ?? null, user },
       {
@@ -89,7 +73,6 @@ function UserModal({ managers, editing, onClose, onDone }: { managers: Admin["ma
           const rule = ruleOf(err);
           if (rule.fields.length > 0) {
             const messages = fieldMessages(rule.fields);
-            if (messages.internRole) messages.role = messages.internRole;
             setErrors(messages);
             const first = ORDER.find((k) => messages[k] || (k === "email" && rule.fields.includes("emailTaken")));
             if (first) document.getElementById(IDS[first] ?? "")?.focus();
@@ -144,24 +127,6 @@ function UserModal({ managers, editing, onClose, onDone }: { managers: Admin["ma
               </option>
             ))}
         </SelectField>
-        {form.role === "STAFF" && <Checkbox id="utilisateur-stagiaire" label={a.intern} hint={a.internHint} checked={form.intern} onChange={(e) => set({ intern: e.target.checked })} />}
-        {intern && (
-          <fieldset className="m-0 flex min-w-0 flex-col gap-20 border-0 p-0">
-            <legend className="mb-20 p-0 text-h3 font-bold">{a.internshipLegend}</legend>
-            <SelectField id={IDS.internKind} label={a.internKind} required value={form.internship.kind} error={errors.internKind} onChange={(e) => setInternship({ kind: e.target.value })}>
-              {INTERNSHIP_KINDS.map((k) => (
-                <option key={k} value={k}>
-                  {a.internKinds[k]}
-                </option>
-              ))}
-            </SelectField>
-            <TextField id={IDS.internDirection} label={a.internDirection} required autoComplete="off" value={form.internship.direction} error={errors.internDirection} onChange={(e) => setInternship({ direction: e.target.value })} />
-            <TextField id={IDS.internDepartment} label={a.internDepartment} required autoComplete="off" value={form.internship.department} error={errors.internDepartment} onChange={(e) => setInternship({ department: e.target.value })} />
-            <TextField id={IDS.internService} label={a.internService} required autoComplete="off" value={form.internship.service} error={errors.internService} onChange={(e) => setInternship({ service: e.target.value })} />
-            <DateField id={IDS.internStart} label={a.internStart} required value={form.internship.start} error={errors.internStart} onChange={(e) => setInternship({ start: e.target.value })} />
-            <DateField id={IDS.internEnd} label={a.internEnd} required value={form.internship.end} error={errors.internEnd} onChange={(e) => setInternship({ end: e.target.value })} />
-          </fieldset>
-        )}
         {failure && (
           <Alert tone="danger" role="alert" onClose={() => setFailure(null)}>
             <p>{failure}</p>

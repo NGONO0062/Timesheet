@@ -79,7 +79,7 @@ function WorkflowSection({ initial }: { initial: Workflow }) {
         const rule = ruleOf(err);
         if (rule.fields.length > 0) {
           setErrors(fieldMessages(rule.fields));
-          document.getElementById(rule.fields.includes("hrEmail") ? "email-rh" : "relance")?.focus();
+          document.getElementById("relance")?.focus();
         } else setNotice({ tone: "danger", text: adminMessage(rule.code) });
       },
     });

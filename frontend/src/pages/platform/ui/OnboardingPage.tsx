@@ -37,7 +37,7 @@ const NEW: View = {
   identity: { name: "", slug: "", direction: "" },
   admin: { fullName: "", email: "", config: "COPY" },
   matrix: DEFAULT_MATRIX,
-  workflow: { ownerValidation: false, hrAutoSend: true, hrEmail: "", reminderAfterWorkingDays: 3, delegateToOwner: true },
+  workflow: { ownerValidation: false, reminderAfterWorkingDays: 3, delegateToOwner: true },
   rules: { workingDays: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], deadlineDay: "FRIDAY", deadlineTime: "18:00", fillAlertThreshold: "80", allowFutureWeeks: false, lockAfterValidation: true },
   summary: [],
 };
@@ -66,7 +66,6 @@ function viewOf(ob: Onboarding, step: number): View {
         rows: [
           [o.factPermissions, changes.length ? changes.map((c) => `${roleLabel(c.role)} ${c.granted ? "+" : "−"} ${dict.permissions[c.permission]}`).join(" ; ") : o.noChange],
           [o.factCircuit, ob.workflow.ownerValidation ? o.circuitTwo : o.circuitOne],
-          [o.factHr, ob.workflow.hrEmail || "—"],
         ],
       },
       { n: 4, title: o.steps[3] ?? "", rows: [[o.factRules, t(o.rulesSummary, { deadline: a.deadlineDays[r.deadlineDay].toLowerCase(), time: r.deadlineTime })]] },
@@ -298,7 +297,7 @@ function RolesStep({ view }: { view: View }) {
           const f = failureOf(e);
           if (f.fields) {
             setErrors(f.fields);
-            document.getElementById(f.fields.hrEmail ? "email-rh" : "relance")?.focus();
+            document.getElementById("relance")?.focus();
           } else setFailure(f.text);
         },
       },

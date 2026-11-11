@@ -67,7 +67,7 @@ export function C2bPage() {
       </Section>
       <Section title="6. Validée" status="VALIDATED">
         <Alert tone="success">
-          <p>Validée par Samuel Etoga le 24 mars 2026 à 11:30. La fiche est verrouillée et sera reprise dans la fiche de présence de mars 2026.</p>
+          <p>Validée par Samuel Etoga le 24 mars 2026 à 11:30. La fiche est verrouillée.</p>
         </Alert>
         <DayEntry caption="Semaine validée, en lecture seule" days={DAYS} expected={EXPECTED} choices={CHOICES} values={WEEK} readOnly />
       </Section>

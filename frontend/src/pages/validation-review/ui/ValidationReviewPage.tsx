@@ -75,7 +75,7 @@ function ReviewView({ review }: { review: Review }) {
   const first = days[0];
   const last = days[days.length - 1];
   const title = t(v.detailTitle, { name: review.name, week: review.week });
-  const role = review.isIntern ? dict.dashboard.intern : roleLabel(review.role);
+  const role = roleLabel(review.role);
   const range = first && last ? formatRange(first, last) : "";
   const period = first && last ? formatFromTo(first, last) : "";
   const flagCount = flags.filter(Boolean).length;

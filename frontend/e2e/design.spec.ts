@@ -5,7 +5,7 @@ import { axe } from "./helpers";
 // reprises de e2e/design.spec.ts. Zéro violation axe sérieuse ou critique sur chaque planche,
 // au bureau et sur mobile ; comportements clavier des fenêtres et des menus. La saisie par
 // jour (C2) est vérifiée dans saisie.spec.ts.
-const ROUTES = ["/design", "/design/c1", "/design/c2-a", "/design/c2-b", "/design/c3", "/design/c4"];
+const ROUTES = ["/design", "/design/c1", "/design/c2-a", "/design/c2-b", "/design/c4"];
 
 test.describe("planches : accessibilité (axe-core)", () => {
   for (const route of ROUTES) {

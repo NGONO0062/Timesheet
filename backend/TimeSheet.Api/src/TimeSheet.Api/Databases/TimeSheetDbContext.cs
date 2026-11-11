@@ -38,9 +38,6 @@ public sealed class TimeSheetDbContext(DbContextOptions<TimeSheetDbContext> opti
     public DbSet<ProjectMember> ProjectMembers { get; set; }
     public DbSet<Timesheet> Timesheets { get; set; }
     public DbSet<TimesheetDay> TimesheetDays { get; set; }
-    public DbSet<Domain.Attendance.Internship> Internships { get; set; }
-    public DbSet<Domain.Attendance.AttendanceSheet> AttendanceSheets { get; set; }
-    public DbSet<Domain.Attendance.Signature> Signatures { get; set; }
     public DbSet<PasswordToken> PasswordTokens { get; set; }
     public DbSet<Domain.Tasks.ProjectTask> ProjectTasks { get; set; }
     #endregion DbSet Region - Do Not Delete

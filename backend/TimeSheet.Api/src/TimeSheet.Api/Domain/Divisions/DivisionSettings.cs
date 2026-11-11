@@ -15,20 +15,10 @@ public class DivisionSettings
     public bool AllowFutureWeeks { get; private set; }
     public bool LockAfterValidation { get; private set; } = true;
     public bool OwnerValidation { get; private set; }
-    public string? HrEmail { get; private set; }
-    public bool HrAutoSend { get; private set; } = true;
     public int ReminderAfterWorkingDays { get; private set; } = 3;
     public bool DelegateToOwner { get; private set; } = true;
 
     public static DivisionSettings Defaults(Guid divisionId) => new() { DivisionId = divisionId };
-
-    /// <summary>Adresse des RH et envoi automatique de la fiche de présence signée (écran 12).</summary>
-    public DivisionSettings WithHr(string? email, bool autoSend)
-    {
-        HrEmail = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
-        HrAutoSend = autoSend;
-        return this;
-    }
 
     public DivisionSettings WithFutureWeeks(bool allowed)
     {
@@ -40,11 +30,9 @@ public class DivisionSettings
     /// Workflow (écran 12). La validation par l'owner (N+2) n'est pas encore branchée (point 52) :
     /// elle reste désactivée.
     /// </summary>
-    public DivisionSettings WithWorkflow(string hrEmail, bool hrAutoSend, int reminderAfterWorkingDays, bool delegateToOwner)
+    public DivisionSettings WithWorkflow(int reminderAfterWorkingDays, bool delegateToOwner)
     {
         OwnerValidation = false;
-        HrEmail = hrEmail.Trim().ToLowerInvariant();
-        HrAutoSend = hrAutoSend;
         ReminderAfterWorkingDays = reminderAfterWorkingDays;
         DelegateToOwner = delegateToOwner;
         return this;
@@ -52,7 +40,7 @@ public class DivisionSettings
 
     /// <summary>
     /// Configuration de départ d'une division en onboarding : celle de la division pilote, ou les
-    /// valeurs par défaut. L'adresse des RH est propre à la division : elle n'est jamais reprise.
+    /// valeurs par défaut.
     /// </summary>
     public DivisionSettings CopyFrom(DivisionSettings source)
     {
@@ -63,7 +51,6 @@ public class DivisionSettings
         AllowFutureWeeks = source.AllowFutureWeeks;
         LockAfterValidation = source.LockAfterValidation;
         OwnerValidation = source.OwnerValidation;
-        HrAutoSend = source.HrAutoSend;
         ReminderAfterWorkingDays = source.ReminderAfterWorkingDays;
         DelegateToOwner = source.DelegateToOwner;
         return this;

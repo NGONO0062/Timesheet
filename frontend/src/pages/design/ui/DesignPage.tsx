@@ -23,7 +23,6 @@ const PLANCHES = [
   ["/design/c1", "C1 · Sélecteur de semaine"],
   ["/design/c2-a", "C2 · Saisie par jour, en cours"],
   ["/design/c2-b", "C2 · Saisie par jour, après soumission"],
-  ["/design/c3", "C3 · Signature"],
   ["/design/c4", "C4 · Étiquettes de statut"],
 ] as const;
 
@@ -83,16 +82,16 @@ export function DesignPage() {
             <option>Staff</option>
             <option>Manager</option>
           </SelectField>
-          <DateField label="Début du stage" />
+          <DateField label="Début du projet" />
           <TextField label="Champ désactivé" disabled defaultValue="Lecture seule" />
           <TextareaField label="Commentaire" />
         </div>
         <div className="flex flex-wrap items-start gap-30">
           <Checkbox label="Copier la semaine précédente" defaultChecked hint="Les lignes sont reprises, sans les jours." />
           <Checkbox label="Désactivée" disabled />
-          <RadioGroup legend="Mode de signature" required>
-            <Radio name="mode" label="Tracé" defaultChecked />
-            <Radio name="mode" label="Mot de passe" />
+          <RadioGroup legend="Affichage des projets" required>
+            <Radio name="mode" label="Liste" defaultChecked />
+            <Radio name="mode" label="Colonnes" />
           </RadioGroup>
           <Switch label="Rappel de saisie" checked={notify} onChange={() => setNotify((v) => !v)} />
           <QuantitySelector value={quantity} onChange={setQuantity} step={1} max={1} decreaseLabel="Retirer une journée" increaseLabel="Ajouter une journée" aria-label="Lundi" />

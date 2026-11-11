@@ -24,22 +24,10 @@ export async function signedIn(page: Page, email: string, password = PASSWORD) {
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
-/** Feuille affichée dans un cadre isolé : son document analysé dans une page à part. */
-export async function sheetAxe(page: Page) {
-  const html = (await page.locator("iframe[sandbox]").getAttribute("srcdoc")) ?? "";
-  const sheet = await page.context().newPage();
-  await sheet.setContent(html);
-  const r = await new AxeBuilder({ page: sheet }).withTags(TAGS).analyze();
-  await sheet.close();
-  return r.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id} : ${v.help}`);
-}
-
 /** Violations axe sérieuses ou critiques de la page. */
 export async function axe(page: Page) {
   // Pointeur écarté : un lien survolé prend #f16e00 (3,0:1, compensé par le soulignement, §14).
   await page.mouse.move(0, 0);
-  // Aperçu de la fiche de présence : cadre sans script (sandbox), où axe ne peut pas entrer ;
-  // la feuille est analysée à part (sheetAxe).
-  const r = await new AxeBuilder({ page }).withTags(TAGS).exclude("iframe[sandbox]").analyze();
+  const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   return r.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id} : ${v.help}`);
 }

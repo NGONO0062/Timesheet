@@ -22,18 +22,12 @@ public class User : BaseEntity
     public Guid? ManagerId { get; private set; }
     public Guid? TeamId { get; private set; }
     public bool Active { get; private set; } = true;
-    /// <summary>Horaires habituels (« hh:mm ») : arrivée et départ imprimés sur la fiche de présence (§9.7).</summary>
-    public string UsualArrival { get; private set; } = "08:00";
-    public string UsualDeparture { get; private set; } = "17:00";
-    /// <summary>Mode de signature proposé d'abord (écran 14) : tracé ou mot de passe.</summary>
-    public Attendance.SignatureMethod DefaultSignatureMode { get; private set; } = Attendance.SignatureMethod.DRAWN;
     /// <summary>Langue de l'interface (écran 14) : le français seulement pour l'instant (point 53).</summary>
     public string Locale { get; private set; } = "fr";
     /// <summary>Préférences de notification (écran 14). Sans réglage, tout est actif.</summary>
     public bool NotifyFillReminder { get; private set; } = true;
     public bool NotifyValidated { get; private set; } = true;
     public bool NotifyRejected { get; private set; } = true;
-    public bool NotifySignatureReminder { get; private set; } = true;
 
     public string FullName => $"{FirstName} {LastName}";
 
@@ -42,8 +36,7 @@ public class User : BaseEntity
     {
         NotificationKind.FillReminder => NotifyFillReminder,
         NotificationKind.Validated => NotifyValidated,
-        NotificationKind.Rejected => NotifyRejected,
-        _ => NotifySignatureReminder,
+        _ => NotifyRejected,
     };
 
     /// <summary>Change une préférence ; renvoie l'ancienne valeur (pour « Annuler »).</summary>
@@ -54,13 +47,10 @@ public class User : BaseEntity
         {
             case NotificationKind.FillReminder: NotifyFillReminder = enabled; break;
             case NotificationKind.Validated: NotifyValidated = enabled; break;
-            case NotificationKind.Rejected: NotifyRejected = enabled; break;
-            default: NotifySignatureReminder = enabled; break;
+            default: NotifyRejected = enabled; break;
         }
         return previous;
     }
-
-    public void SetSignatureMode(Attendance.SignatureMethod mode) => DefaultSignatureMode = mode;
 
     /// <summary>Adresse corrigée avant la première connexion (administrateur désigné à l'onboarding).</summary>
     public void ChangeEmail(string email) => Email = NormalizeEmail(email);
@@ -90,13 +80,6 @@ public class User : BaseEntity
     public void AssignManager(Guid? managerId) => ManagerId = managerId;
     public void AssignTeam(Guid? teamId) => TeamId = teamId;
     public void SetActive(bool active) => Active = active;
-
-    /// <summary>Horaires habituels « hh:mm » (écran 14), imprimés sur la fiche de présence.</summary>
-    public void SetUsualHours(string arrival, string departure)
-    {
-        UsualArrival = arrival;
-        UsualDeparture = departure;
-    }
 
     public void ChangeRole(Role role) => Role = role;
 

@@ -226,7 +226,7 @@ public static class Platform
 
     public sealed record RolesCommand(Guid Id, IReadOnlyDictionary<string, string[]>? Matrix, WorkflowInput Workflow) : IRequest<StepSaved>;
 
-    /// <summary>Étape 3 : rôles et permissions, workflow (adresse des RH obligatoire).</summary>
+    /// <summary>Étape 3 : rôles et permissions, workflow.</summary>
     public sealed class RolesHandler(TimeSheetDbContext db, IViewerAccessor viewers, IAuditWriter audit) : IRequestHandler<RolesCommand, StepSaved>
     {
         public async Task<StepSaved> Handle(RolesCommand request, CancellationToken cancellationToken)
@@ -238,7 +238,7 @@ public static class Platform
             var d = await OnboardingAsync(db, request.Id, cancellationToken);
             d.ReplaceMatrix(AdminRules.OverridesFor(matrix));
             var w = request.Workflow;
-            (await Administration.SettingsAsync(db, d.Id, cancellationToken)).WithWorkflow(w.HrEmail!, w.HrAutoSend, w.ReminderAfterWorkingDays, w.DelegateToOwner);
+            (await Administration.SettingsAsync(db, d.Id, cancellationToken)).WithWorkflow(w.ReminderAfterWorkingDays, w.DelegateToOwner);
             return new StepSaved(d.Id, await AdvanceAsync(db, audit, viewer, d, 3, cancellationToken));
         }
     }
@@ -273,8 +273,6 @@ public static class Platform
             var d = await OnboardingAsync(db, request.Id, cancellationToken);
             var admin = await PendingAdminAsync(db, d.Id, cancellationToken) ?? throw new RuleException("incomplete", detail: "2");
             if (d.OnboardingStep < PlatformRules.Steps) throw new RuleException("incomplete", detail: d.OnboardingStep.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            var settings = await db.DivisionSettings.AsNoTracking().FirstOrDefaultAsync(s => s.DivisionId == d.Id, cancellationToken);
-            if (string.IsNullOrEmpty(settings?.HrEmail)) throw new RuleException("incomplete", detail: "3");
             d.SetStatus(DivisionStatus.ACTIVE);
             await db.SaveChangesAsync(cancellationToken);
             await invitations.SendAsync(admin, viewer.FullName, cancellationToken);

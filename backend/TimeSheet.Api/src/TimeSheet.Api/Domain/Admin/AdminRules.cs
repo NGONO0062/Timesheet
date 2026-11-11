@@ -3,16 +3,12 @@ namespace TimeSheet.Api.Domain.Admin;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using TimeSheet.Api.Domain.Access;
-using TimeSheet.Api.Domain.Attendance;
-
-/// <summary>Stage saisi dans la fenêtre « Modifier » (dates jj/mm/aaaa).</summary>
-public sealed record InternshipInput(string? Kind, string? Direction, string? Department, string? Service, string? Start, string? End);
 
 /// <summary>Utilisateur saisi dans la fenêtre d'invitation ou de modification (écran 12).</summary>
-public sealed record UserInput(string? Email, string? FirstName, string? LastName, string? Role, Guid? ManagerId, InternshipInput? Internship);
+public sealed record UserInput(string? Email, string? FirstName, string? LastName, string? Role, Guid? ManagerId);
 
 /// <summary>Workflow de la division (écran 12).</summary>
-public sealed record WorkflowInput(string? HrEmail, bool HrAutoSend, int ReminderAfterWorkingDays, bool DelegateToOwner);
+public sealed record WorkflowInput(int ReminderAfterWorkingDays, bool DelegateToOwner);
 
 /// <summary>Règles de saisie (écran 12) : jours en anglais (« MONDAY »), seuil en texte saisi.</summary>
 public sealed record RulesInput(string[]? WorkingDays, string? DeadlineDay, string? DeadlineTime, string? FillAlertThreshold, bool AllowFutureWeeks, bool LockAfterValidation);
@@ -109,7 +105,6 @@ public static partial class AdminRules
     public static List<string> CheckWorkflow(WorkflowInput w)
     {
         var e = new List<string>();
-        if (!IsEmail(w.HrEmail)) e.Add("hrEmail");
         if (!ReminderDays.Contains(w.ReminderAfterWorkingDays)) e.Add("reminder");
         return e;
     }
@@ -151,10 +146,8 @@ public static partial class AdminRules
     public static Role? ParseDivisionRole(string? role) =>
         Enum.TryParse<Role>(role, out var r) && PermissionRules.DivisionRoles.Contains(r) && role == r.ToString() ? r : null;
 
-    public static InternshipKind? ParseKind(string? kind) => Enum.TryParse<InternshipKind>(kind, out var k) && kind == k.ToString() ? k : null;
-
     /// <summary>
-    /// Champs en erreur. Seul un compte Staff peut être stagiaire (§7). `managerIds` : managers
+    /// Champs en erreur. `managerIds` : managers
     /// et owners actifs de la division. `checkEmail` : faux à la modification (l'adresse ne change pas).
     /// </summary>
     public static List<string> CheckUser(UserInput u, IReadOnlyCollection<Guid> managerIds, bool checkEmail = true)
@@ -166,18 +159,6 @@ public static partial class AdminRules
         var role = ParseDivisionRole(u.Role);
         if (role is null) e.Add("role");
         if (u.ManagerId is { } m && !managerIds.Contains(m)) e.Add("manager");
-        if (u.Internship is { } i)
-        {
-            if (role is not null && role != Role.STAFF) e.Add("internRole");
-            if (ParseKind(i.Kind) is null) e.Add("internKind");
-            if (string.IsNullOrWhiteSpace(i.Direction) || i.Direction.Length > 100) e.Add("internDirection");
-            if (string.IsNullOrWhiteSpace(i.Department) || i.Department.Length > 100) e.Add("internDepartment");
-            if (string.IsNullOrWhiteSpace(i.Service) || i.Service.Length > 100) e.Add("internService");
-            var start = ParseFrDate(i.Start);
-            var end = ParseFrDate(i.End);
-            if (start is null) e.Add("internStart");
-            if (end is null || (start is not null && end < start)) e.Add("internEnd");
-        }
         return e;
     }
 

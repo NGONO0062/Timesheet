@@ -89,7 +89,7 @@ public static class EntrySeed
         var january = new Day?[] { D("CX-2026-01", "Tests utilisateurs"), D("CX-2026-01", "Tests utilisateurs"), D("CX-2026-02", "Analyse"), D("CX-2026-02", "Analyse"), D("CX-2026-00", "Formation") };
         var february = new Day?[] { D("CX-2026-01", "Tests utilisateurs"), D("CX-2026-01", "Tests utilisateurs"), D("CX-2026-02", "Analyse"), D("CX-2026-03", "Atelier"), D("CX-2026-00", "Formation") };
 
-        // Aïcha Ndongo, stagiaire depuis le 5 janvier : semaines 2 à 10 validées, semaine 11
+        // Aïcha Ndongo, arrivée le 5 janvier : semaines 2 à 10 validées, semaine 11
         // non saisie (manquante), semaine 12 en brouillon (3 jours sur 5).
         for (var week = 2; week <= 10; week++) Validated("Aïcha Ndongo", week, week <= 5 ? january : february);
         Sheet("Aïcha Ndongo", 12, [D("CX-2026-01", "Tests utilisateurs"), D("CX-2026-02", "Analyse"), D("CX-2026-03", "Atelier"), null, null]);

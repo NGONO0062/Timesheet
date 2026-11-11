@@ -8,8 +8,8 @@ public class AdminRulesTests
 {
     private static readonly Guid Manager = Guid.NewGuid();
 
-    private static UserInput User(string role = "STAFF", InternshipInput? internship = null, Guid? manager = null) =>
-        new("nina@exemple.com", "Nina", "Invitée", role, manager, internship);
+    private static UserInput User(string role = "STAFF", Guid? manager = null) =>
+        new("nina@exemple.com", "Nina", "Invitée", role, manager);
 
     [Fact]
     public void la_matrice_ne_garde_que_les_ecarts_et_la_permission_verrouillee_reste()
@@ -32,8 +32,8 @@ public class AdminRulesTests
     [Fact]
     public void workflow_et_regles_de_saisie_sont_controles()
     {
-        AdminRules.CheckWorkflow(new WorkflowInput("rh@exemple.cm", true, 3, true)).Should().BeEmpty();
-        AdminRules.CheckWorkflow(new WorkflowInput("rh", true, 4, true)).Should().Equal("hrEmail", "reminder");
+        AdminRules.CheckWorkflow(new WorkflowInput(3, true)).Should().BeEmpty();
+        AdminRules.CheckWorkflow(new WorkflowInput(4, true)).Should().Equal("reminder");
 
         AdminRules.CheckRules(new RulesInput(["MONDAY", "FRIDAY"], "FRIDAY", "18:00", "80", false, true)).Should().BeEmpty();
         AdminRules.CheckRules(new RulesInput([], "SUNDAY", "25:00", "101", false, true)).Should().Equal("workingDays", "deadline", "threshold");
@@ -50,18 +50,13 @@ public class AdminRulesTests
     }
 
     [Fact]
-    public void utilisateur_et_stage_sont_controles()
+    public void l_utilisateur_est_controle()
     {
         AdminRules.CheckUser(User(manager: Manager), [Manager]).Should().BeEmpty();
-        AdminRules.CheckUser(new UserInput("x", " ", "", "PLATFORM_ADMIN", Guid.NewGuid(), null), [Manager]).Should().Equal("email", "firstName", "lastName", "role", "manager");
+        AdminRules.CheckUser(new UserInput("x", " ", "", "PLATFORM_ADMIN", Guid.NewGuid()), [Manager]).Should().Equal("email", "firstName", "lastName", "role", "manager");
         // À la modification, l'adresse n'est pas revérifiée (elle ne change pas).
-        AdminRules.CheckUser(new UserInput(null, "A", "B", "STAFF", null, null), [], checkEmail: false).Should().BeEmpty();
-
-        var stage = new InternshipInput("PROFESSIONAL", "DEC", "CX", "Parcours", "05/01/2026", "26/06/2026");
-        AdminRules.CheckUser(User(internship: stage), []).Should().BeEmpty();
-        AdminRules.CheckUser(User("MANAGER", stage), []).Should().Equal("internRole");
-        AdminRules.CheckUser(User(internship: stage with { Kind = "STAGE", Direction = "", End = "04/01/2026" }), []).Should().Equal("internKind", "internDirection", "internEnd");
-        AdminRules.CheckUser(User(internship: stage with { Start = "2026-01-05" }), []).Should().Equal("internStart");
+        AdminRules.CheckUser(new UserInput(null, "A", "B", "STAFF", null), [], checkEmail: false).Should().BeEmpty();
+        AdminRules.CheckUser(User("MANAGER"), []).Should().BeEmpty();
     }
 
     [Fact]

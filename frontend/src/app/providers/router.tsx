@@ -1,8 +1,6 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
 import { ForgotPasswordPage, LinkPasswordPage } from "@/pages/account";
 import { AdminPage } from "@/pages/admin";
-import { AttendanceIndexPage, AttendanceMonthPage } from "@/pages/attendance";
-import { SupervisedListPage, SupervisedSheetPage } from "@/pages/attendance-supervision";
 import { DashboardPage } from "@/pages/dashboard";
 import { DivisionPage } from "@/pages/division";
 import { ProjectsPage } from "@/pages/projects";
@@ -10,11 +8,11 @@ import { AuditPage, OnboardingPage, PlatformDivisionPage, PlatformPage } from "@
 import { ReportingPage } from "@/pages/reporting";
 import { SettingsPage } from "@/pages/settings";
 import { TasksPage } from "@/pages/tasks";
-import { C1Page, C2aPage, C2bPage, C3Page, C4Page, DesignPage } from "@/pages/design";
+import { C1Page, C2aPage, C2bPage, C4Page, DesignPage } from "@/pages/design";
 import { ValidationQueuePage } from "@/pages/validation-queue";
 import { ValidationReviewPage } from "@/pages/validation-review";
 import { CurrentWeekRedirect, WeekEntryPage } from "@/pages/week-entry";
-import { Home, NotFound, Protected, PublicOnly, RequireIntern, RequirePermission, RequirePlatformAdmin, RequireTasks } from "./guards";
+import { Home, NotFound, Protected, PublicOnly, RequirePermission, RequirePlatformAdmin, RequireTasks } from "./guards";
 
 // Composants dans tous leurs états, à comparer aux planches de design/captures (développement seulement).
 const design: RouteObject[] = [
@@ -22,7 +20,6 @@ const design: RouteObject[] = [
   { path: "/design/c1", element: <C1Page /> },
   { path: "/design/c2-a", element: <C2aPage /> },
   { path: "/design/c2-b", element: <C2bPage /> },
-  { path: "/design/c3", element: <C3Page /> },
   { path: "/design/c4", element: <C4Page /> },
 ];
 
@@ -51,11 +48,6 @@ export const router = createBrowserRouter([
       { path: "/projets", element: <RequirePermission permission="MANAGE_PROJECTS"><ProjectsPage /></RequirePermission> },
       { path: "/reporting", element: <RequirePermission permission="VIEW_REPORTING"><ReportingPage /></RequirePermission> },
       { path: "/division", element: <RequirePermission permission="VIEW_DIVISION"><DivisionPage /></RequirePermission> },
-      // Jalon 5 : fiche de présence (écran 06, côté stagiaire et côté superviseur).
-      { path: "/fiche-presence", element: <RequireIntern><AttendanceIndexPage /></RequireIntern> },
-      { path: "/fiche-presence/:year/:month", element: <RequireIntern><AttendanceMonthPage /></RequireIntern> },
-      { path: "/validation/presence", element: review(<SupervisedListPage />) },
-      { path: "/validation/presence/:id", element: review(<SupervisedSheetPage />) },
       // Jalon 6 : administration de division (écran 12) et paramètres (écran 14).
       { path: "/administration", element: <RequirePermission permission="ADMINISTER_DIVISION"><AdminPage /></RequirePermission> },
       { path: "/parametres", element: <SettingsPage /> },

@@ -20,32 +20,33 @@ async function openSettings(page: Page, email: string, password = PASSWORD) {
   await expect(page.locator("main[aria-busy]")).toHaveCount(0);
 }
 
-test("stagiaire : profil et stage en lecture seule, réglages de la planche 14", async ({ page }) => {
+test("profil en lecture seule, notifications, langue ; plus de partie RH", async ({ page }) => {
   await openSettings(page, AICHA);
-  await expect(page.getByText("Votre compte, vos horaires et vos notifications.")).toBeVisible();
-  const account = page.getByRole("region", { name: "Profil et stage" });
+  await expect(page.getByText("Votre compte et vos notifications.")).toBeVisible();
+  const account = page.getByRole("region", { name: "Profil" });
   await expect(account).toContainText("Aïcha Ndongo");
-  await expect(account).toContainText("Superviseur");
+  await expect(account).toContainText("Manager");
   await expect(account).toContainText("Samuel Etoga");
-  await expect(account).toContainText("Professionnel");
-  await expect(account).toContainText("Du 05/01/2026 au 26/06/2026");
   await expect(page.getByRole("link", { name: "Signaler une erreur" })).toHaveAttribute("href", /^mailto:paul\.tchouta@exemple\.com\?subject=/);
-  await expect(page.getByLabel("Arrivée")).toHaveValue(/^\d{2}:\d{2}$/);
-  for (const name of ["Rappel de saisie le vendredi à 12:00 si la semaine est incomplète", "E-mail quand une fiche est validée", "E-mail quand une fiche est rejetée", "Rappel quand une fiche de présence attend votre signature"]) {
+  for (const name of ["Rappel de saisie le vendredi à 12:00 si la semaine est incomplète", "E-mail quand une fiche est validée", "E-mail quand une fiche est rejetée"]) {
     await expect(page.getByRole("switch", { name })).toBeVisible();
   }
   await expect(page.getByRole("region", { name: "Notifications" })).toContainText(/Activé|Désactivé/);
+  await expect(page.getByLabel("Langue de l'interface")).toHaveValue("fr");
+  // Partie RH retirée : ni stage, ni horaires habituels, ni signature.
+  await expect(page.getByRole("heading", { name: "Horaires habituels" })).toHaveCount(0);
+  await expect(page.getByText(/stage/i)).toHaveCount(0);
+  await expect(page.getByRole("switch", { name: /signature/ })).toHaveCount(0);
+  await expect(page.getByRole("radio")).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Navigation principale" }).getByRole("link", { name: "Fiche de présence" })).toHaveCount(0);
   // Saisie par jour (design v2, §1) : plus de reprise des lignes de la semaine précédente.
   await expect(page.getByRole("switch", { name: /Reprendre les lignes/ })).toHaveCount(0);
   expect(await axe(page)).toEqual([]);
 });
 
-test("horaires, notification avec « Annuler », préférences", async ({ page }) => {
+test("notification changée tout de suite, avec « Annuler »", async ({ page }) => {
   await openSettings(page, SACHA);
-  // Compte sans stage : pas de bloc Horaires habituels ni de carte Stage.
-  await expect(page.getByRole("heading", { name: "Horaires habituels" })).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 2, name: "Profil" })).toBeVisible();
-  await expect(page.getByRole("switch", { name: "Rappel quand une fiche de présence attend votre signature" })).toHaveCount(0);
 
   const validated = page.getByRole("switch", { name: "E-mail quand une fiche est validée" });
   await validated.uncheck();
@@ -56,14 +57,9 @@ test("horaires, notification avec « Annuler », préférences", async ({ page }
   await page.getByRole("switch", { name: "E-mail quand une fiche est rejetée" }).uncheck();
   await expect(page.getByRole("status").filter({ hasText: "E-mail quand une fiche est rejetée : désactivé." })).toBeVisible();
 
-  await page.getByRole("radio", { name: "Mot de passe" }).check();
-  await page.getByRole("button", { name: "Enregistrer les préférences" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Préférences enregistrées." })).toBeVisible();
-
   await page.reload();
   await expect(page.getByRole("switch", { name: "E-mail quand une fiche est rejetée" })).not.toBeChecked();
   await expect(page.getByRole("switch", { name: "E-mail quand une fiche est validée" })).toBeChecked();
-  await expect(page.getByRole("radio", { name: "Mot de passe" })).toBeChecked();
   expect(await axe(page)).toEqual([]);
 });
 

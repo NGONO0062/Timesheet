@@ -18,9 +18,7 @@ public sealed record Viewer(
     Role Role,
     Guid? DivisionId,
     string? DivisionName,
-    IReadOnlySet<Permission> Permissions,
-    bool IsIntern,
-    string DefaultSignatureMode = "DRAWN")
+    IReadOnlySet<Permission> Permissions)
 {
     public string FullName => $"{FirstName} {LastName}";
 

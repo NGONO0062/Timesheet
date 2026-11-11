@@ -51,7 +51,6 @@ public sealed record ReviewDto(
     Guid Id,
     string Name,
     string Role,
-    bool IsIntern,
     int Year,
     int Week,
     string Status,
@@ -256,7 +255,7 @@ public static class Validation
                 if (i >= 0) position = new PositionDto(i + 1, pending.Count, i > 0 ? pending[i - 1] : null, i < pending.Count - 1 ? pending[i + 1] : null);
             }
 
-            return new ReviewDto(sheet.Id, person.FullName, person.Role.ToString(), IsIntern: false, sheet.WeekYear, sheet.WeekNumber, sheet.Status.ToString(),
+            return new ReviewDto(sheet.Id, person.FullName, person.Role.ToString(), sheet.WeekYear, sheet.WeekNumber, sheet.Status.ToString(),
                 sheet.SubmittedAt, sheet.SubmissionCount, sheet.Comment, days, choices, history, position);
         }
     }
@@ -276,7 +275,7 @@ public static class Validation
     public const int MaxSelection = 200;
     public const int MaxReason = 2000;
 
-    public sealed class DecideHandler(TimeSheetDbContext db, IViewerAccessor viewers, IEntryContext entry, IAuditWriter audit, IMailSender mail, IConfiguration configuration, TimeProvider clock, Attendance.Features.IAttendanceService attendance)
+    public sealed class DecideHandler(TimeSheetDbContext db, IViewerAccessor viewers, IEntryContext entry, IAuditWriter audit, IMailSender mail, IConfiguration configuration, TimeProvider clock)
         : IRequestHandler<DecideCommand, DecisionResult>
     {
         public async Task<DecisionResult> Handle(DecideCommand request, CancellationToken cancellationToken)
@@ -351,9 +350,6 @@ public static class Validation
                 var person = people[sheet.UserId];
                 var week = sheet.Week;
                 await audit.AppendAsync(validated ? "TIMESHEET_VALIDATED" : "TIMESHEET_REJECTED", viewer.FullName, $"Semaine {week.Week} · {person.FullName}", AuditResult.SUCCESS, viewer.UserId, sheet.DivisionId, cancellationToken: cancellationToken);
-
-                // Mois entièrement validé : la fiche de présence du stagiaire est générée (§9.7).
-                if (validated) await attendance.GenerateIfReadyAsync(sheet.DivisionId, sheet.UserId, week, clock.GetUtcNow(), cancellationToken);
 
                 // Préférence de l'écran 14 : la personne peut couper ces e-mails.
                 if (!person.Wants(validated ? Users.NotificationKind.Validated : Users.NotificationKind.Rejected)) continue;

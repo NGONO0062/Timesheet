@@ -42,15 +42,11 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasIndex(u => u.ManagerId);
         builder.Property(u => u.Email).HasMaxLength(254);
         builder.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
-        builder.Property(u => u.UsualArrival).IsRequired().HasMaxLength(5).HasDefaultValue("08:00");
-        builder.Property(u => u.UsualDeparture).IsRequired().HasMaxLength(5).HasDefaultValue("17:00");
-        builder.Property(u => u.DefaultSignatureMode).HasConversion<string>().HasMaxLength(20).HasDefaultValueSql("'DRAWN'").ValueGeneratedNever();
         builder.Property(u => u.Locale).IsRequired().HasMaxLength(5).HasDefaultValue("fr");
         // Valeur par défaut en base pour les comptes existants ; EF envoie toujours la valeur (false compris).
         builder.Property(u => u.NotifyFillReminder).HasDefaultValue(true).ValueGeneratedNever();
         builder.Property(u => u.NotifyValidated).HasDefaultValue(true).ValueGeneratedNever();
         builder.Property(u => u.NotifyRejected).HasDefaultValue(true).ValueGeneratedNever();
-        builder.Property(u => u.NotifySignatureReminder).HasDefaultValue(true).ValueGeneratedNever();
         builder.HasOne(u => u.Division).WithMany().HasForeignKey(u => u.DivisionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<User>().WithMany().HasForeignKey(u => u.ManagerId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Team>().WithMany().HasForeignKey(u => u.TeamId).OnDelete(DeleteBehavior.SetNull);

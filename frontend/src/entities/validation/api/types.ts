@@ -35,7 +35,6 @@ export type Review = {
   id: string;
   name: string;
   role: "STAFF" | "MANAGER" | "OWNER" | "DIVISION_ADMIN" | "PLATFORM_ADMIN";
-  isIntern: boolean;
   year: number;
   week: number;
   status: TimesheetStatus;

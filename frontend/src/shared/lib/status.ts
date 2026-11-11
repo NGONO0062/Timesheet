@@ -5,18 +5,16 @@ import { dict, t } from "@/shared/i18n";
 export type ProjectStatus = "NOT_STARTED" | "IN_PROGRESS" | "ON_HOLD" | "DONE";
 export type TimesheetStatus = "DRAFT" | "SUBMITTED" | "REJECTED" | "VALIDATED" | "MISSING";
 export type DayStatus = "UPCOMING" | "TODO" | "PARTIAL" | "COMPLETE" | "OVER" | "TO_FIX";
-export type AttendanceStatus = "GENERATED" | "SIGNED_BY_INTERN" | "SIGNED_BY_SUPERVISOR" | "SENT";
 export type TaskStatus = "BACKLOG" | "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
 export type DivisionStatus = "ACTIVE" | "ONBOARDING" | "SUSPENDED";
 export type AuditResult = "SUCCESS" | "FAILURE";
 
-export type StatusKind = "project" | "timesheet" | "day" | "attendance" | "division" | "audit" | "task";
+export type StatusKind = "project" | "timesheet" | "day" | "division" | "audit" | "task";
 
 export type StatusValue = {
   project: ProjectStatus;
   timesheet: TimesheetStatus;
   day: DayStatus;
-  attendance: AttendanceStatus;
   division: DivisionStatus;
   audit: AuditResult;
   task: TaskStatus;
@@ -40,7 +38,6 @@ const GLYPHS: { [K in StatusKind]: Record<StatusValue[K], Glyph> } = {
   project: { NOT_STARTED: "todo", IN_PROGRESS: "play", ON_HOLD: "pause", DONE: "check" },
   timesheet: { DRAFT: "none", SUBMITTED: "hourglass", REJECTED: "cross", VALIDATED: "check", MISSING: "bang" },
   day: { UPCOMING: "none", TODO: "pencil", PARTIAL: "pencil", COMPLETE: "check", OVER: "cross", TO_FIX: "cross" },
-  attendance: { GENERATED: "pencil", SIGNED_BY_INTERN: "hourglass", SIGNED_BY_SUPERVISOR: "check", SENT: "check" },
   division: { ACTIVE: "check", ONBOARDING: "play", SUSPENDED: "bang" },
   audit: { SUCCESS: "check", FAILURE: "cross" },
   task: { BACKLOG: "none", TODO: "todo", IN_PROGRESS: "play", REVIEW: "hourglass", DONE: "check" },
@@ -50,7 +47,6 @@ const TONES: { [K in StatusKind]: Record<StatusValue[K], Tone> } = {
   project: { NOT_STARTED: "neutral", IN_PROGRESS: "info", ON_HOLD: "warning", DONE: "success" },
   timesheet: { DRAFT: "neutral", SUBMITTED: "info", REJECTED: "danger", VALIDATED: "success", MISSING: "warning" },
   day: { UPCOMING: "neutral", TODO: "warning", PARTIAL: "warning", COMPLETE: "success", OVER: "danger", TO_FIX: "danger" },
-  attendance: { GENERATED: "warning", SIGNED_BY_INTERN: "info", SIGNED_BY_SUPERVISOR: "success", SENT: "success" },
   division: { ACTIVE: "success", ONBOARDING: "info", SUSPENDED: "warning" },
   audit: { SUCCESS: "success", FAILURE: "danger" },
   // Colonnes du tableau Kanban (PROMPT.md §9.12) : le libellé dit l'état, la couleur suit.

@@ -4,7 +4,6 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TimeSheet.Api.Databases;
 using TimeSheet.Api.Domain.Access;
-using TimeSheet.Api.Domain.Attendance;
 using TimeSheet.Api.Domain.Divisions;
 using TimeSheet.Api.Domain.Users;
 using TimeSheet.Api.Domain.Users.Features;
@@ -14,9 +13,6 @@ using TimeSheet.Api.Services.Audit;
 using TimeSheet.Api.Services.Mail;
 
 public sealed record ManagerOption(Guid Id, string Name);
-
-/// <summary>Stage dans la fenêtre « Modifier » : dates au format jj/mm/aaaa.</summary>
-public sealed record InternshipView(string Kind, string Direction, string Department, string Service, string Start, string End);
 
 public sealed record AdminUserRow(
     Guid Id,
@@ -28,13 +24,12 @@ public sealed record AdminUserRow(
     Guid? ManagerId,
     string? Manager,
     bool Active,
-    InternshipView? Internship,
     bool Invited,
     bool IsSelf);
 
 public sealed record UsersPageDto(IReadOnlyList<AdminUserRow> Rows, int Total, int From, int To, int Page, int Count, string Query);
 
-public sealed record WorkflowDto(bool OwnerValidation, bool HrAutoSend, string HrEmail, int ReminderAfterWorkingDays, bool DelegateToOwner);
+public sealed record WorkflowDto(bool OwnerValidation, int ReminderAfterWorkingDays, bool DelegateToOwner);
 
 public sealed record RulesDto(string[] WorkingDays, string DeadlineDay, string DeadlineTime, string FillAlertThreshold, bool AllowFutureWeeks, bool LockAfterValidation);
 
@@ -67,7 +62,7 @@ public static class Administration
             .Select(u => new ManagerOption(u.Id, u.FirstName + " " + u.LastName))
             .ToListAsync(cancellationToken);
 
-    internal static WorkflowDto WorkflowOf(DivisionSettings s) => new(s.OwnerValidation, s.HrAutoSend, s.HrEmail ?? "", s.ReminderAfterWorkingDays, s.DelegateToOwner);
+    internal static WorkflowDto WorkflowOf(DivisionSettings s) => new(s.OwnerValidation, s.ReminderAfterWorkingDays, s.DelegateToOwner);
 
     internal static RulesDto RulesOf(DivisionSettings s) => new(
         AdminRules.Weekdays.Where(d => s.WorkingDays.Contains(AdminRules.ToDay(d))).ToArray(),
@@ -132,7 +127,6 @@ public static class Administration
             var ids = rows.Select(u => u.Id).ToList();
             var managerIds = rows.Where(u => u.ManagerId is not null).Select(u => u.ManagerId!.Value).Distinct().ToList();
             var managers = await db.Users.AsNoTracking().Where(u => managerIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, cancellationToken);
-            var internships = await db.Internships.AsNoTracking().Where(i => ids.Contains(i.UserId)).ToDictionaryAsync(i => i.UserId, cancellationToken);
             var invited = await db.PasswordTokens.AsNoTracking().Where(t => ids.Contains(t.UserId) && t.Kind == TokenKind.INVITATION && t.UsedAt == null)
                 .Select(t => t.UserId).Distinct().ToListAsync(cancellationToken);
             return new UsersPageDto(
@@ -140,7 +134,6 @@ public static class Administration
                     u.Id, u.FirstName, u.LastName, u.FullName, u.Email, u.Role.ToString(), u.ManagerId,
                     u.ManagerId is { } m ? managers.GetValueOrDefault(m) : null,
                     u.Active,
-                    internships.TryGetValue(u.Id, out var i) ? new InternshipView(i.Kind.ToString(), i.Direction, i.Department, i.Service, AdminRules.FormatFrDate(i.StartDate), AdminRules.FormatFrDate(i.EndDate)) : null,
                     u.PasswordHash is null && invited.Contains(u.Id),
                     u.Id == scope.UserId)).ToList(),
                 total, page.From, page.To, page.Page, page.Count, q);
@@ -204,9 +197,6 @@ public static class Administration
         return await db.Teams.Where(t => t.DivisionId == scope.DivisionId && t.ManagerId == id).Select(t => (Guid?)t.Id).FirstOrDefaultAsync(cancellationToken);
     }
 
-    private static (InternshipKind Kind, string Direction, string Department, string Service, DateOnly Start, DateOnly End) InternshipData(InternshipInput i) =>
-        (AdminRules.ParseKind(i.Kind)!.Value, i.Direction!.Trim(), i.Department!.Trim(), i.Service!.Trim(), AdminRules.ParseFrDate(i.Start)!.Value, AdminRules.ParseFrDate(i.End)!.Value);
-
     public sealed record SaveCommand(Guid? Id, UserInput Input) : IRequest<UserSaved>;
 
     public sealed class SaveHandler(TimeSheetDbContext db, IViewerAccessor viewers, IAuditWriter audit, IInvitations invitations) : IRequestHandler<SaveCommand, UserSaved>
@@ -230,15 +220,10 @@ public static class Administration
                 created.AssignManager(input.ManagerId);
                 created.AssignTeam(team);
                 db.Users.Add(created);
-                if (input.Internship is { } i)
-                {
-                    var d = InternshipData(i);
-                    db.Internships.Add(Internship.Create(created.Id, d.Kind, d.Direction, d.Department, d.Service, d.Start, d.End));
-                }
                 await db.SaveChangesAsync(cancellationToken);
                 await invitations.SendAsync(created, viewer.FullName, cancellationToken);
                 await audit.AppendAsync("USER_INVITED", viewer.FullName, Label(created), AuditResult.SUCCESS, viewer.UserId, scope.DivisionId,
-                    new { role = role.ToString(), internship = input.Internship is null ? null : $"{input.Internship.Kind} {input.Internship.Start}–{input.Internship.End}" }, cancellationToken);
+                    new { role = role.ToString() }, cancellationToken);
                 return new UserSaved(created.FullName, created.Email);
             }
 
@@ -249,26 +234,14 @@ public static class Administration
                 if (user.Id == scope.UserId) throw new RuleException("self");
                 if (user.Role == Role.DIVISION_ADMIN && await AdminsLeftAsync(db, scope, id, cancellationToken) == 0) throw new RuleException("lastAdmin");
             }
-            var existing = await db.Internships.FirstOrDefaultAsync(i => i.UserId == id, cancellationToken);
-            // Un stage qui a déjà des fiches de présence reste : elles en reprennent la nature et la période.
-            if (input.Internship is null && existing is not null && await db.AttendanceSheets.AnyAsync(s => s.UserId == id && s.DivisionId == scope.DivisionId, cancellationToken))
-                throw new RuleException("internshipInUse");
-
             user.Rename(input.FirstName!, input.LastName!);
             user.ChangeRole(role);
             // Le manager change : la personne rejoint son équipe. Sinon, l'équipe reste.
             if (input.ManagerId != user.ManagerId) user.AssignTeam(teamId);
             user.AssignManager(input.ManagerId);
-            if (input.Internship is { } ii)
-            {
-                var d = InternshipData(ii);
-                if (existing is null) db.Internships.Add(Internship.Create(id, d.Kind, d.Direction, d.Department, d.Service, d.Start, d.End));
-                else existing.Update(d.Kind, d.Direction, d.Department, d.Service, d.Start, d.End);
-            }
-            else if (existing is not null) db.Internships.Remove(existing);
             await db.SaveChangesAsync(cancellationToken);
             await audit.AppendAsync("USER_UPDATED", viewer.FullName, Label(user), AuditResult.SUCCESS, viewer.UserId, scope.DivisionId,
-                new { role = role.ToString(), managerId = input.ManagerId, internship = input.Internship is null ? null : $"{input.Internship.Kind} {input.Internship.Start}–{input.Internship.End}" }, cancellationToken);
+                new { role = role.ToString(), managerId = input.ManagerId }, cancellationToken);
             return new UserSaved(user.FullName, user.Email);
         }
     }
@@ -321,10 +294,10 @@ public static class Administration
             var fields = AdminRules.CheckWorkflow(w);
             if (fields.Count > 0) throw new RuleException("invalid", fields);
             var settings = await SettingsAsync(db, viewer.Scope.DivisionId, cancellationToken);
-            settings.WithWorkflow(w.HrEmail!, w.HrAutoSend, w.ReminderAfterWorkingDays, w.DelegateToOwner);
+            settings.WithWorkflow(w.ReminderAfterWorkingDays, w.DelegateToOwner);
             await db.SaveChangesAsync(cancellationToken);
             await audit.AppendAsync("WORKFLOW_CHANGED", viewer.FullName, "Workflows", AuditResult.SUCCESS, viewer.UserId, viewer.Scope.DivisionId,
-                new { hrEmail = settings.HrEmail, hrAutoSend = w.HrAutoSend, reminderAfterWorkingDays = w.ReminderAfterWorkingDays, delegateToOwner = w.DelegateToOwner }, cancellationToken);
+                new { reminderAfterWorkingDays = w.ReminderAfterWorkingDays, delegateToOwner = w.DelegateToOwner }, cancellationToken);
             return Unit.Value;
         }
     }

@@ -6,7 +6,7 @@ import type { Viewer } from "../model/types";
 
 export type NavItem = { href: string; label: string; icon: NavIconName };
 
-export function navigationFor(viewer: Pick<Viewer, "role" | "permissions" | "isIntern">): NavItem[] {
+export function navigationFor(viewer: Pick<Viewer, "role" | "permissions">): NavItem[] {
   if (viewer.role === "PLATFORM_ADMIN") {
     return [
       { href: "/plateforme", label: "Divisions", icon: "divisions" },
@@ -18,8 +18,6 @@ export function navigationFor(viewer: Pick<Viewer, "role" | "permissions" | "isI
   if (can("ENTER_TIME")) {
     items.push({ href: "/tableau-de-bord", label: "Tableau de bord", icon: "dashboard" });
     items.push({ href: "/saisie", label: "Saisie hebdomadaire", icon: "entry" });
-    // Staff non stagiaire : pas de fiche de présence RH, lien masqué (§20).
-    if (viewer.isIntern) items.push({ href: "/fiche-presence", label: "Fiche de présence", icon: "attendance" });
   }
   // Tableau Kanban (§9.12) : après la saisie pour qui saisit, après Projets pour qui les gère.
   const tasks: NavItem = { href: "/taches", label: "Tâches", icon: "tasks" };
@@ -33,7 +31,7 @@ export function navigationFor(viewer: Pick<Viewer, "role" | "permissions" | "isI
 }
 
 /** Page d'accueil : le premier lien de la navigation, sinon les paramètres. */
-export function homeFor(viewer: Pick<Viewer, "role" | "permissions" | "isIntern">): string {
+export function homeFor(viewer: Pick<Viewer, "role" | "permissions">): string {
   return navigationFor(viewer)[0]?.href ?? "/parametres";
 }
 

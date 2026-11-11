@@ -18,7 +18,7 @@ import { roleLabel } from "@/entities/viewer";
 import { dict, t } from "@/shared/i18n";
 import { cx } from "@/shared/lib/cx";
 import { Badge, ListGroup, ListGroupItem, Table } from "@/shared/ui/Display";
-import { Checkbox, CONTROL, FieldError, InputGroup, InputGroupText, SelectField, Switch, TextField } from "@/shared/ui/Form";
+import { Checkbox, CONTROL, FieldError, InputGroup, InputGroupText, SelectField, Switch } from "@/shared/ui/Form";
 
 const a = dict.admin;
 
@@ -116,12 +116,8 @@ export function WorkflowFields({ value: w, errors, onChange }: { value: Workflow
         >
           <strong>{c[2]?.strong}</strong> {c[2]?.text}
         </Step>
-        <Step n={4} end={<Switch label={a.hrSendLabel} checked={w.hrAutoSend} states={[a.sendAuto, a.sendManual]} onChange={(e) => onChange({ hrAutoSend: e.target.checked })} />}>
-          <strong>{c[3]?.strong}</strong> {c[3]?.text}
-        </Step>
       </ListGroup>
       <div className="grid gap-20 md:grid-cols-3 md:items-end">
-        <TextField id="email-rh" label={a.hrEmail} type="email" required autoComplete="off" value={w.hrEmail} error={errors.hrEmail} onChange={(e) => onChange({ hrEmail: e.target.value })} />
         <SelectField id="relance" label={a.reminder} value={String(w.reminderAfterWorkingDays)} error={errors.reminder} onChange={(e) => onChange({ reminderAfterWorkingDays: Number(e.target.value) })}>
           {REMINDER_DAYS.map((n) => (
             <option key={n} value={n}>

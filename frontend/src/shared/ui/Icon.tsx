@@ -36,12 +36,6 @@ const NAV_PATHS = {
       <path d="M3 9h14M7 2v4M13 2v4" />
     </>
   ),
-  attendance: (
-    <>
-      <path d="M5 2h7l4 4v12H5z" />
-      <path d="M8 10h5M8 14h5" />
-    </>
-  ),
   validation: (
     <>
       <rect x="3" y="3" width="14" height="14" />

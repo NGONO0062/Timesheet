@@ -13,10 +13,6 @@ export type Viewer = {
   divisionId: string | null;
   divisionName: string | null;
   permissions: Permission[];
-  /** Stagiaire : a une fiche de présence RH (PROMPT.md §20). */
-  isIntern: boolean;
-  /** Mode proposé en premier dans la zone de signature (Paramètres). */
-  defaultSignatureMode: "DRAWN" | "PASSWORD";
 };
 
 const ROLE_LABELS: Record<Role, string> = {

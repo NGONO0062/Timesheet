@@ -107,10 +107,8 @@ test("onboarding d'une division, de l'identité à l'invitation (§17, test 5)",
   await page.getByRole("link", { name: "Reprendre l'onboarding de Division créée e2e" }).click();
   await expect(page.getByText("Étape 3 sur 5. Votre progression est enregistrée à chaque étape.")).toBeVisible();
 
-  // Étape 3 : rôles et workflow ; l'adresse des RH n'est pas reprise de CX Expertise.
-  await page.getByRole("button", { name: "Continuer" }).click();
-  await expect(page.getByText("Saisissez l'adresse e-mail des RH, au format nom@domaine.cm.")).toBeVisible();
-  await page.getByLabel("Adresse e-mail des RH").fill("rh.e2e@exemple.com");
+  // Étape 3 : rôles et workflow.
+  await expect(page.getByLabel("Adresse e-mail des RH")).toHaveCount(0);
   await page.getByRole("checkbox", { name: "Consulter le reporting : Staff" }).check();
   await page.getByRole("button", { name: "Continuer" }).click();
 
