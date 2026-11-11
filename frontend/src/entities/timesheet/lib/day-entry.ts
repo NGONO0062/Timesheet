@@ -39,3 +39,31 @@ export function daySummary(days: Date[], expected: number[], values: DayValue[])
     check: submitCheck(days, totals, expected.map((e) => (e > 0 ? 1 : 0))),
   };
 }
+
+export type Shortcut = { values: DayValue[]; count: number };
+
+/**
+ * « Reprendre la semaine n » : chaque jour ouvré encore vide prend le choix du même jour de
+ * la semaine reprise. Ce qui est déjà saisi n'est jamais remplacé.
+ */
+export function copyPrevious(values: DayValue[], expected: number[], previous: DayValue[]): Shortcut {
+  let count = 0;
+  const next = values.map((v, j) => {
+    const from = previous[j] ?? null;
+    if (v || !from || (expected[j] ?? 0) === 0) return v;
+    count++;
+    return from;
+  });
+  return { values: next, count };
+}
+
+/** « Remplir les jours vides » : chaque jour ouvré encore vide prend le même choix. */
+export function fillEmptyDays(values: DayValue[], expected: number[], key: string): Shortcut {
+  let count = 0;
+  const next = values.map((v, j) => {
+    if (v || (expected[j] ?? 0) === 0) return v;
+    count++;
+    return key;
+  });
+  return { values: next, count };
+}

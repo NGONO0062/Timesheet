@@ -3,9 +3,10 @@ import type { TimesheetStatus } from "@/shared/lib/status";
 
 export type WeekRef = { year: number; week: number };
 
-export type WeekDay = { date: string; expected: number; holiday: string | null; isFuture: boolean; value: string | null; flagged: boolean };
+/** `previous` : choix du même jour de la semaine à reprendre (`Week.copyFrom`), s'il est encore proposé. */
+export type WeekDay = { date: string; expected: number; holiday: string | null; isFuture: boolean; value: string | null; flagged: boolean; previous: string | null };
 
-export type Choice = { key: string; project: string; activity: string; code: string; closed: boolean };
+export type Choice = { key: string; project: string; activity: string; code: string; closed: boolean; /** Congé, maladie : jamais repris d'une semaine à l'autre. */ absence: boolean };
 
 export type HistoryEvent = { type: "SUBMITTED" | "REJECTED" | "VALIDATED"; by: string; byYou: boolean; at: string };
 
@@ -27,6 +28,8 @@ export type Week = {
   decision: { by: string; at: string; reason: string | null } | null;
   recent: Array<WeekRef & { status: TimesheetStatus }>;
   history: HistoryEvent[];
+  /** Dernière semaine saisie dont les choix peuvent être repris ; null s'il n'y a rien à reprendre. */
+  copyFrom: WeekRef | null;
 };
 
 export type SaveResult = { savedAt: string | null; status: TimesheetStatus };

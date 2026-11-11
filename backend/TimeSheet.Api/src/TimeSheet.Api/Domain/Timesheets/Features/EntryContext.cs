@@ -9,7 +9,8 @@ using TimeSheet.Api.Services;
 using TimeSheet.Api.Services.Access;
 
 /// <summary>Choix d'une journée : une activité d'un projet ouvert à la personne.</summary>
-public sealed record DayChoiceDto(Guid Key, string Project, string Activity, string Code, bool Closed);
+/// <summary>Choix d'une journée. <c>Absence</c> : projet système (congé, maladie), jamais repris d'une semaine à l'autre.</summary>
+public sealed record DayChoiceDto(Guid Key, string Project, string Activity, string Code, bool Closed, bool Absence = false);
 
 /// <summary>Jour ouvré d'une semaine : 1 journée attendue, 0 si férié.</summary>
 public sealed record FrameDay(DateOnly Date, int Expected, string? Holiday, bool IsFuture);
@@ -67,7 +68,7 @@ public sealed class EntryContext(TimeSheetDbContext db, TimeProvider clock) : IE
             .OrderBy(p => p.IsSystem).ThenBy(p => p.Code)
             .ToListAsync(cancellationToken);
         return projects
-            .SelectMany(p => p.Activities.OrderBy(a => a.Name).Select(a => new DayChoiceDto(a.Id, p.Name, a.Name, p.Code, !p.AcceptsEntry(start, end))))
+            .SelectMany(p => p.Activities.OrderBy(a => a.Name).Select(a => new DayChoiceDto(a.Id, p.Name, a.Name, p.Code, !p.AcceptsEntry(start, end), p.IsSystem)))
             .ToList();
     }
 

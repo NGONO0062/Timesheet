@@ -8,7 +8,8 @@ Revue UI/UX du 6 novembre 2026, appliquée à la réécriture (`frontend/`). Les
 
 **Ce qui change.**
 - Une ligne par jour ouvré : le jour, une liste « Projet · activité », le statut. Même disposition au bureau et sur mobile (sur mobile, le jour et le statut en haut, la liste en dessous, contrôles de 50 px).
-- Les choix sont les projets en cours dont la personne est membre, plus l'absence. Plus de bouton « Ajouter une ligne », plus de « Reprendre les lignes de la semaine précédente » (la reprise d'une semaine reste possible plus tard sous forme d'un bouton « Reprendre la semaine précédente », qui recopie les choix jour par jour).
+- Les choix sont les projets en cours dont la personne est membre, plus l'absence. Plus de bouton « Ajouter une ligne », plus de « Reprendre les lignes de la semaine précédente » (remplacé par les raccourcis ci-dessous).
+- Raccourcis de saisie, au-dessus des jours (ajout du 11 novembre 2026, non maquetté). « Reprendre la semaine n » recopie, jour par jour, les choix de la dernière semaine saisie (les quatre dernières fiches sont regardées) ; l'absence et les projets fermés ne se reprennent pas. « Remplir les jours vides avec » pose un même projet sur les jours restants. Dans les deux cas, seuls les jours ouvrés encore vides changent, rien n'est soumis, et un message donne le nombre de jours touchés avec « Annuler » (qui ne défait que ces jours-là, s'ils n'ont pas été modifiés depuis). Un raccourci qui n'a plus rien à proposer disparaît.
 - Statuts d'un jour : « À venir », « À saisir », « Complet », « À corriger ». « Incomplet » et « Dépassement » n'existent plus.
 - En lecture seule (fiche soumise, validée), le choix devient du texte. Côté manager (écran 08), chaque journée saisie est un bouton qui la signale.
 - Bas de saisie : « 3 sur 5 jours saisis », barre de progression (verte quand la semaine est complète), raison écrite à côté du bouton Soumettre tant qu'il manque un jour.
@@ -67,7 +68,7 @@ Avant, « En attente » portait un « i » (information) et quatre statuts jaune
 ## 7. Maquettes à produire
 
 Écrans réalisés ou à réaliser sans planche, à faire passer par le design pour rester cohérents :
-- saisie par jour (C2 version 2) et son écran 03 complet ;
+- saisie par jour (C2 version 2) et son écran 03 complet, raccourcis de saisie compris (§1) ;
 - tableau de bord et file de validation selon §5 et §6 ;
 - tableau Kanban des tâches (écran 15) ;
 - gestion d'une division côté plateforme (point 71) ;

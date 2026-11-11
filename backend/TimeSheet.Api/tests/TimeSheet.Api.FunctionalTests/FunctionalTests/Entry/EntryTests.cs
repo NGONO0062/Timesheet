@@ -155,4 +155,40 @@ public class EntryTests : TestBase
         todo.GetProperty("week").GetProperty("week").GetInt32().Should().Be(s.Current.Week);
         dashboard.GetProperty("current").GetProperty("days")[0].GetProperty("flagged").GetBoolean().Should().BeTrue();
     }
+
+    [Fact]
+    public async Task la_semaine_propose_de_reprendre_la_derniere_semaine_saisie()
+    {
+        var s = await NewDivision();
+        // Rien de saisi avant : rien à reprendre.
+        (await FactoryClient.GetFromJsonAsync<JsonElement>(Path(s.Current))).GetProperty("copyFrom").ValueKind.Should().Be(JsonValueKind.Null);
+
+        // Il y a deux semaines : lundi à mercredi sur le projet ouvert, jeudi sur le projet en
+        // pause, vendredi en absence. La semaine dernière : rien.
+        var source = s.Current.Shift(-2);
+        var absence = Guid.Empty;
+        await WithDb(async db =>
+        {
+            var off = Project.Create(s.Staff.DivisionId!.Value, "ABSENCE", "Absence", new DateOnly(2000, 1, 1), null, null, ProjectStatus.IN_PROGRESS, DateTimeOffset.UtcNow, null, isSystem: true);
+            absence = off.AddActivity("Absence").Id;
+            db.Projects.Add(off);
+            var sheet = Timesheet.Create(s.Staff.DivisionId.Value, s.Staff.Id, source, DateTimeOffset.UtcNow);
+            sheet.SaveDraft(new Dictionary<DateOnly, Guid>
+            {
+                [source.Monday] = s.Open, [source.Monday.AddDays(1)] = s.Open, [source.Monday.AddDays(2)] = s.Open,
+                [source.Monday.AddDays(3)] = s.Closed, [source.Monday.AddDays(4)] = absence,
+            }, null, DateTimeOffset.UtcNow);
+            db.Timesheets.Add(sheet);
+            await db.SaveChangesAsync();
+        });
+
+        var week = await FactoryClient.GetFromJsonAsync<JsonElement>(Path(s.Current));
+        (week.GetProperty("copyFrom").GetProperty("year").GetInt32(), week.GetProperty("copyFrom").GetProperty("week").GetInt32()).Should().Be((source.Year, source.Week));
+        week.GetProperty("days").EnumerateArray().Select(d => d.GetProperty("previous").ValueKind == JsonValueKind.Null ? (Guid?)null : d.GetProperty("previous").GetGuid())
+            .Should().Equal(s.Open, s.Open, s.Open, null, null);
+        week.GetProperty("choices").EnumerateArray().Single(c => c.GetProperty("key").GetGuid() == absence).GetProperty("absence").GetBoolean().Should().BeTrue();
+
+        // La semaine reprise elle-même ne propose pas de se reprendre.
+        (await FactoryClient.GetFromJsonAsync<JsonElement>(Path(source))).GetProperty("copyFrom").ValueKind.Should().Be(JsonValueKind.Null);
+    }
 }

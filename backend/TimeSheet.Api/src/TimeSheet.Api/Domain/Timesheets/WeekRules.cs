@@ -98,4 +98,15 @@ public static class WeekRules
 
     /// <summary>Semaine ouverte à la saisie : passée ou courante, ou future si la division l'autorise.</summary>
     public static bool IsWeekOpen(IsoWeek week, IsoWeek current, bool allowFutureWeeks) => allowFutureWeeks || week <= current;
+
+    /// <summary>
+    /// « Reprendre la semaine n » : pour chaque jour de la semaine affichée, le choix du même jour
+    /// de la semaine reprise, s'il est encore proposé (projet ouvert, hors absence). Une absence
+    /// ne se reprend pas : elle ne se répète pas d'une semaine à l'autre.
+    /// </summary>
+    public static IReadOnlyList<Guid?> CopyFrom(IReadOnlyList<DateOnly> days, IEnumerable<(DateOnly Date, Guid Activity)> source, IReadOnlySet<Guid> copyable)
+    {
+        var byWeekday = source.Where(s => copyable.Contains(s.Activity)).GroupBy(s => s.Date.DayOfWeek).ToDictionary(g => g.Key, g => g.First().Activity);
+        return days.Select(d => byWeekday.TryGetValue(d.DayOfWeek, out var a) ? a : (Guid?)null).ToList();
+    }
 }

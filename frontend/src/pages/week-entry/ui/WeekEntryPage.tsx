@@ -14,6 +14,7 @@ import { EmptyState, SaveIndicator } from "@/shared/ui/States";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
 import { DayEntry } from "@/widgets/day-entry";
 import { WeekSelector } from "@/widgets/week-selector";
+import { EntryShortcuts } from "./EntryShortcuts";
 
 const e = dict.entry;
 const FLAGGED_ANCHOR = "journee-signalee";
@@ -173,6 +174,7 @@ function WeekView({ week }: { week: Week }) {
           )}
 
           {week.editable && <p className="text-sm text-gray-595">{e.rule}</p>}
+          {week.editable && week.choices.length > 0 && <EntryShortcuts week={week} values={draft.values} onApply={draft.setAll} />}
 
           {week.editable && week.choices.length === 0 ? (
             <EmptyState headingLevel={2} title={dict.dayEntry.noChoiceTitle}>

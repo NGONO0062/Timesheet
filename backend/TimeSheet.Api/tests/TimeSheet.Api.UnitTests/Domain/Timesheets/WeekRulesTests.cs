@@ -74,4 +74,16 @@ public class WeekRulesTests
         sheet.Days.Should().NotContain(d => d.Flagged);
         sheet.SubmissionCount.Should().Be(2);
     }
+
+    [Fact]
+    public void reprendre_une_semaine_recopie_les_choix_jour_par_jour_sans_l_absence_ni_les_projets_fermes()
+    {
+        var (open, closed, absence) = (Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        var days = Enumerable.Range(0, 5).Select(i => W12.Monday.AddDays(i)).ToList();
+        var previous = W12.Shift(-1).Monday;
+        var source = new[] { (previous, open), (previous.AddDays(1), closed), (previous.AddDays(2), absence), (previous.AddDays(4), open) };
+        WeekRules.CopyFrom(days, source, new HashSet<Guid> { open }).Should().Equal(open, null, null, null, open);
+        // Rien de repris si aucun choix n'est encore proposé.
+        WeekRules.CopyFrom(days, source, new HashSet<Guid>()).Should().OnlyContain(k => k == null);
+    }
 }

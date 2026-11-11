@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { utcDate } from "@/shared/lib/iso-week";
-import { choiceLabel, dayEntryStatus, daySummary } from "./day-entry";
+import { choiceLabel, dayEntryStatus, daySummary, copyPrevious, fillEmptyDays } from "./day-entry";
 
 const DAYS = [16, 17, 18, 19, 20].map((d) => utcDate(2026, 3, d));
 const ALL = [1, 1, 1, 1, 1];
@@ -33,5 +33,16 @@ describe("saisie par jour", () => {
 
   it("libellé d'un choix : projet et activité", () => {
     expect(choiceLabel({ key: "k", project: "Baromètre NPS T1 2026", activity: "Analyse" })).toBe("Baromètre NPS T1 2026 · Analyse");
+  });
+
+  it("reprendre une semaine ne remplit que les jours ouvrés encore vides", () => {
+    const r = copyPrevious(["x", null, null, null, null], [1, 1, 1, 1, 0], ["a", "a", null, "b", "b"]);
+    // Lundi déjà saisi : gardé. Mercredi : rien à reprendre. Vendredi férié : rien.
+    expect(r).toEqual({ values: ["x", "a", null, "b", null], count: 2 });
+    expect(copyPrevious(["x", "x"], [1, 1], ["a", "a"]).count).toBe(0);
+  });
+
+  it("remplir les jours vides garde ce qui est déjà saisi", () => {
+    expect(fillEmptyDays(["x", null, null, null, null], [1, 1, 1, 1, 0], "a")).toEqual({ values: ["x", "a", "a", "a", null], count: 3 });
   });
 });

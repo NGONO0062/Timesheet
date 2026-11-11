@@ -57,6 +57,11 @@ export function useWeekDraft(week: Week) {
       setValues(next);
       schedule(next, comment);
     },
+    /** Plusieurs jours d'un coup (reprise d'une semaine, remplissage, « Annuler ») : un seul enregistrement. */
+    setAll(next: DayValue[]) {
+      setValues(next);
+      schedule(next, comment);
+    },
     setComment(next: string) {
       setComment(next);
       schedule(values, next);

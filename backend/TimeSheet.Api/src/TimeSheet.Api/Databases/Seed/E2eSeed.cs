@@ -106,9 +106,18 @@ public static class E2eSeed
         var david = await db.Users.FirstAsync(u => u.Email == "david.e2e@exemple.com", cancellationToken);
         (await db.Projects.Include(p => p.Members).FirstAsync(p => p.DivisionId == division.Id && p.Code == "TEST-03", cancellationToken)).AddMember(david.Id);
         var watch = Project.Create(division.Id, "TEST-04", "Veille et formation", new DateOnly(2026, 1, 1), new DateOnly(2026, 12, 31), null, ProjectStatus.IN_PROGRESS, now, manager.Id);
-        watch.AddActivity("Lecture");
+        var reading = watch.AddActivity("Lecture");
         watch.AddMember(david.Id);
+        // Raccourcis de saisie (écran 03) : Rémi a saisi la semaine 11 (quatre jours de lecture,
+        // vendredi en absence) ; la semaine 12 la reprend. Sans manager : il n'entre dans aucune
+        // file ni aucun compteur des autres tests.
+        var remi = await Account("reprise.e2e@exemple.com", "Rémi", "Reprise", Role.STAFF, null);
+        watch.AddMember(remi.Id);
         db.Projects.Add(watch);
+        var week11 = new IsoWeek(2026, 11);
+        var remiSheet = Timesheet.Create(division.Id, remi.Id, week11, now);
+        remiSheet.SaveDraft(Enumerable.Range(0, 5).ToDictionary(i => week11.Monday.AddDays(i), i => i == 4 ? off : reading.Id), null, now);
+        db.Timesheets.Add(remiSheet);
         await db.SaveChangesAsync(cancellationToken);
 
         // Fiche de présence (écran 06) : Inès Stage, stagiaire de Martin (horaires 08:30 – 17:30),

@@ -10,7 +10,8 @@ using TimeSheet.Api.Services.Audit;
 
 public sealed record WeekRef(int Year, int Week);
 
-public sealed record WeekDayDto(DateOnly Date, int Expected, string? Holiday, bool IsFuture, Guid? Value, bool Flagged);
+/// <summary>Jour de la semaine. <c>Previous</c> : choix du même jour de la semaine à reprendre (voir <c>WeekDto.CopyFrom</c>).</summary>
+public sealed record WeekDayDto(DateOnly Date, int Expected, string? Holiday, bool IsFuture, Guid? Value, bool Flagged, Guid? Previous = null);
 
 public sealed record DecisionDto(string By, DateTimeOffset At, string? Reason);
 
@@ -37,7 +38,9 @@ public sealed record WeekDto(
     string? Validator,
     DecisionDto? Decision,
     IReadOnlyList<RecentWeekDto> Recent,
-    IReadOnlyList<HistoryDto> History);
+    IReadOnlyList<HistoryDto> History,
+    // Dernière semaine saisie, dont les choix peuvent être repris jour par jour ; null s'il n'y a rien à reprendre.
+    WeekRef? CopyFrom = null);
 
 public sealed record DayInput(DateOnly Date, Guid? Key);
 
@@ -106,12 +109,37 @@ public static class WeekEntry
             }
 
             var editable = frame.IsOpen && (sheet is null || WeekRules.IsEditable(sheet.Status, frame.Settings.LockAfterValidation));
+
+            // « Reprendre la semaine n » : la dernière semaine saisie avant celle-ci (quatre fiches
+            // au plus sont regardées) dont un choix au moins est encore proposé, hors absence.
+            IReadOnlyList<Guid?> previous = [];
+            WeekRef? copyFrom = null;
+            if (editable)
+            {
+                var copyable = choices.Where(c => !c.Closed && !c.Absence).Select(c => c.Key).ToHashSet();
+                var earlier = await db.Timesheets.AsNoTracking().Include(t => t.Days)
+                    .Where(t => t.UserId == scope.UserId && (t.WeekYear < week.Year || (t.WeekYear == week.Year && t.WeekNumber < week.Week)) && t.Days.Any())
+                    .OrderByDescending(t => t.WeekYear).ThenByDescending(t => t.WeekNumber)
+                    .Take(4)
+                    .ToListAsync(cancellationToken);
+                var days = frame.Days.Select(d => d.Date).ToList();
+                foreach (var source in earlier)
+                {
+                    var copy = WeekRules.CopyFrom(days, source.Days.Select(d => (d.Date, d.ActivityId)), copyable);
+                    if (copy.All(k => k is null)) continue;
+                    previous = copy;
+                    copyFrom = new WeekRef(source.WeekYear, source.WeekNumber);
+                    break;
+                }
+            }
+            Guid? PreviousOf(int index, FrameDay day) => day.Expected > 0 && index < previous.Count ? previous[index] : null;
+
             return new WeekDto(
                 week.Year,
                 week.Week,
                 new WeekRef(frame.Current.Year, frame.Current.Week),
                 frame.Settings.AllowFutureWeeks,
-                frame.Days.Select(d => new WeekDayDto(d.Date, d.Expected, d.Holiday, d.IsFuture, used.GetValueOrDefault(d.Date)?.ActivityId, used.GetValueOrDefault(d.Date)?.Flagged ?? false)).ToList(),
+                frame.Days.Select((d, i) => new WeekDayDto(d.Date, d.Expected, d.Holiday, d.IsFuture, used.GetValueOrDefault(d.Date)?.ActivityId, used.GetValueOrDefault(d.Date)?.Flagged ?? false, PreviousOf(i, d))).ToList(),
                 choices,
                 WeekRules.Display(sheet?.Status, frame.Deadline, frame.Now).ToString(),
                 editable,
@@ -123,7 +151,8 @@ public static class WeekEntry
                 await entry.ValidatorNameAsync(scope, cancellationToken),
                 decision,
                 recent,
-                history);
+                history,
+                copyFrom);
         }
 
         public async Task<SaveResult> Handle(Command request, CancellationToken cancellationToken)

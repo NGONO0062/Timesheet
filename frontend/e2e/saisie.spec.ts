@@ -93,6 +93,48 @@ test.describe("saisie par jour (écrans 03 à 05)", () => {
   });
 });
 
+test.describe("raccourcis de saisie (écran 03)", () => {
+  test("reprendre la semaine précédente, « Annuler », remplir les jours vides", async ({ page }) => {
+    test.skip(test.info().project.name !== "desktop", "Écriture : une seule fois");
+    await signedIn(page, "reprise.e2e@exemple.com");
+    await page.goto("/saisie/2026/12");
+    const shortcuts = page.getByRole("group", { name: "Raccourcis de saisie" });
+    // Semaine 11 : quatre jours de lecture, vendredi en absence. L'absence ne se reprend pas.
+    await shortcuts.getByRole("button", { name: "Reprendre la semaine 11" }).click();
+    const copied = page.getByRole("status").filter({ hasText: "4 jours repris de la semaine 11. Vérifiez, puis soumettez." });
+    await expect(copied).toBeVisible();
+    await expect(day(page, /Lundi 16 mars/)).not.toHaveValue("");
+    await expect(day(page, /Vendredi 20 mars/)).toHaveValue("");
+    await expect(page.getByText("4 sur 5 jours saisis")).toBeVisible();
+    // Tout est repris : le bouton n'a plus rien à proposer.
+    await expect(shortcuts.getByRole("button", { name: "Reprendre la semaine 11" })).toHaveCount(0);
+    expect(await axe(page)).toEqual([]);
+
+    await copied.getByRole("button", { name: "Annuler" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Changement annulé." })).toBeVisible();
+    await expect(page.getByText("0 sur 5 jours saisis")).toBeVisible();
+
+    // Un jour saisi à la main n'est pas remplacé par le remplissage.
+    await day(page, /Vendredi 20 mars/).selectOption({ label: "Absence · Absence" });
+    // L'enregistrement attendu est celui des cinq jours : un brouillon précédent (reprise,
+    // « Annuler ») a déjà affiché « Brouillon enregistré », qui ne prouve donc rien ici.
+    const saved = page.waitForResponse((r) => {
+      const request = r.request();
+      if (request.method() !== "PUT" || !new URL(r.url()).pathname.endsWith("/saisie/2026/12")) return false;
+      return (request.postDataJSON() as { days: { key: string | null }[] }).days.every((d) => d.key !== null);
+    });
+    await shortcuts.getByLabel("Remplir les jours vides avec").selectOption({ label: "Veille et formation · Lecture" });
+    await expect(page.getByRole("status").filter({ hasText: "4 jours remplis avec « Veille et formation · Lecture »." })).toBeVisible();
+    await expect(page.getByText("5 sur 5 jours saisis")).toBeVisible();
+    await expect(shortcuts).toHaveCount(0);
+    expect((await saved).ok()).toBe(true);
+    await expect(page.getByText(/Brouillon enregistré automatiquement à/)).toBeVisible();
+    await page.reload();
+    await expect(page.getByText("5 sur 5 jours saisis")).toBeVisible();
+    await expect(day(page, /Vendredi 20 mars/).locator("option:checked")).toHaveText("Absence · Absence");
+  });
+});
+
 test.describe("mobile 375", () => {
   test.skip(({ viewport }) => (viewport?.width ?? 0) >= 1024, "Mobile seulement");
 
