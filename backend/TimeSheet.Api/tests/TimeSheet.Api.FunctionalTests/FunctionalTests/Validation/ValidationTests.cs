@@ -216,11 +216,24 @@ public class ValidationTests : TestBase
     }
 
     /// <summary>La division demande la validation de l'owner (N+2).</summary>
-    private static Task TwoSteps(Setup s) => WithDb(async db =>
+    private static Task TwoSteps(Setup s, bool delegateToOwner = true) => WithDb(async db =>
     {
-        db.DivisionSettings.Add(DivisionSettings.Defaults(s.Manager.DivisionId!.Value).WithWorkflow(true, 3, true));
+        db.DivisionSettings.Add(DivisionSettings.Defaults(s.Manager.DivisionId!.Value).WithWorkflow(true, 3, delegateToOwner));
         await db.SaveChangesAsync();
     });
+
+    [Fact]
+    public async Task sans_delegation_l_owner_decide_encore_la_fiche_dont_le_manager_manque()
+    {
+        // Cléo a soumis sa fiche ; son manager est désactivé depuis. Sans délégation, personne
+        // d'autre que l'owner ne peut décider : la fiche ne doit pas rester bloquée.
+        var s = await NewDivision();
+        await TwoSteps(s, delegateToOwner: false);
+        await SignIn(s.Owner);
+        Ids(await Queue("periode=tout&statut=SUBMITTED")).Should().Equal(s.CleoSheet);
+        var result = await (await FactoryClient.PostAsJsonAsync($"api/v1/validation/{s.CleoSheet}/decision", new { decision = "VALIDATE" })).Content.ReadFromJsonAsync<JsonElement>();
+        result.GetProperty("forwarded").GetInt32().Should().Be(0, "la décision de l'owner est finale");
+    }
 
     private static JsonElement Row(JsonElement queue, Guid id) => queue.GetProperty("rows").EnumerateArray().Single(r => r.GetProperty("id").GetGuid() == id);
 

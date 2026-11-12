@@ -96,8 +96,9 @@ public static class Validation
 
     /// <summary>
     /// Circuit vu par le validateur : la division demande-t-elle l'owner (N+2), le validateur est-il
-    /// owner, l'owner est-il le validateur attendu d'une personne (ses rattachés, ou délégation
-    /// quand le manager manque), et quels owners actifs peuvent recevoir une fiche.
+    /// owner, l'owner est-il le validateur attendu d'une personne (ses rattachés, ou toute personne
+    /// dont le manager manque : sans cela, une fiche soumise avant la désactivation de son manager
+    /// n'aurait plus personne pour décider), et quels owners actifs peuvent recevoir une fiche.
     /// </summary>
     internal sealed record Circuit(bool OwnerValidation, bool ViewerIsOwner, IReadOnlySet<Guid> OwnerValidated, IReadOnlySet<Guid> Owners)
     {
@@ -116,9 +117,7 @@ public static class Validation
         var byId = users.ToDictionary(u => u.Id);
         var owners = users.Where(u => u.Active && u.Role == Role.OWNER).Select(u => u.Id).ToHashSet();
         var ownerValidated = users.Where(u =>
-                u.ManagerId is { } m && byId.TryGetValue(m, out var manager) && manager.Active
-                    ? manager.Role == Role.OWNER
-                    : settings.DelegateToOwner)
+                u.ManagerId is not { } m || !byId.TryGetValue(m, out var manager) || !manager.Active || manager.Role == Role.OWNER)
             .Select(u => u.Id).ToHashSet();
         return new Circuit(settings.OwnerValidation, scope.Role == Role.OWNER, ownerValidated, owners);
     }
