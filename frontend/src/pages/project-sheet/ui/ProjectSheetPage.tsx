@@ -1,5 +1,5 @@
 // Fiche projet (suivi de projet, non maquettée : docs/design-v2.md §7). Lecture seule : le
-// projet se modifie depuis l'écran Projets, les tâches depuis le tableau. Les chiffres viennent
+// projet se modifie dans le panneau de l'écran Projets (« Modifier »), les tâches depuis le tableau. Les chiffres viennent
 // de la saisie (fiches soumises ou validées) ; aucun statut nouveau : les écarts sont écrits
 // en phrases, sous « Points d'attention ».
 import { Link, useParams } from "react-router";
@@ -143,6 +143,9 @@ function Loaded({ sheet }: { sheet: ProjectSheet }) {
         </div>
         <div className="flex flex-wrap items-center gap-x-20 gap-y-10">
           <StatusBadge kind="project" value={sheet.status} />
+          <Link className={buttonClass()} to={`/projets?projet=${sheet.id}`} aria-label={t(dict.project.editLabel, { name: sheet.name })}>
+            {dict.project.edit}
+          </Link>
           <Link className={buttonClass()} to={`/taches?projet=${sheet.id}`}>
             {dict.tasks.seeTasks}
           </Link>

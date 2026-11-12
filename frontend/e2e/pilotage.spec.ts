@@ -199,8 +199,11 @@ test.describe("vue division (écran 11)", () => {
     await drifts.getByRole("button", { name: "Relancer le manager : Olivier Manga" }).click();
     await expect(drifts.getByRole("status").filter({ hasText: "Relance envoyée à Olivier Manga." })).toBeVisible();
 
-    // « Voir le projet » ouvre le panneau du projet dans l'écran Projets.
+    // « Voir le projet » ouvre la fiche du projet, qui explique le dépassement ; « Modifier » y ouvre le panneau de l'écran Projets.
     await drifts.getByRole("link", { name: "Voir le projet : Refonte parcours souscription" }).click();
+    await expect(page).toHaveURL(/\/projets\/[0-9a-f-]{36}$/);
+    await expect(page.getByRole("region", { name: "Points d'attention" })).toContainText(/Budget dépassé de 9\sjours/);
+    await page.getByRole("link", { name: "Modifier Refonte parcours souscription" }).click();
     await expect(page).toHaveURL(/\/projets\?projet=/);
     await expect(page.getByRole("dialog", { name: "Modifier le projet" }).getByLabel("Nom du projet")).toHaveValue("Refonte parcours souscription");
 

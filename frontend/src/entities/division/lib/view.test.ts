@@ -32,7 +32,7 @@ describe("vue consolidée", () => {
       tone: "danger",
       type: "Budget dépassé",
       gap: `99${NBSP}jours consommés pour 50${NBSP}jours prévus (+49${NBSP}jours)`,
-      action: { kind: "link", href: "/projets?projet=p1", label: "Voir le projet" },
+      action: { kind: "link", href: "/projets/p1", label: "Voir le projet" },
     });
     expect(driftRow(drift({ kind: "UNDERFILL", label: "Data CX", targetId: "t2", week: 12, fill: 75, threshold: 80 }))).toMatchObject({
       object: "Équipe Data CX · semaine 12",

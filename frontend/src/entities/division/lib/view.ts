@@ -58,7 +58,7 @@ export function driftRow(drift: Drift): { tone: "danger" | "warning"; type: stri
         object: drift.label,
         gap: t(d.budgetGap, { consumed: formatDays(consumed), budget: formatDays(budget), over: formatDays(consumed - budget) }),
         owner,
-        action: { kind: "link", href: `/projets?projet=${encodeURIComponent(drift.targetId)}`, label: d.seeProject },
+        action: { kind: "link", href: `/projets/${encodeURIComponent(drift.targetId)}`, label: d.seeProject },
       };
     }
     case "UNDERFILL":

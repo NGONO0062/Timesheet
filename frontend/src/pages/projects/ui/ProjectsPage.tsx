@@ -73,7 +73,7 @@ function ProjectsView({ projects, team }: { projects: Project[]; team: Array<{ i
   const archive = useArchiveProject();
   const [notice, setNotice] = useState<Notice | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Projet ouvert à l'arrivée (« Voir le projet » de la vue division), puis panneau à la demande.
+  // Projet ouvert à l'arrivée (« Modifier » de la fiche projet), puis panneau à la demande.
   const [panel, setPanel] = useState<{ project: Project | null } | null>(() => {
     const opened = projects.find((x) => x.id === params.get("projet"));
     return opened ? { project: opened } : null;
