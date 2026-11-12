@@ -5,7 +5,7 @@ Application interne Orange Cameroun : gestion et suivi des projets, temps de tra
 - Spécification complète : `PROMPT.md`. Maquettes et captures de référence : `design/`.
 - Règles de l'équipe (design system, sécurité, méthode) : `CLAUDE.md`.
 - Architecture : `docs/architecture.md`. Historique de la réécriture et écarts assumés : `docs/reecriture.md`.
-- Choix faits pendant le développement et points à confirmer : `docs/questions-ouvertes.md`. Écarts avec ODS (Boosted) : `docs/ecarts-ods.md`. Règles visuelles v2 : `docs/design-v2.md`.
+- Choix faits pendant le développement et points à confirmer : `docs/questions-ouvertes.md`. Écarts avec ODS : `docs/ecarts-ods.md`. Règles visuelles v2 : `docs/design-v2.md`.
 - Mise en production et exploitation : `docs/exploitation.md`. Staging sur un serveur : `docs/staging.md`.
 
 ## Pile

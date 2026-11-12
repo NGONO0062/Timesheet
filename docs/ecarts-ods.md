@@ -1,49 +1,32 @@
-# Écarts avec ODS (Boosted 5.3)
+# Écarts avec ODS
 
-Boosted est chargé tel quel (`boosted/dist/css/boosted.css`). La couche `styles/timesheet.css` le corrige quand un rendu par défaut contredit un token du brief (PROMPT.md §4.1). La règle : le token gagne.
+Depuis la réécriture (novembre 2026), Boosted n'est plus chargé. Les composants ODS sont reproduits en Tailwind 4 et HeadlessUI dans `frontend/src/shared/ui/`, tels que les planches C1 à C4 (`design/`) les montrent. Le thème (`frontend/src/app/styles/index.css`) ne contient que les valeurs permises par `CLAUDE.md`, et `frontend/scripts/check-styles.mjs` refuse toute autre valeur. L'ancienne version de ce document, qui décrivait les corrections apportées à Boosted, reste dans l'historique Git.
 
-## Écarts assumés (PROMPT.md §4.3)
+Référence ODS : partie Web de [system.design.orange.com](https://system.design.orange.com/0c1af118d/p/8118d1-web), relue le 12 novembre 2026 (couleurs, typographie, espacements, composants, Data Display, accessibilité).
 
-| # | Composant | Boosted | TimeSheet | Raison |
+## Ce qui est conforme
+
+- **Couleurs** : les 12 couleurs de l'application sont celles d'ODS : noir, blanc, orange de marque `#ff7900`, orange accessible `#f16e00`, couleurs fonctionnelles (`#228722` succès, `#cd3c14` critique, `#ffd200` alerte, `#4170d8` information) et gris fonctionnels.
+- **Espacements** : les jetons Web d'ODS valent 0, 5, 10, 15, 20, 25, 30… 60 px ; 0, 5, 10, 20, 30 et 60 en sont un sous-ensemble.
+- **Typographie** : deux graisses, comme Helvetica Neue 75 Bold et 55 Roman ; à défaut de Helvetica Neue, la police du système, en deux graisses seulement.
+- **Liens** : soulignés ; survol en orange `#f16e00` (ODS admet le noir ou l'orange, jamais l'orange sur une couleur de soutien).
+- **Accessibilité** : ODS teste en WCAG 2.2 AA (AAA sur mobile) ; les tests de bout en bout passent axe sur chaque route, au bureau et à 375 px.
+
+## Écarts assumés
+
+| # | Composant | ODS | TimeSheet | Raison |
 |---|---|---|---|---|
-| 1 | Champs de saisie | Bordure `#999999` | Bordure noire | `#999` fait 2,85:1 sur blanc, sous le 3:1 exigé pour un composant d'interface. `#999` reste aux séparateurs. |
-| 2 | Placeholder | Opacité et vague en dégradé | Aplat `#dddddd` plein, battement de couleur, coupé sous `prefers-reduced-motion` | Opacité et dégradé sont interdits. |
-| 3 | Pill active | Fond `#ff7900` | Fond `#ff7900` et coche avant le libellé | `#ff7900` sur blanc fait 2,6:1 : la couleur seule ne suffit pas. Même règle pour le bouton actif d'un Button group. |
-| 4 | Badges de statut | Libellé seul | Glyphe (coche, croix, « ! », « i ») et libellé | Aucune information portée par la couleur seule. |
-| 5 | Voile de modale et d'offcanvas | Noir à 50 % | Identique | Seule transparence de l'application. |
-| 6 | Graphiques | Pas de composant | Barres et colonnes en HTML et CSS, classes `.chart-*`, quatre couleurs de séries (`#237eca`, `#198c51`, `#6e4aa7`, `#d573bb`) | ODS Web n'a pas de composant graphique. |
-| 7 | Dates | Pas de sélecteur | Saisie texte `jj/mm/aaaa`, format rappelé sous le champ (`<DateField>`) | ODS Web n'a pas de sélecteur de date. |
-| 8 | Navigation latérale | Pas de barre latérale | Nav vertical sur fond noir (`.sidenav`) | ODS Web n'a pas de barre latérale. |
+| 1 | Champs de saisie | Bordure `#999999` | Bordure noire de 2 px ; grise seulement à l'état désactivé | `#999` fait 2,85:1 sur blanc, sous le 3:1 exigé pour un composant d'interface. `#999` reste aux séparateurs. |
+| 2 | Chargement (placeholder) | Opacité et vague en dégradé | Aplat `#dddddd` qui bat, coupé sous `prefers-reduced-motion` | Opacité et dégradé sont interdits. |
+| 3 | État actif et sélection | Aplat `#ff7900` (pastilles, interrupteur, pagination) | Élément courant : trait de 5 px `#ff7900` (`accent-mark`) ; éléments sélectionnés en noir, avec leur coche | `#ff7900` et le primaire `#f16e00` se disputaient l'attention (`docs/design-v2.md`, §2). À valider avec l'équipe ODS. |
+| 4 | Étiquettes de statut | Libellé et couleur | Glyphe (coche, croix, « ! », « i ») et libellé, un seul composant `<StatusBadge>` | Aucune information portée par la couleur seule. |
+| 5 | Voile de modale et de panneau | Noir à 50 % | Identique | Seule transparence de l'application. |
+| 6 | Graphiques | Pas de composant Web ; règles et jetons `color.dataviz.*` dans Data Display | Barres et colonnes en SVG sans bibliothèque (`widgets/charts`), quatre couleurs de séries `#237eca`, `#198c51`, `#6e4aa7`, `#d573bb` | Les couleurs viennent des rampes de Boosted ; elles ne correspondent plus aux couleurs catégorielles d'ODS (`docs/questions-ouvertes.md`, point 88). |
+| 7 | Valeur rapportée à un total (budget, délai, tâches, remplissage) | La barre de progression suit une opération système (téléchargement, traitement) ; une valeur face à un total est une jauge horizontale (Data Display) | Composant `<Progress>` | Dessin proche de la jauge horizontale ; à confirmer (point 88). |
+| 8 | Libellés d'axe des graphiques | Texte toujours aligné à gauche, sauf boutons, onglets, stickers et libellés sous une icône | Centrés sous leur colonne | Le libellé désigne la colonne au-dessus de lui. Écart mineur, à confirmer avec le point 88. |
+| 9 | Dates | Pas de sélecteur de date Web (seulement un sélecteur d'heure) | Saisie texte `jj/mm/aaaa`, format rappelé sous le champ (`<DateField>`) | Aucun composant ODS à reproduire. |
+| 10 | Navigation latérale | Module « Side navigation » | Barre verticale sur fond noir, lien courant marqué par `accent-mark` (`widgets/app-shell`) | Reprise des maquettes de TimeSheet. Le module ODS n'a pas été comparé : à faire avec le design. |
 
-## Rendus Boosted neutralisés (section 0 de `timesheet.css`)
+## Comportement
 
-Repérés en comparant `/design` aux planches C1 à C4 rendues dans le même navigateur.
-
-| Composant | Rendu Boosted | Correction | Token concerné |
-|---|---|---|---|
-| Texte courant, `.lead`, boutons, légendes | Approche négative (`:root > *`, `.lead`, `.btn`, `caption`) | `letter-spacing: normal` | Le brief ne fixe d'approche que pour les titres. |
-| Puces de liste | Orange de marque (`li::marker`) | Couleur du texte | `#ff7900` réservé à l'état actif. |
-| `.text-secondary`, `.text-danger` | Utilitaires en `!important` sur d'autres valeurs | `#595959`, `#cd3c14` | Palette. Sélecteur `:root .text-secondary` : le compilateur CSS de Next fusionnait sinon la surcharge avec la règle de la section 1 et perdait le `!important`. |
-| Marqueur de champ requis | Astérisque en position absolue, sans espace | Astérisque dans le flux, précédé d'une espace | Maquette. |
-| Listes de définitions | `dt` en gras | 400 | Maquette. |
-| List group | Éléments en gras (`--bs-list-group-font-weight`) | 400 ; le gras est posé par `.fw-bold` là où la maquette le met | Maquette. |
-| Texte d'aide `.form-text` | Gras | 400 | Maquette. |
-| Message d'erreur `.invalid-feedback` | Icône en `::before` | Masquée, la pastille `.mark-danger` la remplace | Une forme par statut, pas deux. |
-| Boutons | `opacity` au désactivé, `z-index`, transitions | Opaque, sans transition | Désactivé opaque ; survol par inversion nette. |
-| Button group, Input group | Marge négative de 2 px entre éléments | Supprimée (la maquette retire la bordure gauche) | Bordures de 2 px sans recouvrement. |
-| Case à cocher, radio | Flottant, marge négative, image de fond | Flex, coche dessinée en CSS | Maquette. |
-| Interrupteur | Bordure blanche, dégradé, image de fond | Bordure noire, aplat `#ff7900` coché | Aucun dégradé. |
-| Quantity selector | Largeur fixe de 120 px, icônes en masque CSS, bordure `#999` | Boutons ODS 40 / 50 px, icônes de l'application, bordure noire | Hauteurs de contrôle ; bordure de champ noire. |
-| Select | Flèche Boosted effacée par la couche ODS | Flèche Boosted rétablie, marge droite 30 px | La maquette garde la flèche native. |
-| Table | Fond de cellule et ombre interne (`box-shadow: inset`) | Transparents, sans ombre | Aucune ombre ; le survol de ligne (`#ddd`) doit rester visible. |
-| Placeholder | `opacity: .5`, `cursor: wait` | Opaque | Désactivé et chargement sans opacité. |
-| Dropdown | `display: none` et position gérés par le JS Boosted | Rendu par React, positionné en CSS | Le JS Boosted n'est pas chargé (PROMPT.md §3). |
-| Modal, Offcanvas | `pointer-events: none`, `visibility: hidden`, `transform` | Rendus par React | Idem. |
-| Toast | Masqué sans `.show` | Visible tant qu'il est rendu | Idem. |
-| Alert fermable | `.alert-dismissible`, `.btn-close` fermé par le JS Boosted | Croix de l'application (`btn btn-icon btn-sm`), comme le Toast, sur les messages qui suivent une action | Le JS Boosted n'est pas chargé ; un message affiché après une action doit pouvoir être fermé. |
-| Spinner | Bordure de 0,25 em | 2 px | Bordures de 2 px. |
-| Toutes animations | — | Coupées sous `prefers-reduced-motion` | Accessibilité (§14). |
-
-## Composants sans JavaScript Boosted
-
-Modal, Offcanvas, Dropdown, Tabs, Tooltip, Popover et Accordion sont des composants React (`components/ods/`) qui reprennent le balisage et les classes Boosted. Le JavaScript de Boosted n'est pas importé : il manipule le DOM dans le dos de React.
+Fenêtre (Modal), panneau latéral (Offcanvas), menu déroulant, onglets, popover et accordéon prennent leur comportement accessible dans HeadlessUI (focus piégé, Échap, flèches) ; leur apparence suit les planches. Les menus déroulants ne sont pas modaux : un menu ouvert ne rend pas le reste de la page inerte (`docs/reecriture.md`, jalon 8). Toutes les animations sont coupées sous `prefers-reduced-motion`.
