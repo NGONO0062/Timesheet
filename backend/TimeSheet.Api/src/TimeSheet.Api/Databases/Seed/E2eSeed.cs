@@ -132,10 +132,52 @@ public static class E2eSeed
         }
         await db.SaveChangesAsync(cancellationToken);
         await AdminDivisionAsync(db, hash, cancellationToken);
-        return "Division de test prête (valideur.e2e, saisie.e2e, alice/bruno/chloe/david.e2e, stagiaire.e2e) ; division d'administration de test (admin.e2e, chef.e2e, regle.e2e, cible.e2e, reglages.e2e, stage.e2e).";
+        await TwoStepDivisionAsync(db, hash, cancellationToken);
+        return "Division de test prête (valideur.e2e, saisie.e2e, alice/bruno/chloe/david.e2e, stagiaire.e2e) ; division d'administration de test (admin.e2e, chef.e2e, regle.e2e, cible.e2e, reglages.e2e, stage.e2e) ; division à deux étapes (n1.e2e, n2.e2e, etape.e2e).";
     }
 
     public const string AdminSlug = "e2e-administration";
+    public const string TwoStepSlug = "e2e-circuit";
+
+    /// <summary>
+    /// Circuit à deux étapes (point 52) : Nadia (manager) valide, puis Omar (owner) donne la
+    /// validation finale. Elsa a soumis sa semaine 12. Division à part : le réglage du circuit ne
+    /// touche pas les autres tests. Créée une fois, comme la division d'administration.
+    /// </summary>
+    private static async Task TwoStepDivisionAsync(TimeSheetDbContext db, string hash, CancellationToken cancellationToken)
+    {
+        if (await db.Divisions.AnyAsync(d => d.Slug == TwoStepSlug, cancellationToken)) return;
+        var division = Division.Create("Division à deux étapes de test", TwoStepSlug, "TEST", status: DivisionStatus.ACTIVE);
+        db.Divisions.Add(division);
+        db.DivisionSettings.Add(DivisionSettings.Defaults(division.Id).WithWorkflow(true, 3, true));
+        await db.SaveChangesAsync(cancellationToken);
+
+        User Account(string email, string first, string last, Role role)
+        {
+            var user = User.Create(division.Id, email, first, last, role);
+            user.SetPassword(hash);
+            db.Users.Add(user);
+            return user;
+        }
+        var manager = Account("n1.e2e@exemple.com", "Nadia", "Niveau", Role.MANAGER);
+        Account("n2.e2e@exemple.com", "Omar", "Owner", Role.OWNER);
+        var elsa = Account("etape.e2e@exemple.com", "Elsa", "Étape", Role.STAFF);
+        await db.SaveChangesAsync(cancellationToken);
+        elsa.AssignManager(manager.Id);
+        var project = Project.Create(division.Id, "N2-2026-01", "Projet du circuit", new DateOnly(2026, 1, 1), new DateOnly(2026, 12, 31), null, ProjectStatus.IN_PROGRESS, DateTimeOffset.UtcNow, manager.Id);
+        var analyse = project.AddActivity("Analyse");
+        project.AddMember(elsa.Id);
+        db.Projects.Add(project);
+        await db.SaveChangesAsync(cancellationToken);
+
+        var week = new IsoWeek(2026, 12);
+        var submitted = new DateTimeOffset(2026, 3, 18, 17, 0, 0, TimeSpan.FromHours(1)).ToUniversalTime();
+        var sheet = Timesheet.Create(division.Id, elsa.Id, week, submitted.AddHours(-2));
+        sheet.SaveDraft(Enumerable.Range(0, 5).ToDictionary(i => week.Monday.AddDays(i), _ => analyse.Id), null, submitted.AddHours(-2));
+        sheet.Submit(elsa.Id, submitted);
+        db.Timesheets.Add(sheet);
+        await db.SaveChangesAsync(cancellationToken);
+    }
 
     /// <summary>
     /// Administration et Paramètres (jalon 6) : une seconde division, pour que le changement des

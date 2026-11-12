@@ -8,7 +8,7 @@ using TimeSheet.Api.Domain.Access;
 public sealed record UserInput(string? Email, string? FirstName, string? LastName, string? Role, Guid? ManagerId);
 
 /// <summary>Workflow de la division (écran 12).</summary>
-public sealed record WorkflowInput(int ReminderAfterWorkingDays, bool DelegateToOwner);
+public sealed record WorkflowInput(int ReminderAfterWorkingDays, bool DelegateToOwner, bool OwnerValidation = false);
 
 /// <summary>Règles de saisie (écran 12) : jours en anglais (« MONDAY »), seuil en texte saisi.</summary>
 public sealed record RulesInput(string[]? WorkingDays, string? DeadlineDay, string? DeadlineTime, string? FillAlertThreshold, bool AllowFutureWeeks, bool LockAfterValidation);

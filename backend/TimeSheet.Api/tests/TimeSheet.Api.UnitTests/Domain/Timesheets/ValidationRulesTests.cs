@@ -58,12 +58,63 @@ public class ValidationRulesTests
         var sheet = Timesheet.Create(Guid.NewGuid(), Guid.NewGuid(), W12, at);
         sheet.SaveDraft(new Dictionary<DateOnly, Guid> { [W12.Monday] = Guid.NewGuid() }, null, at);
         sheet.Submit(sheet.UserId, at);
-        sheet.RemindedSinceSubmission.Should().BeFalse();
+        sheet.RemindedThisStage.Should().BeFalse();
         sheet.RecordReminder(Guid.NewGuid(), at.AddDays(5));
-        sheet.RemindedSinceSubmission.Should().BeTrue();
+        sheet.RemindedThisStage.Should().BeTrue();
         sheet.Reject(Guid.NewGuid(), at.AddDays(6), "Motif", []);
         sheet.Submit(sheet.UserId, at.AddDays(7));
-        sheet.RemindedSinceSubmission.Should().BeFalse();
+        sheet.RemindedThisStage.Should().BeFalse();
+    }
+
+    [Fact]
+    public void en_circuit_a_deux_etapes_chaque_fiche_va_au_bon_validateur()
+    {
+        // Circuit à une étape : le manager et l'owner décident de toute fiche en attente de leur portée.
+        ValidationRules.Actionable(viewerIsOwner: false, ownerValidation: false, approvedByManager: false, ownerIsValidator: false).Should().BeTrue();
+        ValidationRules.Actionable(viewerIsOwner: true, ownerValidation: false, approvedByManager: false, ownerIsValidator: false).Should().BeTrue();
+        // Deux étapes : avant la validation du manager, l'owner n'agit que s'il est le validateur attendu.
+        ValidationRules.Actionable(viewerIsOwner: true, ownerValidation: true, approvedByManager: false, ownerIsValidator: false).Should().BeFalse();
+        ValidationRules.Actionable(viewerIsOwner: true, ownerValidation: true, approvedByManager: false, ownerIsValidator: true).Should().BeTrue();
+        ValidationRules.Actionable(viewerIsOwner: false, ownerValidation: true, approvedByManager: false, ownerIsValidator: false).Should().BeTrue();
+        // Après la validation du manager, la fiche n'attend plus que l'owner, même si le réglage a été coupé depuis.
+        ValidationRules.Actionable(viewerIsOwner: false, ownerValidation: true, approvedByManager: true, ownerIsValidator: false).Should().BeFalse();
+        ValidationRules.Actionable(viewerIsOwner: false, ownerValidation: false, approvedByManager: true, ownerIsValidator: false).Should().BeFalse();
+        ValidationRules.Actionable(viewerIsOwner: true, ownerValidation: false, approvedByManager: true, ownerIsValidator: false).Should().BeTrue();
+    }
+
+    [Fact]
+    public void la_validation_du_manager_passe_a_l_owner_seulement_si_un_owner_peut_la_recevoir()
+    {
+        ValidationRules.ForwardToOwner(ownerValidation: true, deciderIsOwner: false, ownerAvailable: true).Should().BeTrue();
+        ValidationRules.ForwardToOwner(ownerValidation: false, deciderIsOwner: false, ownerAvailable: true).Should().BeFalse();
+        ValidationRules.ForwardToOwner(ownerValidation: true, deciderIsOwner: true, ownerAvailable: true).Should().BeFalse("la décision d'un owner est définitive");
+        ValidationRules.ForwardToOwner(ownerValidation: true, deciderIsOwner: false, ownerAvailable: false).Should().BeFalse("sans owner actif, la validation du manager est définitive");
+    }
+
+    [Fact]
+    public void la_validation_du_manager_garde_la_fiche_en_attente_et_ouvre_l_etape_de_l_owner()
+    {
+        var at = new DateTimeOffset(2026, 3, 20, 15, 0, 0, TimeSpan.Zero);
+        var manager = Guid.NewGuid();
+        var sheet = Timesheet.Create(Guid.NewGuid(), Guid.NewGuid(), W12, at);
+        sheet.SaveDraft(new Dictionary<DateOnly, Guid> { [W12.Monday] = Guid.NewGuid() }, null, at);
+        sheet.Submit(sheet.UserId, at);
+        sheet.RecordReminder(manager, at.AddDays(4));
+
+        sheet.Approve(manager, at.AddDays(5));
+        sheet.Status.Should().Be(TimesheetStatus.SUBMITTED);
+        sheet.ApprovedById.Should().Be(manager);
+        sheet.StageStartedAt.Should().Be(at.AddDays(5));
+        sheet.RemindedThisStage.Should().BeFalse("la relance du manager ne compte pas pour l'étape de l'owner");
+        sheet.Events.Select(e => e.Type).Should().Contain("APPROVED");
+        var twice = () => sheet.Approve(manager, at.AddDays(6));
+        twice.Should().Throw<InvalidOperationException>();
+
+        // Rejet par l'owner puis nouvelle soumission : le circuit repart du manager.
+        sheet.Reject(Guid.NewGuid(), at.AddDays(6), "Motif", []);
+        sheet.Submit(sheet.UserId, at.AddDays(7));
+        sheet.ApprovedById.Should().BeNull();
+        sheet.StageStartedAt.Should().Be(at.AddDays(7));
     }
 
     [Fact]

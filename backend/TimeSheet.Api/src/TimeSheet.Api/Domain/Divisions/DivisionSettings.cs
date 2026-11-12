@@ -27,12 +27,12 @@ public class DivisionSettings
     }
 
     /// <summary>
-    /// Workflow (écran 12). La validation par l'owner (N+2) n'est pas encore branchée (point 52) :
-    /// elle reste désactivée.
+    /// Workflow (écran 12). Validation par l'owner (N+2) : chaque fiche validée par un manager
+    /// passe ensuite à l'owner (docs/questions-ouvertes.md, point 52).
     /// </summary>
-    public DivisionSettings WithWorkflow(int reminderAfterWorkingDays, bool delegateToOwner)
+    public DivisionSettings WithWorkflow(bool ownerValidation, int reminderAfterWorkingDays, bool delegateToOwner)
     {
-        OwnerValidation = false;
+        OwnerValidation = ownerValidation;
         ReminderAfterWorkingDays = reminderAfterWorkingDays;
         DelegateToOwner = delegateToOwner;
         return this;

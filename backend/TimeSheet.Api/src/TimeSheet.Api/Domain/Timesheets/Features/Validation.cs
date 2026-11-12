@@ -34,7 +34,9 @@ public sealed record QueueRowDto(
     int SubmissionCount,
     bool HasComment,
     bool HasAbsence,
-    bool UnusualProject);
+    bool UnusualProject,
+    bool Actionable,
+    string? ApprovedBy);
 
 public sealed record QueueDto(WeekRef Current, IReadOnlyList<PersonDto> People, QueueCountsDto Counts, IReadOnlyList<QueueRowDto> Rows);
 
@@ -60,10 +62,16 @@ public sealed record ReviewDto(
     IReadOnlyList<ReviewDayDto> Days,
     IReadOnlyList<DayChoiceDto> Choices,
     IReadOnlyList<ReviewEventDto> History,
-    PositionDto? Position);
+    PositionDto? Position,
+    bool CanDecide,
+    string? ApprovedBy,
+    DateTimeOffset? ApprovedAt);
 
-/// <summary>Résultat d'une décision : fiches traitées, fiches déjà traitées entre-temps, fiche en attente suivante.</summary>
-public sealed record DecisionResult(int Done, int Skipped, Guid? Next);
+/// <summary>
+/// Résultat d'une décision : fiches traitées, fiches déjà traitées entre-temps, fiche en attente
+/// suivante ; <c>Forwarded</c> : parmi les fiches validées, celles qui passent à l'owner (N+2).
+/// </summary>
+public sealed record DecisionResult(int Done, int Skipped, Guid? Next, int Forwarded = 0);
 
 /// <summary>
 /// Validation des fiches (PROMPT.md §9.3, reprise de lib/data/validation.ts). Portée : un
@@ -86,12 +94,50 @@ public static class Validation
         return db.Timesheets.Where(t => t.DivisionId == scope.DivisionId && t.Status != TimesheetStatus.DRAFT && people.Contains(t.UserId));
     }
 
-    /// <summary>Fiches en attente, dans l'ordre de la file : semaine la plus récente d'abord, puis par nom.</summary>
-    internal static Task<List<Guid>> PendingIdsAsync(TimeSheetDbContext db, DivisionScope scope, CancellationToken cancellationToken) =>
-        (from t in Sheets(db, scope).Where(t => t.Status == TimesheetStatus.SUBMITTED)
-         join u in db.Users on t.UserId equals u.Id
-         orderby t.WeekYear descending, t.WeekNumber descending, u.FirstName, u.LastName
-         select t.Id).ToListAsync(cancellationToken);
+    /// <summary>
+    /// Circuit vu par le validateur : la division demande-t-elle l'owner (N+2), le validateur est-il
+    /// owner, l'owner est-il le validateur attendu d'une personne (ses rattachés, ou délégation
+    /// quand le manager manque), et quels owners actifs peuvent recevoir une fiche.
+    /// </summary>
+    internal sealed record Circuit(bool OwnerValidation, bool ViewerIsOwner, IReadOnlySet<Guid> OwnerValidated, IReadOnlySet<Guid> Owners)
+    {
+        public bool Actionable(Guid userId, bool approved) =>
+            ValidationRules.Actionable(ViewerIsOwner, OwnerValidation, approved, OwnerValidated.Contains(userId));
+
+        /// <summary>Un owner actif, autre que la personne, peut-il recevoir sa fiche ?</summary>
+        public bool OwnerAvailableFor(Guid userId) => Owners.Any(o => o != userId);
+    }
+
+    internal static async Task<Circuit> CircuitAsync(TimeSheetDbContext db, DivisionScope scope, CancellationToken cancellationToken)
+    {
+        var settings = await db.DivisionSettings.AsNoTracking().FirstOrDefaultAsync(s => s.DivisionId == scope.DivisionId, cancellationToken) ?? DivisionSettings.Defaults(scope.DivisionId);
+        var users = await db.Users.AsNoTracking().Where(u => u.DivisionId == scope.DivisionId)
+            .Select(u => new { u.Id, u.ManagerId, u.Role, u.Active }).ToListAsync(cancellationToken);
+        var byId = users.ToDictionary(u => u.Id);
+        var owners = users.Where(u => u.Active && u.Role == Role.OWNER).Select(u => u.Id).ToHashSet();
+        var ownerValidated = users.Where(u =>
+                u.ManagerId is { } m && byId.TryGetValue(m, out var manager) && manager.Active
+                    ? manager.Role == Role.OWNER
+                    : settings.DelegateToOwner)
+            .Select(u => u.Id).ToHashSet();
+        return new Circuit(settings.OwnerValidation, scope.Role == Role.OWNER, ownerValidated, owners);
+    }
+
+    /// <summary>Fiches en attente sur lesquelles le validateur peut agir.</summary>
+    internal static async Task<HashSet<Guid>> ActionableIdsAsync(TimeSheetDbContext db, DivisionScope scope, Circuit circuit, CancellationToken cancellationToken) =>
+        (await Sheets(db, scope).AsNoTracking().Where(t => t.Status == TimesheetStatus.SUBMITTED)
+            .Select(t => new { t.Id, t.UserId, Approved = t.ApprovedAt != null }).ToListAsync(cancellationToken))
+        .Where(t => circuit.Actionable(t.UserId, t.Approved)).Select(t => t.Id).ToHashSet();
+
+    /// <summary>Fiches en attente du validateur, dans l'ordre de la file : semaine la plus récente d'abord, puis par nom.</summary>
+    internal static async Task<List<Guid>> PendingIdsAsync(TimeSheetDbContext db, DivisionScope scope, CancellationToken cancellationToken)
+    {
+        var actionable = await ActionableIdsAsync(db, scope, await CircuitAsync(db, scope, cancellationToken), cancellationToken);
+        return await (from t in Sheets(db, scope).Where(t => actionable.Contains(t.Id))
+                      join u in db.Users on t.UserId equals u.Id
+                      orderby t.WeekYear descending, t.WeekNumber descending, u.FirstName, u.LastName
+                      select t.Id).ToListAsync(cancellationToken);
+    }
 
     private static int Key(int year, int week) => year * 100 + week;
 
@@ -149,13 +195,18 @@ public static class Validation
                 sheets = sheets.Where(t => keys.Contains(t.WeekYear * 100 + t.WeekNumber));
             }
 
+            // « En attente » : les fiches sur lesquelles le validateur peut agir. Une fiche qui attend
+            // l'autre étape du circuit reste visible sous « Toutes ».
+            var circuit = await CircuitAsync(db, scope, cancellationToken);
+            var actionable = await ActionableIdsAsync(db, scope, circuit, cancellationToken);
             var grouped = await sheets.GroupBy(t => t.Status).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(cancellationToken);
             int Count(TimesheetStatus s) => grouped.FirstOrDefault(g => g.Key == s)?.Count ?? 0;
-            var counts = new QueueCountsDto(Count(TimesheetStatus.SUBMITTED), Count(TimesheetStatus.VALIDATED), Count(TimesheetStatus.REJECTED), grouped.Sum(g => g.Count));
+            var pendingCount = await sheets.CountAsync(t => actionable.Contains(t.Id), cancellationToken);
+            var counts = new QueueCountsDto(pendingCount, Count(TimesheetStatus.VALIDATED), Count(TimesheetStatus.REJECTED), grouped.Sum(g => g.Count));
 
             var shown = request.Tab switch
             {
-                QueueTab.SUBMITTED => sheets.Where(t => t.Status == TimesheetStatus.SUBMITTED),
+                QueueTab.SUBMITTED => sheets.Where(t => actionable.Contains(t.Id)),
                 QueueTab.VALIDATED => sheets.Where(t => t.Status == TimesheetStatus.VALIDATED),
                 QueueTab.REJECTED => sheets.Where(t => t.Status == TimesheetStatus.REJECTED),
                 _ => sheets,
@@ -174,8 +225,11 @@ public static class Validation
                                   t.SubmittedAt,
                                   t.SubmissionCount,
                                   t.Comment,
+                                  t.ApprovedById,
                                   Activities = t.Days.Select(d => d.ActivityId).ToList(),
                               }).ToListAsync(cancellationToken);
+            var approverIds = rows.Where(r => r.ApprovedById != null).Select(r => r.ApprovedById!.Value).Distinct().ToList();
+            var approvers = await db.Users.AsNoTracking().Where(u => approverIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FirstName + " " + u.LastName, cancellationToken);
 
             var calendar = await CalendarAsync(db, scope.DivisionId, cancellationToken);
             var activities = await ActivitiesAsync(db, scope.DivisionId, cancellationToken);
@@ -209,7 +263,9 @@ public static class Validation
                     r.SubmittedAt, r.SubmissionCount,
                     HasComment: !string.IsNullOrWhiteSpace(r.Comment),
                     HasAbsence: r.Activities.Any(a => activities.TryGetValue(a, out var x) && x.IsSystem),
-                    UnusualProject: unusual);
+                    UnusualProject: unusual,
+                    Actionable: actionable.Contains(r.Id),
+                    ApprovedBy: r.Status == TimesheetStatus.SUBMITTED && r.ApprovedById is { } a ? approvers.GetValueOrDefault(a) : null);
             }).ToList();
 
             return new QueueDto(new WeekRef(current.Year, current.Week), people, counts, result);
@@ -248,15 +304,21 @@ public static class Validation
             var history = events.Select(e => new ReviewEventDto(e.Type, actors.GetValueOrDefault(e.ActorId, ""), e.At)).ToList();
 
             PositionDto? position = null;
+            var canDecide = false;
             if (sheet.Status == TimesheetStatus.SUBMITTED)
             {
                 var pending = await PendingIdsAsync(db, scope, cancellationToken);
                 var i = pending.IndexOf(sheet.Id);
-                if (i >= 0) position = new PositionDto(i + 1, pending.Count, i > 0 ? pending[i - 1] : null, i < pending.Count - 1 ? pending[i + 1] : null);
+                canDecide = i >= 0;
+                if (canDecide) position = new PositionDto(i + 1, pending.Count, i > 0 ? pending[i - 1] : null, i < pending.Count - 1 ? pending[i + 1] : null);
             }
+            string? approvedBy = null;
+            if (sheet.Status == TimesheetStatus.SUBMITTED && sheet.ApprovedById is { } approverId)
+                approvedBy = actors.GetValueOrDefault(approverId) ?? await db.Users.AsNoTracking().Where(u => u.Id == approverId).Select(u => u.FirstName + " " + u.LastName).FirstOrDefaultAsync(cancellationToken);
 
             return new ReviewDto(sheet.Id, person.FullName, person.Role.ToString(), sheet.WeekYear, sheet.WeekNumber, sheet.Status.ToString(),
-                sheet.SubmittedAt, sheet.SubmissionCount, sheet.Comment, days, choices, history, position);
+                sheet.SubmittedAt, sheet.SubmissionCount, sheet.Comment, days, choices, history, position,
+                canDecide, approvedBy, approvedBy is null ? null : sheet.ApprovedAt);
         }
     }
 
@@ -290,28 +352,44 @@ public static class Validation
             var flagged = request.Flagged?.Distinct().ToList() ?? [];
             if (flagged.Count > 0 && (request.Validate || !request.Single)) throw new RuleException("flagsNotAllowed");
 
+            var circuit = await CircuitAsync(db, scope, cancellationToken);
             List<Guid>? pendingBefore = null;
             if (request.Single)
             {
-                if (!await Sheets(db, scope).AnyAsync(t => t.Id == ids[0], cancellationToken)) throw new NotFoundException("Fiche introuvable.");
+                var target = await Sheets(db, scope).AsNoTracking().Where(t => t.Id == ids[0])
+                                 .Select(t => new { t.UserId, t.Status, Approved = t.ApprovedAt != null }).FirstOrDefaultAsync(cancellationToken)
+                             ?? throw new NotFoundException("Fiche introuvable.");
+                // Fiche qui attend l'autre étape du circuit : elle n'est pas (ou plus) à ce validateur.
+                if (target.Status == TimesheetStatus.SUBMITTED && !circuit.Actionable(target.UserId, target.Approved)) throw new RuleException("otherStep");
                 pendingBefore = await PendingIdsAsync(db, scope, cancellationToken);
             }
 
             var now = clock.GetUtcNow();
             var decided = new List<Timesheet>();
+            var forwarded = new List<Timesheet>();
             foreach (var id in ids)
             {
-                if (!await Sheets(db, scope).AnyAsync(t => t.Id == id && t.Status == TimesheetStatus.SUBMITTED, cancellationToken)) continue;
+                var current = await Sheets(db, scope).AsNoTracking().Where(t => t.Id == id && t.Status == TimesheetStatus.SUBMITTED)
+                    .Select(t => new { t.UserId, Approved = t.ApprovedAt != null }).FirstOrDefaultAsync(cancellationToken);
+                if (current is null || !circuit.Actionable(current.UserId, current.Approved)) continue;
 
                 await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-                // Garde : une seule décision par soumission, même si deux validateurs cliquent ensemble.
-                // La mise à jour verrouille la ligne ; la seconde transaction relit le statut et ne trouve plus rien.
-                var claimed = await db.Timesheets.Where(t => t.Id == id && t.Status == TimesheetStatus.SUBMITTED)
+                // Garde : une seule décision par étape, même si deux validateurs cliquent ensemble.
+                // La mise à jour verrouille la ligne ; la seconde transaction relit l'état et ne trouve plus rien.
+                var claimed = await db.Timesheets
+                    .Where(t => t.Id == id && t.Status == TimesheetStatus.SUBMITTED && (t.ApprovedAt != null) == current.Approved)
                     .ExecuteUpdateAsync(s => s.SetProperty(t => t.SubmissionCount, t => t.SubmissionCount), cancellationToken);
                 if (claimed == 0) continue;
 
                 var sheet = await db.Timesheets.Include(t => t.Days).FirstAsync(t => t.Id == id, cancellationToken);
-                if (request.Validate) sheet.Validate(scope.UserId, now);
+                var forward = request.Validate && !current.Approved
+                              && ValidationRules.ForwardToOwner(circuit.OwnerValidation, circuit.ViewerIsOwner, circuit.OwnerAvailableFor(sheet.UserId));
+                if (forward)
+                {
+                    sheet.Approve(scope.UserId, now);
+                    forwarded.Add(sheet);
+                }
+                else if (request.Validate) sheet.Validate(scope.UserId, now);
                 else
                 {
                     // Seule une journée saisie se signale.
@@ -321,10 +399,16 @@ public static class Validation
                 }
                 await db.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
-                decided.Add(sheet);
+                if (!forward) decided.Add(sheet);
             }
 
-            if (request.Single && decided.Count == 0) throw new RuleException("alreadyDecided");
+            if (request.Single && decided.Count + forwarded.Count == 0) throw new RuleException("alreadyDecided");
+            // Validation N+1 transmise à l'owner : le journal seulement ; le collaborateur est prévenu à la décision finale.
+            foreach (var sheet in forwarded)
+            {
+                var name = await db.Users.AsNoTracking().Where(u => u.Id == sheet.UserId).Select(u => u.FirstName + " " + u.LastName).FirstAsync(cancellationToken);
+                await audit.AppendAsync("TIMESHEET_APPROVED", viewer.FullName, $"Semaine {sheet.WeekNumber} · {name}", AuditResult.SUCCESS, viewer.UserId, sheet.DivisionId, cancellationToken: cancellationToken);
+            }
             await NotifyAsync(viewer, decided, request.Validate, reason, cancellationToken);
 
             Guid? next = null;
@@ -333,7 +417,8 @@ public static class Validation
                 var i = pendingBefore.IndexOf(ids[0]);
                 next = pendingBefore.Skip(i + 1).Concat(pendingBefore).Where(p => p != ids[0]).Cast<Guid?>().FirstOrDefault();
             }
-            return new DecisionResult(decided.Count, ids.Count - decided.Count, next);
+            var done = decided.Count + forwarded.Count;
+            return new DecisionResult(done, ids.Count - done, next, forwarded.Count);
         }
 
         /// <summary>Journal d'audit, puis e-mail au collaborateur. Un échec d'envoi n'annule rien.</summary>
@@ -369,8 +454,9 @@ public static class Validation
     // ------------------------------------------------------------------------------------
 
     /// <summary>
-    /// Relance le validateur d'une fiche soumise depuis N jours ouvrés sans décision (N réglé par
-    /// division, 3 par défaut), une fois par soumission. Renvoie le nombre de relances envoyées.
+    /// Relance le validateur d'une fiche qui attend depuis N jours ouvrés (N réglé par division,
+    /// 3 par défaut), une fois par étape : le manager depuis la soumission, les owners depuis la
+    /// validation du manager. Renvoie le nombre de relances envoyées.
     /// </summary>
     public sealed record RemindersCommand : IRequest<int>;
 
@@ -384,7 +470,7 @@ public static class Validation
             var appUrl = (configuration["APP_URL"] ?? "http://localhost:5173").TrimEnd('/');
             var sheets = await db.Timesheets.Include(t => t.Events)
                 .Where(t => t.Status == TimesheetStatus.SUBMITTED && t.SubmittedAt != null)
-                .OrderBy(t => t.SubmittedAt)
+                .OrderBy(t => t.ApprovedAt ?? t.SubmittedAt)
                 .ToListAsync(cancellationToken);
 
             var calendars = new Dictionary<Guid, DivisionCalendar>();
@@ -393,19 +479,28 @@ public static class Validation
             {
                 if (!calendars.TryGetValue(sheet.DivisionId, out var calendar))
                     calendars[sheet.DivisionId] = calendar = await CalendarAsync(db, sheet.DivisionId, cancellationToken);
-                var due = ValidationRules.ReminderDue(WeekRules.DoualaDay(sheet.SubmittedAt!.Value), today, calendar.Settings.ReminderAfterWorkingDays,
-                    calendar.Settings.WorkingDays, calendar.Holidays, sheet.RemindedSinceSubmission);
+                var due = ValidationRules.ReminderDue(WeekRules.DoualaDay(sheet.StageStartedAt!.Value), today, calendar.Settings.ReminderAfterWorkingDays,
+                    calendar.Settings.WorkingDays, calendar.Holidays, sheet.RemindedThisStage);
                 if (!due) continue;
 
-                var validator = await entry.ValidatorOfAsync(sheet.DivisionId, sheet.UserId, cancellationToken);
-                if (validator is null) continue;
+                // Étape owner : chaque owner actif de la division, sauf la personne elle-même.
+                List<ValidatorInfo> validators = sheet.ApprovedAt is null
+                    ? (await entry.ValidatorOfAsync(sheet.DivisionId, sheet.UserId, cancellationToken)) is { } v ? [v] : []
+                    : await db.Users.AsNoTracking()
+                        .Where(u => u.DivisionId == sheet.DivisionId && u.Active && u.Role == Role.OWNER && u.Id != sheet.UserId)
+                        .OrderBy(u => u.FirstName).ThenBy(u => u.LastName)
+                        .Select(u => new ValidatorInfo(u.Id, u.Email, u.FirstName, u.FirstName + " " + u.LastName))
+                        .ToListAsync(cancellationToken);
+                if (validators.Count == 0) continue;
                 var name = await db.Users.AsNoTracking().Where(u => u.Id == sheet.UserId).Select(u => u.FirstName + " " + u.LastName).FirstAsync(cancellationToken);
                 var days = calendar.Days(sheet.Week);
-                var ok = await mail.SendAsync(MailTemplates.Reminder(validator.Email, validator.FirstName, name, sheet.WeekNumber,
-                    FrenchFormat.Range(days[0], days[^1]), FrenchFormat.Date(WeekRules.DoualaDay(sheet.SubmittedAt.Value)), $"{appUrl}/validation/{sheet.Id}"), cancellationToken);
+                var ok = false;
+                foreach (var validator in validators)
+                    ok |= await mail.SendAsync(MailTemplates.Reminder(validator.Email, validator.FirstName, name, sheet.WeekNumber,
+                        FrenchFormat.Range(days[0], days[^1]), FrenchFormat.Date(WeekRules.DoualaDay(sheet.SubmittedAt!.Value)), $"{appUrl}/validation/{sheet.Id}"), cancellationToken);
                 if (!ok) continue;
 
-                sheet.RecordReminder(validator.Id, now);
+                sheet.RecordReminder(validators[0].Id, now);
                 await db.SaveChangesAsync(cancellationToken);
                 await audit.AppendAsync("VALIDATION_REMINDER_SENT", "TimeSheet", $"Semaine {sheet.WeekNumber} · {name}", AuditResult.SUCCESS, divisionId: sheet.DivisionId, cancellationToken: cancellationToken);
                 sent++;

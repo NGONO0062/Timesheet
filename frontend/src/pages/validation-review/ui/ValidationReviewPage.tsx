@@ -69,7 +69,8 @@ function ReviewView({ review }: { review: Review }) {
   const [error, setError] = useState<string | null>(null);
   const notice = (location.state as { notice?: string } | null)?.notice ?? null;
 
-  const pending = review.status === "SUBMITTED";
+  // En attente et à ce validateur : l'autre étape du circuit (manager ou owner) se consulte seulement.
+  const pending = review.canDecide;
   const rejecting = pending && decision === "REJECT";
   const days = review.days.map((d) => dayOf(d.date));
   const first = days[0];
@@ -92,13 +93,13 @@ function ReviewView({ review }: { review: Review }) {
     decide.mutate(input, {
       onSuccess: (r) => {
         // On enchaîne sur la fiche en attente suivante, avec le résultat annoncé.
-        const done = rejecting ? v.doneRejected : v.doneValidated;
+        const done = rejecting ? v.doneRejected : r.forwarded > 0 ? v.doneForwarded : v.doneValidated;
         navigate(r.next ? `/validation/${r.next}` : "/validation", { state: { notice: done } });
       },
       onError: (err) => {
         const code = ruleCodeOf(err);
         if (code === "reasonMissing") setReasonError(true);
-        else setError(code === "alreadyDecided" ? v.decideError : code === "session" ? dict.entry.errors.session : v.actionError);
+        else setError(code === "alreadyDecided" ? v.decideError : code === "otherStep" ? v.otherStepError : code === "session" ? dict.entry.errors.session : v.actionError);
       },
     });
   }
@@ -194,6 +195,9 @@ function ReviewView({ review }: { review: Review }) {
 
         {pending ? (
           <form className="flex min-w-0 flex-col gap-20 rounded-md border-2 border-black p-20" onSubmit={submit} noValidate>
+            {review.approvedBy && review.approvedAt && (
+              <p className="text-sm">{t(v.awaitingOwnerStep, { name: review.approvedBy, date: formatDateAt(new Date(review.approvedAt)) })}</p>
+            )}
             <RadioGroup legend={<span className="block pb-10 text-h3">{v.decision}</span>}>
               {(["VALIDATE", "REJECT"] as const).map((d) => (
                 <Radio
@@ -245,7 +249,13 @@ function ReviewView({ review }: { review: Review }) {
           </form>
         ) : (
           <Alert tone="info">
-            <p>{v.notPending}</p>
+            <p>
+              {review.status !== "SUBMITTED"
+                ? v.notPending
+                : review.approvedBy && review.approvedAt
+                  ? t(v.awaitingOwner, { name: review.approvedBy, date: formatDateAt(new Date(review.approvedAt)) })
+                  : v.awaitingManager}
+            </p>
           </Alert>
         )}
       </div>

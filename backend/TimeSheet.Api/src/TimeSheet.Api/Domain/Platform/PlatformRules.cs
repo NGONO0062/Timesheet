@@ -77,7 +77,7 @@ public static partial class PlatformRules
     {
         ["LOGIN"] = ["LOGIN_SUCCESS", "LOGIN_FAILURE", "LOGOUT"],
         ["SUBMISSIONS"] = ["TIMESHEET_SUBMITTED"],
-        ["VALIDATIONS"] = ["TIMESHEET_VALIDATED"],
+        ["VALIDATIONS"] = ["TIMESHEET_APPROVED", "TIMESHEET_VALIDATED"],
         ["REJECTIONS"] = ["TIMESHEET_REJECTED"],
         ["REMINDERS"] = ["VALIDATION_REMINDER_SENT", "FILL_REMINDER_SENT"],
         ["RULES"] = ["RULES_CHANGED", "WORKFLOW_CHANGED", "PERMISSIONS_CHANGED", "HOLIDAY_ADDED", "HOLIDAY_REMOVED"],
@@ -93,6 +93,7 @@ public static partial class PlatformRules
         ["LOGIN_FAILURE"] = "Connexion",
         ["LOGOUT"] = "Déconnexion",
         ["TIMESHEET_SUBMITTED"] = "Soumission de fiche",
+        ["TIMESHEET_APPROVED"] = "Validation de fiche (N+1)",
         ["TIMESHEET_VALIDATED"] = "Validation de fiche",
         ["TIMESHEET_REJECTED"] = "Rejet de fiche",
         ["VALIDATION_REMINDER_SENT"] = "Relance du validateur",

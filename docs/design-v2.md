@@ -71,6 +71,7 @@ Avant, « En attente » portait un « i » (information) et quatre statuts jaune
 - saisie par jour (C2 version 2) et son écran 03 complet, raccourcis de saisie compris (§1) ;
 - tableau de bord et file de validation selon §5 et §6 ;
 - tableau Kanban des tâches (écran 15) ;
+- étape de l'owner (N+2) : « Validée par … (N+1) » dans la file, détail en consultation, messages de la collaboratrice et de l'owner, interrupteur des Workflows et son explication ;
 - fiche projet (`/projets/:id`) : indicateurs, points d'attention, équipe, activités, tendance sur 8 semaines ;
 - gestion d'une division côté plateforme (point 71) ;
 - bloc « Jours fériés » de l'administration de la division (écran 12) : liste par année, formulaire d'ajout, suppression avec « Annuler » ;

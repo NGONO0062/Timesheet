@@ -102,7 +102,8 @@ export function ValidationQueuePage() {
 
   const data = query.data;
   const periods = periodOptions(data.current);
-  const pendingRows = data.rows.filter((r) => r.status === "SUBMITTED");
+  // Fiches sur lesquelles le validateur peut agir ; une fiche qui attend l'autre étape du circuit se consulte.
+  const pendingRows = data.rows.filter((r) => r.actionable);
   const chosen = pendingRows.filter((r) => selected.has(r.id)).map((r) => r.id);
   const allChosen = pendingRows.length > 0 && chosen.length === pendingRows.length;
   // « En attente » : la colonne Statut répéterait la même valeur partout (design v2, §6).
@@ -117,7 +118,11 @@ export function ValidationQueuePage() {
   }
 
   function report(r: DecisionResult, kind: "validated" | "rejected") {
-    const main = kind === "validated" ? plural(r.done, v.validatedOne, v.validatedMany) : plural(r.done, v.rejectedOne, v.rejectedMany);
+    const final = r.done - r.forwarded;
+    const main =
+      kind === "rejected"
+        ? plural(r.done, v.rejectedOne, v.rejectedMany)
+        : [final > 0 ? plural(final, v.validatedOne, v.validatedMany) : "", r.forwarded > 0 ? plural(r.forwarded, v.forwardedOne, v.forwardedMany) : ""].filter(Boolean).join(" ");
     const skipped = r.skipped > 0 ? plural(r.skipped, v.skippedOne, v.skippedMany) : "";
     setNotice(r.done > 0 ? [main, skipped].filter(Boolean).join(" ") : skipped);
     setSelected(new Set());
@@ -278,7 +283,7 @@ export function ValidationQueuePage() {
                   return (
                     <tr key={r.id}>
                       <td>
-                        {r.status === "SUBMITTED" && (
+                        {r.actionable && (
                           <Checkbox
                             label={<span className="sr-only">{t(v.selectOne, { name: r.name, week: weekText(r) })}</span>}
                             checked={selected.has(r.id)}
@@ -289,6 +294,7 @@ export function ValidationQueuePage() {
                       <th scope="row">
                         <span className="flex flex-wrap items-center gap-x-10 gap-y-5">
                           <span className="whitespace-nowrap">{r.name}</span>
+                          {r.approvedBy && <span className="text-sm font-normal">{t(v.approvedBy, { name: r.approvedBy })}</span>}
                           {tags.length > 0 && (
                             <span className="flex flex-wrap gap-5 font-normal">
                               <span className="sr-only">{v.attentionLabel} :</span>
@@ -311,7 +317,7 @@ export function ValidationQueuePage() {
                         </td>
                       )}
                       <td>
-                        <Link to={`/validation/${r.id}`}>{r.status === "SUBMITTED" ? v.review : v.consult}</Link>
+                        <Link to={`/validation/${r.id}`}>{r.actionable ? v.review : v.consult}</Link>
                       </td>
                     </tr>
                   );
@@ -331,7 +337,7 @@ export function ValidationQueuePage() {
             <ul className="flex flex-col rounded-md border-2 border-gray-999" aria-label={v.captions[filters.tab]}>
               {data.rows.map((r) => (
                 <li key={r.id} className="flex items-start gap-10 border-b-2 border-gray-999 p-10 last:border-b-0">
-                  {r.status === "SUBMITTED" && (
+                  {r.actionable && (
                     <Checkbox
                       label={<span className="sr-only">{t(v.selectOne, { name: r.name, week: weekText(r) })}</span>}
                       checked={selected.has(r.id)}
@@ -343,6 +349,7 @@ export function ValidationQueuePage() {
                       {r.name}
                     </Link>
                     <span className="text-sm text-gray-595">{`${weekText(r)} · ${r.filled} / ${r.expected} · ${submittedText(r.submittedAt)}`}</span>
+                    {r.approvedBy && <span className="text-sm">{t(v.approvedBy, { name: r.approvedBy })}</span>}
                     {(attentionTags(r).length > 0 || showStatus) && (
                       <span className="flex flex-wrap gap-5">
                         {showStatus && <StatusBadge kind="timesheet" value={r.status} />}

@@ -108,11 +108,19 @@ export function WorkflowFields({ value: w, errors, onChange }: { value: Workflow
         <Step n={2} end={<Badge dark>{a.mandatory}</Badge>}>
           <strong>{c[1]?.strong}</strong> {c[1]?.text}
         </Step>
-        {/* Pas encore branché (docs/questions-ouvertes.md, point 52) : désactivé, raison écrite dessous. */}
+        {/* Validation finale par l'owner (docs/questions-ouvertes.md, point 52). */}
         <Step
           n={3}
-          note={{ id: "etape-n2-indisponible", text: a.ownerStepUnavailable }}
-          end={<Switch label={a.ownerStepLabel} checked={false} disabled aria-describedby="etape-n2-indisponible" states={[a.stepOn, a.stepOff]} onChange={() => undefined} />}
+          note={{ id: "etape-n2-aide", text: a.ownerStepHelp }}
+          end={
+            <Switch
+              label={a.ownerStepLabel}
+              checked={w.ownerValidation}
+              aria-describedby="etape-n2-aide"
+              states={[a.stepOn, a.stepOff]}
+              onChange={(e) => onChange({ ownerValidation: e.target.checked })}
+            />
+          }
         >
           <strong>{c[2]?.strong}</strong> {c[2]?.text}
         </Step>

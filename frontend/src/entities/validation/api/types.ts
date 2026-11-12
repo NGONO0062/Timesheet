@@ -20,6 +20,10 @@ export type QueueRow = {
   hasComment: boolean;
   hasAbsence: boolean;
   unusualProject: boolean;
+  /** Le validateur peut décider de cette fiche (elle attend son étape du circuit). */
+  actionable: boolean;
+  /** Fiche déjà validée par le manager, en attente de l'owner (N+2). */
+  approvedBy: string | null;
 };
 
 export type Queue = {
@@ -29,7 +33,7 @@ export type Queue = {
   rows: QueueRow[];
 };
 
-export type ReviewEvent = { type: "CREATED" | "SUBMITTED" | "REJECTED" | "VALIDATED" | "REMINDER_SENT"; by: string; at: string };
+export type ReviewEvent = { type: "CREATED" | "SUBMITTED" | "APPROVED" | "REJECTED" | "VALIDATED" | "REMINDER_SENT"; by: string; at: string };
 
 export type Review = {
   id: string;
@@ -45,6 +49,9 @@ export type Review = {
   choices: Choice[];
   history: ReviewEvent[];
   position: { index: number; count: number; previous: string | null; next: string | null } | null;
+  canDecide: boolean;
+  approvedBy: string | null;
+  approvedAt: string | null;
 };
 
-export type DecisionResult = { done: number; skipped: number; next: string | null };
+export type DecisionResult = { done: number; skipped: number; next: string | null; forwarded: number };

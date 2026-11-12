@@ -238,7 +238,7 @@ public static class Platform
             var d = await OnboardingAsync(db, request.Id, cancellationToken);
             d.ReplaceMatrix(AdminRules.OverridesFor(matrix));
             var w = request.Workflow;
-            (await Administration.SettingsAsync(db, d.Id, cancellationToken)).WithWorkflow(w.ReminderAfterWorkingDays, w.DelegateToOwner);
+            (await Administration.SettingsAsync(db, d.Id, cancellationToken)).WithWorkflow(w.OwnerValidation, w.ReminderAfterWorkingDays, w.DelegateToOwner);
             return new StepSaved(d.Id, await AdvanceAsync(db, audit, viewer, d, 3, cancellationToken));
         }
     }

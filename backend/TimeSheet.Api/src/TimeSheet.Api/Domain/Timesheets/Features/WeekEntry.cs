@@ -17,7 +17,7 @@ public sealed record DecisionDto(string By, DateTimeOffset At, string? Reason);
 
 public sealed record RecentWeekDto(int Year, int Week, string Status);
 
-/// <summary>Événement de l'historique (écran 05) : soumise, rejetée, validée ; « par vous » pour la personne.</summary>
+/// <summary>Événement de l'historique (écran 05) : soumise, validée par le manager, rejetée, validée ; « par vous » pour la personne.</summary>
 public sealed record HistoryDto(string Type, string By, bool ByYou, DateTimeOffset At);
 
 /// <summary>Semaine de saisie (écrans 03, 04, 05), telle que l'interface l'affiche.</summary>
@@ -40,7 +40,9 @@ public sealed record WeekDto(
     IReadOnlyList<RecentWeekDto> Recent,
     IReadOnlyList<HistoryDto> History,
     // Dernière semaine saisie, dont les choix peuvent être repris jour par jour ; null s'il n'y a rien à reprendre.
-    WeekRef? CopyFrom = null);
+    WeekRef? CopyFrom = null,
+    // Validation du manager (N+1) d'une fiche qui attend encore l'owner (N+2).
+    DecisionDto? Approval = null);
 
 public sealed record DayInput(DateOnly Date, Guid? Key);
 
@@ -82,8 +84,9 @@ public static class WeekEntry
                 .FirstOrDefaultAsync(t => t.UserId == scope.UserId && t.WeekYear == week.Year && t.WeekNumber == week.Week, cancellationToken);
             var used = sheet?.Days.ToDictionary(d => d.Date) ?? [];
 
-            // Historique, du plus récent au plus ancien ; la création du brouillon n'y figure pas.
-            var events = sheet?.Events.Where(e => e.Type != "CREATED").OrderByDescending(e => e.At).ToList() ?? [];
+            // Historique, du plus récent au plus ancien ; la création du brouillon et les relances
+            // (échangées entre validateurs) n'y figurent pas.
+            var events = sheet?.Events.Where(e => e.Type is not ("CREATED" or "REMINDER_SENT")).OrderByDescending(e => e.At).ToList() ?? [];
             var actorIds = events.Select(e => e.ActorId).Distinct().ToList();
             var actors = await db.Users.AsNoTracking().Where(u => actorIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FirstName + " " + u.LastName, cancellationToken);
             var history = events.Select(e => new HistoryDto(e.Type, actors.GetValueOrDefault(e.ActorId, ""), e.ActorId == scope.UserId, e.At)).ToList();
@@ -96,6 +99,12 @@ public static class WeekEntry
             {
                 var by = await db.Users.AsNoTracking().Where(u => u.Id == deciderId).Select(u => u.FirstName + " " + u.LastName).FirstAsync(cancellationToken);
                 decision = new DecisionDto(by, decidedAt, sheet.RejectionReason);
+            }
+            DecisionDto? approval = null;
+            if (sheet is { Status: TimesheetStatus.SUBMITTED, ApprovedById: { } approverId, ApprovedAt: { } approvedAt })
+            {
+                var by = await db.Users.AsNoTracking().Where(u => u.Id == approverId).Select(u => u.FirstName + " " + u.LastName).FirstAsync(cancellationToken);
+                approval = new DecisionDto(by, approvedAt, null);
             }
 
             var oldestYear = recentWeeks[^1].Year;
@@ -154,7 +163,8 @@ public static class WeekEntry
                 decision,
                 recent,
                 history,
-                copyFrom);
+                copyFrom,
+                approval);
         }
 
         public async Task<SaveResult> Handle(Command request, CancellationToken cancellationToken)

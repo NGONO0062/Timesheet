@@ -71,10 +71,10 @@ test("CX Expertise : utilisateurs, recherche, pagination, permissions, accessibi
   const locked = matrix.getByRole("checkbox", { name: "Gérer les utilisateurs, workflows et règles : Admin division" });
   await expect(locked).toBeChecked();
   await expect(locked).toBeDisabled();
-  // Pas encore branchée (questions ouvertes, point 52) : désactivée, raison écrite.
+  // Validation par l'owner (point 52) : désactivée par défaut, réglable, son effet écrit dessous.
   await expect(page.getByRole("switch", { name: "Validation par l'owner (N+2)" })).not.toBeChecked();
-  await expect(page.getByRole("switch", { name: "Validation par l'owner (N+2)" })).toBeDisabled();
-  await expect(page.getByText("Pas encore disponible : les fiches sont validées en une étape, par le manager (N+1).")).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Validation par l'owner (N+2)" })).toBeEnabled();
+  await expect(page.getByText(/Activée : chaque fiche validée par un manager passe ensuite à l'owner/)).toBeVisible();
   await expect(page.getByText("Désactivée", { exact: true })).toBeVisible();
   // Saisie en jours entiers (point 82) : ni unité, ni heures par jour, ni pas à régler.
   await expect(page.getByLabel("Heures attendues par jour")).toHaveCount(0);

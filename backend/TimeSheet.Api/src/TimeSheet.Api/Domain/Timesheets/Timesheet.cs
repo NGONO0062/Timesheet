@@ -18,6 +18,12 @@ public class Timesheet : BaseEntity
     public Guid? DecidedById { get; private set; }
     public DateTimeOffset? DecidedAt { get; private set; }
     public string? RejectionReason { get; private set; }
+    /// <summary>
+    /// Validation de premier niveau (N+1) quand la division demande aussi celle de l'owner (N+2) :
+    /// la fiche reste « En attente de validation » jusqu'à la décision de l'owner.
+    /// </summary>
+    public Guid? ApprovedById { get; private set; }
+    public DateTimeOffset? ApprovedAt { get; private set; }
     /// <summary>Dernier enregistrement, sur l'horloge de l'application (indicateur « Brouillon enregistré à … »).</summary>
     public DateTimeOffset UpdatedAt { get; private set; }
 
@@ -64,6 +70,8 @@ public class Timesheet : BaseEntity
         DecidedAt = null;
         DecidedById = null;
         RejectionReason = null;
+        ApprovedById = null;
+        ApprovedAt = null;
         foreach (var day in _days) day.Flagged = false;
         UpdatedAt = now;
         _events.Add(new TimesheetEvent(Id, "SUBMITTED", actorId, now, Comment));
@@ -77,6 +85,18 @@ public class Timesheet : BaseEntity
         DecidedById = deciderId;
         DecidedAt = now;
         _events.Add(new TimesheetEvent(Id, "VALIDATED", deciderId, now, null));
+    }
+
+    /// <summary>
+    /// Validation du manager (N+1) quand l'owner (N+2) doit valider ensuite : la fiche reste soumise,
+    /// elle passe dans la file de l'owner.
+    /// </summary>
+    public void Approve(Guid managerId, DateTimeOffset now)
+    {
+        if (Status != TimesheetStatus.SUBMITTED || ApprovedAt is not null) throw new InvalidOperationException("Fiche non soumise ou déjà validée par le manager.");
+        ApprovedById = managerId;
+        ApprovedAt = now;
+        _events.Add(new TimesheetEvent(Id, "APPROVED", managerId, now, null));
     }
 
     /// <summary>
@@ -96,15 +116,18 @@ public class Timesheet : BaseEntity
         _events.Add(new TimesheetEvent(Id, "REJECTED", deciderId, now, RejectionReason));
     }
 
-    /// <summary>Relance envoyée au validateur (une par soumission) : l'historique la montre.</summary>
+    /// <summary>Début de l'étape en cours : la soumission (manager), ou la validation du manager (owner).</summary>
+    public DateTimeOffset? StageStartedAt => ApprovedAt ?? SubmittedAt;
+
+    /// <summary>Relance envoyée au validateur (une par étape) : l'historique la montre.</summary>
     public void RecordReminder(Guid validatorId, DateTimeOffset now)
     {
         if (Status != TimesheetStatus.SUBMITTED) throw new InvalidOperationException("Fiche non soumise.");
         _events.Add(new TimesheetEvent(Id, "REMINDER_SENT", validatorId, now, null));
     }
 
-    /// <summary>Une relance est-elle déjà partie depuis la dernière soumission ?</summary>
-    public bool RemindedSinceSubmission => SubmittedAt is { } at && _events.Any(e => e.Type == "REMINDER_SENT" && e.At >= at);
+    /// <summary>Une relance est-elle déjà partie pour l'étape en cours ?</summary>
+    public bool RemindedThisStage => StageStartedAt is { } at && _events.Any(e => e.Type == "REMINDER_SENT" && e.At >= at);
 
     protected Timesheet() { } // EF
 }

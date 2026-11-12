@@ -215,6 +215,98 @@ public class ValidationTests : TestBase
         events.Should().Be(1);
     }
 
+    /// <summary>La division demande la validation de l'owner (N+2).</summary>
+    private static Task TwoSteps(Setup s) => WithDb(async db =>
+    {
+        db.DivisionSettings.Add(DivisionSettings.Defaults(s.Manager.DivisionId!.Value).WithWorkflow(true, 3, true));
+        await db.SaveChangesAsync();
+    });
+
+    private static JsonElement Row(JsonElement queue, Guid id) => queue.GetProperty("rows").EnumerateArray().Single(r => r.GetProperty("id").GetGuid() == id);
+
+    [Fact]
+    public async Task en_deux_etapes_le_manager_valide_puis_l_owner_decide()
+    {
+        var s = await NewDivision();
+        await TwoSteps(s);
+        await SignIn(s.Manager);
+        var response = await FactoryClient.PostAsJsonAsync("api/v1/validation/decisions", new { ids = new[] { s.AnaSheet }, decision = "VALIDATE" });
+        var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        (result.GetProperty("done").GetInt32(), result.GetProperty("forwarded").GetInt32()).Should().Be((1, 1));
+
+        // La fiche reste « En attente de validation » ; la collaboratrice n'est prévenue qu'à la décision finale.
+        RecordingMailSender.To(s.Ana.Email).Should().BeEmpty();
+        (await ExecuteDbContextAsync(db => db.AuditLog.CountAsync(a => a.Action == "TIMESHEET_APPROVED" && a.ActorId == s.Manager.Id))).Should().Be(1);
+        var managerQueue = await Queue();
+        Ids(await Queue("periode=tout&statut=SUBMITTED")).Should().Equal(s.BenSheet);
+        managerQueue.GetProperty("counts").GetProperty("submitted").GetInt32().Should().Be(1);
+        var ana = Row(await Queue("periode=tout&statut=ALL"), s.AnaSheet);
+        (ana.GetProperty("status").GetString(), ana.GetProperty("actionable").GetBoolean(), ana.GetProperty("approvedBy").GetString()).Should().Be(("SUBMITTED", false, "Marc Essai"));
+        (await CodeOf(await FactoryClient.PostAsJsonAsync($"api/v1/validation/{s.AnaSheet}/decision", new { decision = "VALIDATE" }))).Should().Be("otherStep");
+        var review = await FactoryClient.GetFromJsonAsync<JsonElement>($"api/v1/validation/{s.AnaSheet}");
+        review.GetProperty("canDecide").GetBoolean().Should().BeFalse();
+
+        await SignIn(s.Ana);
+        var week = await FactoryClient.GetFromJsonAsync<JsonElement>($"api/v1/saisie/{s.Week.Year}/{s.Week.Week}");
+        week.GetProperty("status").GetString().Should().Be("SUBMITTED");
+        week.GetProperty("approval").GetProperty("by").GetString().Should().Be("Marc Essai");
+        week.GetProperty("history").EnumerateArray().Select(e => e.GetProperty("type").GetString()).Should().StartWith("APPROVED");
+
+        // L'owner : la fiche validée par le manager, et celle de Cléo (manager désactivé, délégation) ;
+        // pas celle de Ben, qui attend encore son manager.
+        await SignIn(s.Owner);
+        Ids(await Queue("periode=tout&statut=SUBMITTED")).Should().BeEquivalentTo([s.AnaSheet, s.CleoSheet]);
+        Row(await Queue("periode=tout&statut=ALL"), s.BenSheet).GetProperty("actionable").GetBoolean().Should().BeFalse();
+        (await CodeOf(await FactoryClient.PostAsJsonAsync($"api/v1/validation/{s.BenSheet}/decision", new { decision = "VALIDATE" }))).Should().Be("otherStep");
+        var ownerReview = await FactoryClient.GetFromJsonAsync<JsonElement>($"api/v1/validation/{s.AnaSheet}");
+        (ownerReview.GetProperty("canDecide").GetBoolean(), ownerReview.GetProperty("approvedBy").GetString()).Should().Be((true, "Marc Essai"));
+
+        var final = await (await FactoryClient.PostAsJsonAsync("api/v1/validation/decisions", new { ids = new[] { s.AnaSheet, s.CleoSheet, s.BenSheet }, decision = "VALIDATE" })).Content.ReadFromJsonAsync<JsonElement>();
+        (final.GetProperty("done").GetInt32(), final.GetProperty("skipped").GetInt32(), final.GetProperty("forwarded").GetInt32()).Should().Be((2, 1, 0));
+        var statuses = await ExecuteDbContextAsync(db => db.Timesheets.Where(t => t.Id == s.AnaSheet || t.Id == s.CleoSheet).Select(t => t.Status).ToListAsync());
+        statuses.Should().AllBeEquivalentTo(TimesheetStatus.VALIDATED);
+        RecordingMailSender.To(s.Ana.Email).Should().ContainSingle(m => m.Subject == $"Semaine {s.Week.Week} validée" && m.Text.Contains("Olga Essai"));
+    }
+
+    [Fact]
+    public async Task le_rejet_de_l_owner_renvoie_la_fiche_et_le_circuit_repart_du_manager()
+    {
+        var s = await NewDivision();
+        await TwoSteps(s);
+        await SignIn(s.Manager);
+        await FactoryClient.PostAsJsonAsync($"api/v1/validation/{s.BenSheet}/decision", new { decision = "VALIDATE" });
+
+        await SignIn(s.Owner);
+        (await FactoryClient.PostAsJsonAsync($"api/v1/validation/{s.BenSheet}/decision", new { decision = "REJECT", reason = "Vendredi : absence à justifier." }))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        RecordingMailSender.To(s.Ben.Email).Should().ContainSingle(m => m.Subject == $"Semaine {s.Week.Week} rejetée : à corriger" && m.Text.Contains("Olga Essai"));
+
+        await SignIn(s.Ben);
+        var rejected = await FactoryClient.GetFromJsonAsync<JsonElement>($"api/v1/saisie/{s.Week.Year}/{s.Week.Week}");
+        var days = rejected.GetProperty("days").EnumerateArray().Select(d => new { date = d.GetProperty("date").GetString(), key = d.GetProperty("value").GetString() }).ToArray();
+        (await FactoryClient.PostAsJsonAsync($"api/v1/saisie/{s.Week.Year}/{s.Week.Week}/soumission", new { days, comment = "Absence justifiée." })).StatusCode.Should().Be(HttpStatusCode.OK);
+        await SignIn(s.Manager);
+        Ids(await Queue("periode=tout&statut=SUBMITTED")).Should().Contain(s.BenSheet);
+    }
+
+    [Fact]
+    public async Task la_relance_de_l_etape_owner_part_vers_l_owner()
+    {
+        var s = await NewDivision(submittedAt: DateTimeOffset.UtcNow.AddDays(-10));
+        await TwoSteps(s);
+        await WithDb(async db =>
+        {
+            var sheet = await db.Timesheets.FirstAsync(t => t.Id == s.AnaSheet);
+            sheet.Approve(s.Manager.Id, DateTimeOffset.UtcNow.AddDays(-9));
+            await db.SaveChangesAsync();
+        });
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/v1/taches/relances");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", RecordingMailSender.TasksSecret);
+        (await FactoryClient.SendAsync(request)).StatusCode.Should().Be(HttpStatusCode.OK);
+        RecordingMailSender.To(s.Owner.Email).Should().Contain(m => m.Subject.StartsWith("Fiche de Ana Essai"));
+        RecordingMailSender.To(s.Manager.Email).Should().NotContain(m => m.Subject.StartsWith("Fiche de Ana Essai"));
+    }
+
     [Fact]
     public async Task sans_manager_actif_la_fiche_part_chez_l_owner()
     {

@@ -90,7 +90,7 @@ public static class Consolidated
     {
         var ids = frame.People.Select(p => p.Id).ToList();
         var pending = await db.Timesheets.AsNoTracking()
-            .Where(t => t.DivisionId == scope.DivisionId && t.Status == TimesheetStatus.SUBMITTED && t.SubmittedAt != null && ids.Contains(t.UserId))
+            .Where(t => t.DivisionId == scope.DivisionId && t.Status == TimesheetStatus.SUBMITTED && t.SubmittedAt != null && t.ApprovedAt == null && ids.Contains(t.UserId))
             .Select(t => new { t.UserId, t.SubmittedAt })
             .ToListAsync(cancellationToken);
         var today = WeekRules.DoualaDay(frame.Now);

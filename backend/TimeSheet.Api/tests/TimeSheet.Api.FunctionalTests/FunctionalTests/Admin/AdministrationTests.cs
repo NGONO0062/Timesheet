@@ -149,7 +149,7 @@ public class AdministrationTests : TestBase
 
         (await Rule(await FactoryClient.PutAsJsonAsync("api/v1/administration/workflow", new { reminderAfterWorkingDays = 4, delegateToOwner = true })))
             .Fields.Should().Equal("reminder");
-        (await FactoryClient.PutAsJsonAsync("api/v1/administration/workflow", new { reminderAfterWorkingDays = 5, delegateToOwner = false }))
+        (await FactoryClient.PutAsJsonAsync("api/v1/administration/workflow", new { reminderAfterWorkingDays = 5, delegateToOwner = false, ownerValidation = true }))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         (await Rule(await FactoryClient.PutAsJsonAsync("api/v1/administration/regles",
@@ -160,7 +160,7 @@ public class AdministrationTests : TestBase
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         var settings = await ExecuteDbContextAsync(db => db.DivisionSettings.AsNoTracking().FirstAsync(x => x.DivisionId == s.DivisionId));
-        (settings.ReminderAfterWorkingDays, settings.DelegateToOwner).Should().Be((5, false));
+        (settings.ReminderAfterWorkingDays, settings.DelegateToOwner, settings.OwnerValidation).Should().Be((5, false, true));
         settings.WorkingDays.Should().Equal(DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday);
         settings.DeadlineDay.Should().Be(DayOfWeek.Monday);
         settings.FillAlertThreshold.Should().Be(70);

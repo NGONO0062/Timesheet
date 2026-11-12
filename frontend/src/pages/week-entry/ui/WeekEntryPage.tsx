@@ -164,7 +164,11 @@ function WeekView({ week }: { week: Week }) {
         <>
           {week.status === "SUBMITTED" && week.submittedAt && !justSubmitted && (
             <Alert tone="info">
-              <p>{t(e.submittedInfo, { date: formatDateTime(new Date(week.submittedAt)), name: week.validator ?? "" })}</p>
+              <p>
+                {week.approval
+                  ? t(e.approvedInfo, { name: week.approval.by, date: formatDateTime(new Date(week.approval.at)) })
+                  : t(e.submittedInfo, { date: formatDateTime(new Date(week.submittedAt)), name: week.validator ?? "" })}
+              </p>
             </Alert>
           )}
           {week.status === "VALIDATED" && week.decision && (

@@ -53,6 +53,22 @@ public static class ValidationRules
             .ToList();
     }
 
+    /// <summary>
+    /// Le validateur peut-il décider de cette fiche en attente ? Une fiche déjà validée par le
+    /// manager n'attend plus que l'owner. Avant cette validation : le manager décide pour ses
+    /// rattachés ; l'owner décide de tout en circuit à une étape, et seulement des fiches dont il
+    /// est le validateur attendu (ses rattachés, ou délégation) en circuit à deux étapes.
+    /// </summary>
+    public static bool Actionable(bool viewerIsOwner, bool ownerValidation, bool approvedByManager, bool ownerIsValidator) =>
+        approvedByManager ? viewerIsOwner : !viewerIsOwner || !ownerValidation || ownerIsValidator;
+
+    /// <summary>
+    /// La validation passe-t-elle à l'owner ? Oui si la division le demande, que la décision ne vient
+    /// pas déjà d'un owner, et qu'un owner actif peut la recevoir (sinon elle est définitive).
+    /// </summary>
+    public static bool ForwardToOwner(bool ownerValidation, bool deciderIsOwner, bool ownerAvailable) =>
+        ownerValidation && !deciderIsOwner && ownerAvailable;
+
     /// <summary>Le jour est-il ouvré : jour de travail de la division et pas férié ?</summary>
     public static bool IsWorkingDay(DateOnly day, IReadOnlyCollection<DayOfWeek> workingDays, IReadOnlySet<DateOnly> holidays) =>
         workingDays.Contains(day.DayOfWeek) && !holidays.Contains(day);

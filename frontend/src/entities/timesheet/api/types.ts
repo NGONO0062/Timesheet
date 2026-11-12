@@ -8,7 +8,7 @@ export type WeekDay = { date: string; expected: number; holiday: string | null; 
 
 export type Choice = { key: string; project: string; activity: string; code: string; closed: boolean; /** Congé, maladie : jamais repris d'une semaine à l'autre. */ absence: boolean };
 
-export type HistoryEvent = { type: "SUBMITTED" | "REJECTED" | "VALIDATED"; by: string; byYou: boolean; at: string };
+export type HistoryEvent = { type: "SUBMITTED" | "APPROVED" | "REJECTED" | "VALIDATED"; by: string; byYou: boolean; at: string };
 
 export type Week = {
   year: number;
@@ -30,6 +30,8 @@ export type Week = {
   history: HistoryEvent[];
   /** Dernière semaine saisie dont les choix peuvent être repris ; null s'il n'y a rien à reprendre. */
   copyFrom: WeekRef | null;
+  /** Validation du manager (N+1) d'une fiche qui attend encore l'owner (N+2). */
+  approval: { by: string; at: string } | null;
 };
 
 export type SaveResult = { savedAt: string | null; status: TimesheetStatus };

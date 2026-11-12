@@ -188,3 +188,38 @@ test("mobile 375 : une fiche par ligne, sélection, sans défilement horizontal"
   await expect(page.getByRole("heading", { level: 1, name: "Laure Bikoï · semaine 12" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 });
+
+// Circuit à deux étapes (point 52) : division à part, dont le réglage demande l'owner (N+2).
+test.describe("circuit à deux étapes (division de test)", () => {
+  test("le manager valide et transmet, l'owner donne la validation finale", async ({ page }) => {
+    desktop();
+    await openQueue(page, "n1.e2e@exemple.com");
+    await row(page, "Elsa Étape").getByRole("link", { name: "Examiner" }).click();
+    await page.getByRole("button", { name: "Valider la fiche" }).click();
+    await expect(page.getByText("Fiche validée et transmise à l'owner (N+2) pour la validation finale.")).toBeVisible();
+
+    // La fiche reste « En attente de validation », mais elle n'est plus à Nadia : elle se consulte.
+    await page.getByRole("button", { name: /^Toutes/ }).click();
+    const elsa = row(page, "Elsa Étape");
+    await expect(elsa).toContainText("Validée par Nadia Niveau (N+1)");
+    await expect(elsa).toContainText("En attente de validation");
+    await elsa.getByRole("link", { name: "Consulter" }).click();
+    await expect(page.getByText(/Elle attend la validation de l'owner \(N\+2\)\./)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Valider la fiche" })).toHaveCount(0);
+    expect(await axe(page)).toEqual([]);
+
+    // La collaboratrice voit où en est sa fiche.
+    await page.context().clearCookies();
+    await signedIn(page, "etape.e2e@exemple.com");
+    await page.goto("/saisie/2026/12");
+    await expect(page.getByText(/Validée par Nadia Niveau le .*En attente de la validation de l'owner \(N\+2\)\./)).toBeVisible();
+
+    // L'owner donne la validation finale.
+    await page.context().clearCookies();
+    await openQueue(page, "n2.e2e@exemple.com");
+    await row(page, "Elsa Étape").getByRole("link", { name: "Examiner" }).click();
+    await expect(page.getByText(/Validée par Nadia Niveau \(N\+1\) le .*Votre décision est la validation finale\./)).toBeVisible();
+    await page.getByRole("button", { name: "Valider la fiche" }).click();
+    await expect(page.getByText("Fiche validée. Le collaborateur est prévenu.")).toBeVisible();
+  });
+});

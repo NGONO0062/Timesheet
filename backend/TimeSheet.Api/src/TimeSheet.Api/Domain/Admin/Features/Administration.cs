@@ -294,10 +294,10 @@ public static class Administration
             var fields = AdminRules.CheckWorkflow(w);
             if (fields.Count > 0) throw new RuleException("invalid", fields);
             var settings = await SettingsAsync(db, viewer.Scope.DivisionId, cancellationToken);
-            settings.WithWorkflow(w.ReminderAfterWorkingDays, w.DelegateToOwner);
+            settings.WithWorkflow(w.OwnerValidation, w.ReminderAfterWorkingDays, w.DelegateToOwner);
             await db.SaveChangesAsync(cancellationToken);
             await audit.AppendAsync("WORKFLOW_CHANGED", viewer.FullName, "Workflows", AuditResult.SUCCESS, viewer.UserId, viewer.Scope.DivisionId,
-                new { reminderAfterWorkingDays = w.ReminderAfterWorkingDays, delegateToOwner = w.DelegateToOwner }, cancellationToken);
+                new { ownerValidation = w.OwnerValidation, reminderAfterWorkingDays = w.ReminderAfterWorkingDays, delegateToOwner = w.DelegateToOwner }, cancellationToken);
             return Unit.Value;
         }
     }
