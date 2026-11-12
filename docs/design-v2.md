@@ -27,7 +27,7 @@ Revue UI/UX du 6 novembre 2026, appliquée à la réécriture (`frontend/`). Les
 - Les éléments **sélectionnés** (case cochée, interrupteur actif, filtre en pastille, page courante de la pagination, menu ouvert) passent en noir, avec leur coche : la forme porte l'état.
 - L'aplat orange reste au bouton primaire (`#f16e00`), à l'étape en cours d'un parcours en étapes et à l'instant où l'on appuie sur un bouton.
 
-Écart avec les planches ODS (C1, C4) et avec Boosted : **à valider avec l'équipe ODS**.
+Écart avec les planches ODS (C1, C4) et avec Boosted : **validé le 12 novembre 2026** par le designer du projet.
 
 ## 3. Moins de gras
 
@@ -67,13 +67,15 @@ Avant, « En attente » portait un « i » (information) et quatre statuts jaune
 
 ## 7. Maquettes à produire
 
-Écrans réalisés ou à réaliser sans planche, à faire passer par le design pour rester cohérents :
-- saisie par jour (C2 version 2) et son écran 03 complet, raccourcis de saisie compris (§1) ;
-- tableau de bord et file de validation selon §5 et §6 ;
+**Revue du 12 novembre 2026.** Le designer du projet a vu les captures (bureau et 375 px, données de démonstration) et valide tels quels :
+- saisie par jour (C2 version 2) et son écran 03, raccourcis de saisie compris (§1) ; tableau de bord (§5) ; file et détail de validation (§6) ;
 - tableau Kanban des tâches (écran 15) ;
-- étape de l'owner (N+2) : « Validée par … (N+1) » dans la file, détail en consultation, messages de la collaboratrice et de l'owner, interrupteur des Workflows et son explication ;
-- fiche projet (`/projets/:id`) : indicateurs, points d'attention, équipe, activités, tendance sur 8 semaines ;
+- fiche projet (`/projets/:id`) ;
+- administration de la division (écran 12), bloc « Jours fériés » et Workflows compris ;
 - gestion d'une division côté plateforme (point 71) ;
-- bloc « Jours fériés » de l'administration de la division (écran 12) : liste par année, formulaire d'ajout, suppression avec « Annuler » ;
-- page « Page introuvable », écran « en préparation », messages d'erreur ajoutés depuis les maquettes ;
-- les planches C1 à C4 mises à jour selon §2 à §4.
+- page « Page introuvable » ;
+- les textes de l'étape de l'owner (N+2) : « Validée par … (N+1) » dans la file, « Validée (N+1) » dans l'historique, messages de la collaboratrice et de l'owner.
+
+Restent sans planche :
+- écran « en préparation » et messages d'erreur ajoutés depuis les maquettes (non montrés à la revue) ;
+- les planches C1 à C4 mises à jour selon §2 à §4, et les planches qui montrent encore la partie RH (lien de navigation, étape « Envoi aux RH », stage dans les Paramètres).
