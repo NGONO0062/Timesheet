@@ -148,6 +148,9 @@ function ProjectsView({ projects, team }: { projects: Project[]; team: Array<{ i
       <Button variant="link" aria-label={t(p.editLabel, { name: x.name })} onClick={() => setPanel({ project: x })}>
         {p.edit}
       </Button>
+      <Link to={`/projets/${x.id}`} aria-label={t(dict.projectSheet.seeSheetLabel, { name: x.name })}>
+        {dict.projectSheet.seeSheet}
+      </Link>
       <Link to={`/taches?projet=${x.id}`} aria-label={t(dict.tasks.seeTasksLabel, { name: x.name })}>
         {dict.tasks.seeTasks}
       </Link>

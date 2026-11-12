@@ -22,10 +22,43 @@ export type Project = {
 
 export type ProjectList = { projects: Project[]; team: Array<{ id: string; name: string }> };
 
+/** Fiche d'un projet : chiffres calculés par l'API à partir des fiches soumises ou validées. */
+export type ProjectSheet = {
+  id: string;
+  code: string;
+  name: string;
+  status: ProjectStatus;
+  start: string;
+  end: string | null;
+  archived: boolean;
+  manager: string | null;
+  budget: number | null;
+  consumed: number;
+  /** Journées soumises, pas encore validées (comprises dans `consumed`). */
+  pending: number;
+  /** Part du budget consommée, en pour cent ; null sans budget. */
+  budgetPercent: number | null;
+  /** Part du délai écoulée, de 0 à 100 ; null sans date de fin. */
+  elapsedPercent: number | null;
+  lastDay: string | null;
+  attention: Array<"overBudget" | "endPassed" | "budgetAhead" | "quiet">;
+  tasks: { backlog: number; todo: number; inProgress: number; review: number; done: number; total: number };
+  /** `name` null : journées des autres équipes, regroupées. */
+  people: Array<{ id: string | null; name: string | null; days: number; member: boolean }>;
+  activities: Array<{ name: string; days: number }>;
+  /** Les dernières semaines, de la plus ancienne à la semaine en cours. */
+  weeks: Array<{ year: number; week: number; monday: string; days: number }>;
+};
+
 export const PROJECTS_KEY = ["projets"] as const;
 
 export function useProjects() {
   return useQuery({ queryKey: PROJECTS_KEY, queryFn: () => api<ProjectList>("/projets"), staleTime: 0 });
+}
+
+/** Fiche d'un projet ; sous la clé des projets, donc relue après chaque écriture sur un projet. */
+export function useProjectSheet(id: string) {
+  return useQuery({ queryKey: [...PROJECTS_KEY, id], queryFn: () => api<ProjectSheet>(`/projets/${id}`), staleTime: 0, retry: false });
 }
 
 function useRefresh() {

@@ -19,6 +19,10 @@ public sealed class ProjectsController(IMediator mediator) : ControllerBase
     [HttpGet]
     public Task<ProjectsDto> List(CancellationToken cancellationToken) => mediator.Send(new Projects.ListQuery(), cancellationToken);
 
+    /// <summary>Fiche d'un projet : budget, délai, points d'attention, équipe, activités, tendance, tâches.</summary>
+    [HttpGet("{id:guid}")]
+    public Task<ProjectSheetDto> Sheet(Guid id, CancellationToken cancellationToken) => mediator.Send(new ProjectSheet.Query(id), cancellationToken);
+
     [HttpPost]
     [Consumes("application/json")]
     public Task<ProjectSaved> Create([FromBody] ProjectInput body, CancellationToken cancellationToken) => mediator.Send(new Projects.SaveCommand(null, body), cancellationToken);

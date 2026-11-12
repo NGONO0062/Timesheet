@@ -3,6 +3,7 @@ import { ForgotPasswordPage, LinkPasswordPage } from "@/pages/account";
 import { AdminPage } from "@/pages/admin";
 import { DashboardPage } from "@/pages/dashboard";
 import { DivisionPage } from "@/pages/division";
+import { ProjectSheetPage } from "@/pages/project-sheet";
 import { ProjectsPage } from "@/pages/projects";
 import { AuditPage, OnboardingPage, PlatformDivisionPage, PlatformPage } from "@/pages/platform";
 import { ReportingPage } from "@/pages/reporting";
@@ -46,6 +47,8 @@ export const router = createBrowserRouter([
       { path: "/validation/:id", element: review(<ValidationReviewPage />) },
       // Jalon 4 : pilotage (écrans 09 à 11).
       { path: "/projets", element: <RequirePermission permission="MANAGE_PROJECTS"><ProjectsPage /></RequirePermission> },
+      // Suivi de projet : fiche d'un projet (budget, délai, équipe, tâches).
+      { path: "/projets/:id", element: <RequirePermission permission="MANAGE_PROJECTS"><ProjectSheetPage /></RequirePermission> },
       { path: "/reporting", element: <RequirePermission permission="VIEW_REPORTING"><ReportingPage /></RequirePermission> },
       { path: "/division", element: <RequirePermission permission="VIEW_DIVISION"><DivisionPage /></RequirePermission> },
       // Jalon 6 : administration de division (écran 12) et paramètres (écran 14).

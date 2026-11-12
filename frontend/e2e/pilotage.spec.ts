@@ -216,3 +216,53 @@ test.describe("vue division (écran 11)", () => {
     await expect(page.getByRole("heading", { name: "Page introuvable" })).toBeVisible();
   });
 });
+
+test.describe("fiche projet (suivi de projet)", () => {
+  test("depuis la liste : points d'attention, indicateurs, équipe, activités, tendance, accès", async ({ page }) => {
+    desktop();
+    await open(page, SAMUEL, "/projets", "Projets");
+    await page.getByRole("link", { name: "Voir la fiche de Refonte parcours souscription" }).click();
+    await expect(page).toHaveURL(/\/projets\/[0-9a-f-]{36}$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Refonte parcours souscription" })).toBeVisible();
+    await expect(page.locator("main[aria-busy]")).toHaveCount(0);
+    // Le projet de démonstration dépasse son budget de neuf jours : c'est écrit, pas seulement coloré.
+    await expect(page.getByRole("region", { name: "Points d'attention" })).toContainText(/Budget dépassé de 9\sjours/);
+    const indicators = page.getByRole("list", { name: "Indicateurs du projet" });
+    await expect(indicators.getByRole("progressbar", { name: "Budget consommé, Refonte parcours souscription" })).toBeVisible();
+    await expect(indicators).toContainText(/dépassé de 9\sjours/);
+    await expect(page.getByRole("table", { name: "Jours consommés par personne" }).getByRole("rowheader").first()).toBeVisible();
+    await expect(page.getByRole("table", { name: "Jours consommés par activité" }).getByRole("rowheader").first()).toBeVisible();
+    await expect(page.getByRole("img", { name: /Semaine 12, en cours/ })).toBeVisible();
+    // La fiche est une sous-page de Projets : le lien de navigation reste marqué.
+    await expect(page.getByRole("navigation", { name: "Navigation principale" }).getByRole("link", { name: "Projets" })).toHaveAttribute("aria-current", "page");
+    expect(await axe(page)).toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+
+    await page.getByRole("link", { name: "Voir les tâches" }).click();
+    await expect(page).toHaveURL(/\/taches\?projet=/);
+
+    // Projet inconnu ou hors du périmètre : la même réponse.
+    await page.goto("/projets/00000000-0000-0000-0000-000000000000");
+    await expect(page.getByRole("heading", { name: "Ce projet n'existe pas ou n'est pas dans votre périmètre" })).toBeVisible();
+    await page.getByRole("link", { name: "Retour aux projets" }).click();
+    await expect(page).toHaveURL(/\/projets$/);
+
+    // Sans la permission « Gérer les projets », la fiche n'existe pas.
+    await page.context().clearCookies();
+    await signedIn(page, AICHA);
+    await page.goto("/projets/00000000-0000-0000-0000-000000000000");
+    await expect(page.getByRole("heading", { name: "Page introuvable" })).toBeVisible();
+  });
+
+  test("mobile 375 : la fiche tient dans la page", async ({ page }) => {
+    test.skip(test.info().project.name !== "mobile", "Mobile seulement");
+    await signedIn(page, SAMUEL);
+    await page.goto("/projets");
+    await page.getByRole("link", { name: "Voir la fiche de Refonte parcours souscription" }).first().click();
+    await expect(page.getByRole("heading", { level: 1, name: "Refonte parcours souscription" })).toBeVisible();
+    await expect(page.locator("main[aria-busy]")).toHaveCount(0);
+    await expect(page.getByRole("list", { name: "Indicateurs du projet" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+    expect(await axe(page)).toEqual([]);
+  });
+});

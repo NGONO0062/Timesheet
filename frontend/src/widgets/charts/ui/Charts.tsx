@@ -30,12 +30,12 @@ export function BarChart({ bars }: { bars: Array<{ key: string; label: string; s
 
 type Column = { key: string; label: string; open: boolean; totalText: string; height: number };
 
-/** Axe et libellés sous les colonnes. */
-function Axis({ columns }: { columns: Column[] }) {
+/** Axe et libellés sous les colonnes ; `tight` : le même écart que des colonnes rapprochées. */
+function Axis({ columns, tight }: { columns: Column[]; tight?: boolean }) {
   return (
-    <div className="flex gap-20 pt-10 text-sm">
+    <div className={cx("flex pt-10 text-sm", tight ? "gap-10" : "gap-20")}>
       {columns.map((c) => (
-        <span key={c.key} className="flex-1 text-center">
+        <span key={c.key} className="min-w-0 flex-1 text-center">
           {c.label}
         </span>
       ))}
@@ -102,7 +102,7 @@ export function Columns({ columns, label }: { columns: Array<Column & { title: s
           </div>
         ))}
       </div>
-      <Axis columns={columns} />
+      <Axis columns={columns} tight />
     </div>
   );
 }

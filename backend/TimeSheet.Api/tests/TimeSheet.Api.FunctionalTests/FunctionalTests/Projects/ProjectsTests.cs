@@ -148,4 +148,72 @@ public class ProjectsTests : TestBase
         var actions = await ExecuteDbContextAsync(db => db.AuditLog.Where(a => a.ActorId == s.Marc.Id).Select(a => a.Action).ToListAsync());
         actions.Should().Contain(["PROJECT_STATUS_CHANGED", "PROJECT_ARCHIVED"]);
     }
+
+    [Fact]
+    public async Task fiche_projet_budget_equipe_activites_tendance_taches_et_portee()
+    {
+        var s = await NewDivision();
+        var other = await NewDivision();
+        var now = DateTimeOffset.UtcNow;
+        var current = WeekRules.CurrentWeek(now);
+        // Léo (équipe de Nina) rejoint le projet de Marc : une journée validée il y a deux semaines.
+        // Deux tâches, dont une terminée ; une troisième supprimée, qui ne compte pas.
+        await WithDb(async db =>
+        {
+            var divisionId = s.Marc.DivisionId!.Value;
+            var project = await db.Projects.Include(p => p.Members).FirstAsync(p => p.Id == s.MarcProject);
+            project.AddMember(s.Leo.Id);
+            var week = current.Shift(-2);
+            var sheet = Timesheet.Create(divisionId, s.Leo.Id, week, now);
+            sheet.SaveDraft(new Dictionary<DateOnly, Guid> { [week.Monday] = s.UsedActivity }, null, now);
+            sheet.Submit(s.Leo.Id, now);
+            sheet.Validate(s.Nina.Id, now);
+            db.Timesheets.Add(sheet);
+            var done = Domain.Tasks.ProjectTask.Create(divisionId, s.MarcProject, "Cadrage", 0, s.Marc.Id, now);
+            done.MoveTo(Domain.Tasks.KanbanStatus.DONE, 0);
+            var deleted = Domain.Tasks.ProjectTask.Create(divisionId, s.MarcProject, "Abandonnée", 2, s.Marc.Id, now);
+            deleted.SetDeleted(true, now);
+            db.ProjectTasks.AddRange(done, Domain.Tasks.ProjectTask.Create(divisionId, s.MarcProject, "Ateliers", 1, s.Marc.Id, now), deleted);
+            await db.SaveChangesAsync();
+        });
+        var route = $"api/v1/projets/{s.MarcProject}";
+
+        // Marc, responsable du projet : tout le monde par son nom.
+        await SignIn(s.Marc);
+        var sheetOfMarc = await FactoryClient.GetFromJsonAsync<JsonElement>(route);
+        sheetOfMarc.GetProperty("name").GetString().Should().Be("Projet de Marc");
+        sheetOfMarc.GetProperty("manager").GetString().Should().Be("Marc Essai");
+        (sheetOfMarc.GetProperty("budget").GetInt32(), sheetOfMarc.GetProperty("consumed").GetInt32(), sheetOfMarc.GetProperty("pending").GetInt32()).Should().Be((10, 3, 2));
+        sheetOfMarc.GetProperty("budgetPercent").GetInt32().Should().Be(30);
+        // Pas de date de fin : pas de part du délai ; une journée la semaine dernière : rien à signaler.
+        sheetOfMarc.GetProperty("elapsedPercent").ValueKind.Should().Be(JsonValueKind.Null);
+        sheetOfMarc.GetProperty("attention").GetArrayLength().Should().Be(0);
+        sheetOfMarc.GetProperty("people").EnumerateArray().Select(p => (p.GetProperty("name").GetString(), p.GetProperty("days").GetInt32(), p.GetProperty("member").GetBoolean()))
+            .Should().Equal(("Ana Essai", 2, true), ("Léo Essai", 1, true));
+        sheetOfMarc.GetProperty("activities").EnumerateArray().Select(a => (a.GetProperty("name").GetString(), a.GetProperty("days").GetInt32())).Should().Equal(("Analyse", 3), ("Atelier", 0));
+        var weeks = sheetOfMarc.GetProperty("weeks").EnumerateArray().ToList();
+        weeks.Should().HaveCount(8);
+        weeks[^1].GetProperty("week").GetInt32().Should().Be(current.Week);
+        weeks.Select(w => w.GetProperty("days").GetInt32()).Should().Equal(0, 0, 0, 0, 0, 1, 2, 0);
+        var tasks = sheetOfMarc.GetProperty("tasks");
+        (tasks.GetProperty("total").GetInt32(), tasks.GetProperty("done").GetInt32(), tasks.GetProperty("backlog").GetInt32()).Should().Be((2, 1, 1));
+
+        // Nina voit le projet parce que Léo y travaille : Léo par son nom, les autres équipes regroupées.
+        await SignIn(s.Nina);
+        var sheetOfNina = await FactoryClient.GetFromJsonAsync<JsonElement>(route);
+        sheetOfNina.GetProperty("consumed").GetInt32().Should().Be(3);
+        var people = sheetOfNina.GetProperty("people").EnumerateArray().ToList();
+        people.Should().HaveCount(2);
+        (people[0].GetProperty("name").GetString(), people[0].GetProperty("days").GetInt32()).Should().Be(("Léo Essai", 1));
+        (people[1].GetProperty("name").ValueKind, people[1].GetProperty("days").GetInt32()).Should().Be((JsonValueKind.Null, 2));
+
+        // L'owner voit tout ; sans la permission, ou depuis une autre division, la fiche n'existe pas.
+        await SignIn(s.Olga);
+        (await FactoryClient.GetFromJsonAsync<JsonElement>(route)).GetProperty("people").GetArrayLength().Should().Be(2);
+        (await FactoryClient.GetAsync($"api/v1/projets/{Guid.NewGuid()}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await SignIn(s.Ana);
+        (await FactoryClient.GetAsync(route)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await SignIn(other.Olga);
+        (await FactoryClient.GetAsync(route)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }
