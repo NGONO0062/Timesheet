@@ -1,5 +1,6 @@
 # Entrée HTTPS du staging : Caddy obtient le certificat pour DOMAIN et relaie vers l'application.
+# Caddy remplace l'en-tête X-Forwarded-For reçu du client (limitation des tentatives par poste).
 {$DOMAIN} {
 	encode gzip
-	reverse_proxy app:3000
+	reverse_proxy app:8080
 }

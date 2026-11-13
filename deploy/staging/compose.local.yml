@@ -6,11 +6,7 @@ services:
     environment:
       APP_URL: http://localhost:3000
     ports:
-      - "127.0.0.1:3000:3000"
-
-  outils:
-    environment:
-      APP_URL: http://localhost:3000
+      - "127.0.0.1:3000:8080"
 
   mailpit:
     image: axllent/mailpit:latest

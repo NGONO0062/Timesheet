@@ -2,41 +2,56 @@
 
 ## Pile
 
-Next.js 16 (App Router, composants serveur, actions serveur), React 19, TypeScript strict, Prisma 6 et PostgreSQL, Auth.js (identifiants, sessions JWT), Boosted 5.3 (ODS) pour les styles, Nodemailer pour les e-mails, playwright-core (Chromium) pour les PDF. Tests : Vitest (unitaires et intégration), Playwright et axe-core (bout en bout, accessibilité). Ni Tailwind, ni bibliothèque de composants, ni bibliothèque de graphiques.
+- **API** (`backend/`) : .NET 10, solution générée par Craftsman (DDD), CQRS avec MediatR 12 (une commande ou une requête par action ou lecture d'écran), Entity Framework Core sur PostgreSQL, MailKit pour les e-mails, Microsoft.Playwright (Chromium) pour les PDF. Tests : xUnit, FluentAssertions 7 (unitaires et fonctionnels sur une base recréée).
+- **Interface** (`frontend/`) : React 19, TypeScript strict, Vite, React Router 7, TanStack Query 5, Zustand, Tailwind 4 (thème limité aux valeurs des maquettes), HeadlessUI. Graphiques en SVG, sans bibliothèque. Tests : Vitest, Playwright et axe-core.
+- **Production** : une image (`deploy/Dockerfile`) ; l'API sert aussi les fichiers de l'interface, sur la même origine (cookie de session, pas de CORS).
 
-## Couches
+Choix et écarts avec le guide Orange : `docs/reecriture.md`.
 
-| Dossier | Contenu | Règle |
+## API
+
+| Dossier (`backend/TimeSheet.Api/src/TimeSheet.Api/`) | Contenu | Règle |
 |---|---|---|
-| `app/` | Routes, pages (composants serveur), écrans interactifs (`*Screen.tsx`, composants client), états `loading.tsx` et `error.tsx`. | Une page lit ses données par `lib/data/`, jamais Prisma directement. |
-| `app/actions/` | Actions serveur : validation zod des entrées, puis appel de la couche de données. | Chaque action relit l'utilisateur connecté et ses permissions. |
-| `lib/data/` | Seule couche qui importe Prisma (règle ESLint). Chaque fonction reçoit une portée (`DivisionScope`, `PlatformScope`, ou le seul compte connecté) et revérifie la permission. | Aucune donnée ne traverse d'une division à l'autre. |
-| `lib/` (hors `data/`) | Règles métier pures : semaines ISO, saisie, statuts, validation, fiche de présence, reporting, administration, onboarding, journal. | Testées par Vitest, sans base. |
-| `components/ods/` | Composants ODS (Boosted) : Button, Form, Display, Navigation, Overlay, Dropdown, TableScroll. | Tels quels ; écarts notés dans `docs/ecarts-ods.md`. |
-| `components/ts/` | Composants propres à TimeSheet (`.ts-*`) : sélecteur de semaine, grille de saisie, zone de signature, visionneuse de la fiche, étiquettes de statut, champs de configuration de division. | Un seul composant de statut : `<StatusBadge>`. |
-| `lib/i18n/fr.ts` | Tous les textes d'interface, repris des maquettes. | Pas de texte en dur dans les écrans. |
-| `lib/format.ts` | Nombres (virgule), espaces insécables, dates et heures dans le fuseau de Douala. | |
-| `styles/timesheet.css` | Section 0 : neutralisation de Boosted ; 1 : reprise de `design/ods.css` ; 2 : application. | Contrôlée par `npm run lint:styles`. |
+| `Controllers/v1/` | Routes `/api/v1/…` : lecture des entrées, envoi d'une commande ou d'une requête MediatR. | Aucune règle métier dans un contrôleur. |
+| `Domain/<Domaine>/` | Entités et règles pures (`*Rules.cs`) : semaines ISO, saisie, validation, projets, reporting, administration, plateforme, tâches. | Testées sans base (`tests/…UnitTests`). |
+| `Domain/<Domaine>/Features/` | Gestionnaires MediatR : portée, permission, lecture et écriture des données, journal d'audit. | Chaque requête relit l'utilisateur connecté (`IViewerAccessor`) et filtre sur sa division. |
+| `Databases/` | `TimeSheetDbContext`, configurations EF, migrations, seeds (démonstration, tests de bout en bout, premier admin plateforme). | Migrations appliquées au démarrage, sous verrou PostgreSQL. |
+| `Services/` | Accès (utilisateur connecté, portée), audit, e-mails (gabarits purs et envoi), exports (CSV, Excel, PDF), horloge. | |
+| `Exceptions/`, `Middleware/` | Erreurs : 404 (ressource absente ou hors portée), 422 avec un code et les champs en erreur ; en-têtes de sécurité. | L'interface traduit les codes en messages. |
+
+## Interface (Feature-Sliced Design)
+
+`src/app` (démarrage, routes, gardes, thème) > `pages` > `widgets` > `features` > `entities` > `shared`. Une couche n'importe que les couches en dessous d'elle (règle ESLint).
+
+| Couche | Contenu |
+|---|---|
+| `entities/` | Par domaine : types de l'API, requêtes et écritures TanStack Query, règles d'affichage pures testées. |
+| `features/` | Actions réutilisables : connexion, saisie de la semaine, champs de configuration d'une division, édition de projet. |
+| `widgets/` | Blocs d'écran partagés : coque, sélecteur de semaine, saisie par jour, graphiques, journal d'audit. |
+| `pages/` | Un dossier par écran (ou groupe d'écrans). |
+| `shared/` | Composants ODS reproduits en Tailwind (`ui/`), accès à l'API (`api/`), textes (`i18n/fr.ts`), formats (`lib/format.ts`), statuts (`lib/status.ts`). |
+
+Le contrôle de style (`frontend/scripts/check-styles.mjs`) refuse les valeurs arbitraires, les bordures autres que 2 px, les opacités, les dégradés, les couleurs en dur et les styles en ligne.
 
 ## Contrôles d'accès
 
-1. `proxy.ts` : sans cookie de session, retour à la connexion (contrôle optimiste).
-2. `getViewer()` relit l'utilisateur en base à chaque requête : un compte désactivé ou une division suspendue n'a plus d'accès, même avec une session valide.
-3. Les permissions effectives (matrice par défaut du §7, puis réglages de la division) pilotent la navigation et chaque contrôle serveur.
-4. Une page réservée renvoie un vrai 404 : le contrôle est fait dans un `layout.tsx` du segment quand la page a un état de chargement.
+1. Session par cookie `HttpOnly` (`SameSite=Strict`, 8 heures) ; toute route de l'API exige une session, sauf celles marquées publiques (connexion, liens, tâches planifiées protégées par `TASKS_SECRET`).
+2. L'utilisateur est relu en base à chaque requête : un compte désactivé, une division suspendue ou un mot de passe changé ferment l'accès tout de suite.
+3. Les permissions effectives (matrice par défaut du §7, puis réglages de la division) pilotent la navigation et chaque contrôle de l'API. Une ressource hors de la portée répond 404.
+4. L'interface masque ce qui serait refusé (gardes de routes, « Page introuvable ») ; la décision reste à l'API.
 
 ## Horloges
 
-- Règles métier : `now()` de `lib/clock.ts`. `TIMESHEET_NOW` fixe le point de départ en démonstration, puis le temps avance.
-- Journal d'audit : `at` suit `now()` (affichage, filtres) ; `recordedAt` est l'heure réelle d'enregistrement (fenêtres de limitation, qui ne doivent pas reculer au redémarrage).
+- Règles métier : `TimeProvider` de l'application (`Services/AppClock.cs`). `TIMESHEET_NOW` fixe le point de départ en démonstration, puis le temps avance.
+- Journal d'audit : `At` suit l'horloge de l'application (affichage, filtres) ; `RecordedAt` est l'heure réelle (fenêtres de limitation, liens à usage unique).
 
 ## E-mails et tâches
 
-- Gabarits purs dans `lib/mail/templates.ts` (texte brut et HTML sobre, sans image), envoi par `lib/mail/send.ts`. Préférences de notification dans `lib/notifications.ts`.
-- Tâches planifiées protégées par `TASKS_SECRET` : `app/api/taches/relances` (validateurs) et `app/api/taches/rappels-saisie` (vendredi 12:00). Voir `docs/exploitation.md`.
+- Gabarits purs dans `Services/Mail/MailTemplates.cs` (texte brut et HTML sobre, sans image), envoi par `MailSender` (MailKit). Préférences de notification par utilisateur (écran 14).
+- Tâches planifiées : `POST /api/v1/taches/relances` (validateurs) et `POST /api/v1/taches/rappels-saisie` (vendredi 12:00). Voir `docs/exploitation.md`.
 
 ## Données de démonstration et de test
 
-- `prisma/seed.ts` : division CX Expertise et données des maquettes (semaine 12 de 2026), division en onboarding et journal d'audit de la planche 13. Idempotent sur une base existante.
-- `prisma/e2e-fixtures.ts` : divisions de test des tests de bout en bout, remises à zéro avant chaque exécution. CX Expertise n'est jamais modifiée par les tests.
-- Tests d'intégration (`lib/data/__tests__`) : divisions fixes (« integration-… »), réutilisées d'une exécution à l'autre (le journal, en ajout seul, empêche de supprimer une division qu'il référence).
+- `Databases/Seed/DemoSeed.cs` (`--seed`) : division CX Expertise et données des maquettes (semaine 12 de 2026), division en onboarding et journal de la planche 13. Refusé en production.
+- `Databases/Seed/E2eSeed.cs` : divisions des tests de bout en bout (« Division de test », « Division d'administration de test »), dans la base `timesheet_api_e2e` recréée à chaque exécution (`--seed-fresh`, refusé sur toute autre base). CX Expertise n'est jamais modifiée par les tests.
+- Tests fonctionnels : chaque test crée sa propre division, dans une base recréée au début de l'exécution.

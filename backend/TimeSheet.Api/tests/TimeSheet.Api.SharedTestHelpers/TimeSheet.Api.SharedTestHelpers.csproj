@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Ardalis.SmartEnum" Version="8.2.0" />
+    <PackageReference Include="AutoBogusLifesupport" Version="2.14.0" />
+    <PackageReference Include="Bogus" Version="35.6.5" />
+    <!-- Version corrigée : AutoBogus tire une 11.0.1 vulnérable. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TimeSheet.Api\TimeSheet.Api.csproj" />
+  </ItemGroup>
+
+</Project>

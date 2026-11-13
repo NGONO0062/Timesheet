@@ -1,5 +1,7 @@
 # Maquettes TimeSheet
 
+> **Périmètre modifié le 11 novembre 2026 : la partie RH est retirée de l'application.** Les planches `06-Fiche-RH` et `C3-Signature` (écran, prototype et captures) ne sont plus dans ce dossier ; elles restent dans l'historique Git. Dans les autres planches, ce qui s'y rapporte ne s'applique plus : le lien « Fiche de présence » de la navigation, l'action « Signer ma fiche » du tableau de bord (02), l'étape « Envoi aux RH » et l'adresse des RH (12), le stage, les horaires habituels et le mode de signature (14), les statuts de fiche de présence (C4), la troisième phrase de l'écran de connexion (01, « Signer. »). Ces planches sont à reprendre par le design.
+
 Référence visuelle de l'application. Les règles métier et la méthode sont dans `PROMPT.md`, à la racine.
 
 ## Contenu
@@ -24,7 +26,6 @@ Référence visuelle de l'application. Les règles métier et la méthode sont d
 | 03 · Saisie hebdomadaire · mobile 375 | 375 × 1270 | `ecrans/03-Saisie-hebdo-mobile.html` |
 | 04 · Confirmation de soumission | 1280 × 860 | `ecrans/04-Confirmation.html` |
 | 05 · Fiche rejetée | 1280 × 1270 | `ecrans/05-Fiche-rejetee.html` |
-| 06 · Ma fiche de présence RH | 1280 × 2030 | `ecrans/06-Fiche-RH.html` |
 | 14 · Paramètres | 1280 × 1930 | `ecrans/14-Parametres.html` |
 
 ### Parcours Manager et Owner
@@ -63,7 +64,6 @@ Référence visuelle de l'application. Les règles métier et la méthode sont d
 | Composant 1 · Sélecteur de semaine | 1280 × 1420 | `ecrans/C1-Selecteur-semaine.html` |
 | Composant 2 · Grille : vide, partielle, complète | 1280 × 2050 | `ecrans/C2-Grille-etats-A.html` |
 | Composant 2 · Grille : soumise, rejetée, validée | 1280 × 1770 | `ecrans/C2-Grille-etats-B.html` |
-| Composant 3 · Zone de signature électronique | 1280 × 860 | `ecrans/C3-Signature.html` |
 | Composant 5 · Étiquettes de statut | 1280 × 1840 | `ecrans/C4-Etiquettes-statut.html` |
 
 ## Notes par planche
@@ -119,13 +119,6 @@ Pour chaque écran : composants ODS utilisés, composants spécifiques, tensions
 - ODS : Alert (danger), Badge, Input (invalide), List group, Button.
 - Spécifiques : grille en état rejeté, sélecteur de semaine avec raccourci.
 - Le motif du manager est dans le bandeau. La cellule signalée est reliée à son message, et le jour concerné porte le badge « À corriger ».
-
-**06 · Ma fiche de présence RH** (`06-Fiche-RH`)
-
-- ODS : Select, Stepped process, Checkbox, Tabs pills, Alert (info), Badge, Button.
-- Spécifiques : aperçu de fiche RH (composant 4) au format du modèle OCM/PS-01/SE/049, A4 paysage ; zone de signature et bloc de traçabilité (composant 3).
-- Tensions : le modèle ne prévoit que la signature du superviseur, celle du stagiaire reste dans l'application. Il demande Arrivée et Départ, que la grille ne collecte pas. Version et date de mise à jour sont peu lisibles sur le scan (lues : 1.0 et 15/06/2023).
-- Transmission aux RH par e-mail, PDF en pièce jointe. L'adresse des RH se règle dans l'administration de division (écran 12).
 
 **14 · Paramètres** (`14-Parametres`)
 
@@ -224,10 +217,6 @@ Pour chaque écran : composants ODS utilisés, composants spécifiques, tensions
 **Composant 2 · Grille : soumise, rejetée, validée** (`C2-Grille-etats-B`)
 
 - Composant 2, suite. En lecture seule, les valeurs sont du texte et non des champs désactivés : le gris #595959 sur #ddd resterait lisible, mais un champ désactivé n'est pas atteignable au clavier.
-
-**Composant 3 · Zone de signature électronique** (`C3-Signature`)
-
-- Composant 3 · Zone de signature électronique. Le composant 4, l'aperçu de fiche RH, est montré en situation dans l'écran 06.
 
 **Composant 5 · Étiquettes de statut** (`C4-Etiquettes-statut`)
 

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/TimeSheet.Api/" />
+  <Folder Name="/TimeSheet.Api/src/">
+    <Project Path="TimeSheet.Api/src/TimeSheet.Api/TimeSheet.Api.csproj" />
+  </Folder>
+  <Folder Name="/TimeSheet.Api/tests/">
+    <Project Path="TimeSheet.Api/tests/TimeSheet.Api.FunctionalTests/TimeSheet.Api.FunctionalTests.csproj" />
+    <Project Path="TimeSheet.Api/tests/TimeSheet.Api.IntegrationTests/TimeSheet.Api.IntegrationTests.csproj" />
+    <Project Path="TimeSheet.Api/tests/TimeSheet.Api.SharedTestHelpers/TimeSheet.Api.SharedTestHelpers.csproj" />
+    <Project Path="TimeSheet.Api/tests/TimeSheet.Api.UnitTests/TimeSheet.Api.UnitTests.csproj" />
+  </Folder>
+  <Project Path="SharedKernel/SharedKernel.csproj" />
+</Solution>

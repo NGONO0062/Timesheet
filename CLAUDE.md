@@ -1,71 +1,52 @@
 # TimeSheet
 
-Application interne Orange Cameroun : projets, temps de travail, fiche de présence RH. Spécification complète dans `PROMPT.md`. Maquettes dans `design/`.
+Application interne Orange Cameroun : gestion et suivi des projets, temps de travail. Spécification d'origine dans `PROMPT.md`. Maquettes dans `design/`.
+
+La partie RH (fiche de présence, stages, signature, envoi aux RH) a été retirée le 11 novembre 2026 : ne pas la réintroduire sans décision. La saisie du temps et sa validation restent, parce qu'elles donnent le consommé de chaque projet (`docs/reecriture.md`).
 
 ## Règles à ne jamais enfreindre
 
 - Couleurs : uniquement `#ff7900`, `#f16e00`, `#000000`, `#ffffff`, `#999999`, `#595959`, `#dddddd`, `#fafafa`, `#228722`, `#cd3c14`, `#ffd200`, `#4170d8`.
 - Graphiques seulement : quatre couleurs de séries, dans cet ordre, `#237eca`, `#198c51`, `#6e4aa7`, `#d573bb`. Jamais ailleurs.
-- `#ff7900` sert à l'état actif seulement. Le primaire est `#f16e00`.
-- Graisses 400 et 700. Jamais 500 ni 600.
+- `#ff7900` sert à l'état actif seulement. Le primaire est `#f16e00`. L'état actif est un trait de 5 px (`accent-mark`), jamais un aplat ; les éléments sélectionnés passent en noir (`docs/design-v2.md`).
+- Graisses 400 et 700. Jamais 500 ni 600. Le gras pour les titres, chiffres clés, libellés, étiquettes et actions ; valeurs et cellules en 400.
 - Espacements : 0, 5, 10, 20, 30, 60 px.
 - Bordures de 2 px, jamais 1 px. Rayon 6 px, 8 au maximum.
 - Aucune ombre, aucun dégradé, aucune opacité réduite (seul le voile de modale est à 50 %).
 - Survol par inversion de contraste. Désactivé opaque.
 - Jamais d'information portée par la couleur seule. Liens soulignés.
-- Composants ODS (Boosted) tels quels. Composants spécifiques préfixés `.ts-`.
-- Statuts : uniquement les libellés de la planche `C4-Etiquettes-statut`, via un composant unique. Une seule étiquette par objet.
+- Composants ODS reproduits en Tailwind tels que les planches les montrent ; écarts notés dans `docs/ecarts-ods.md`.
+- Statuts : uniquement les libellés de la planche `C4-Etiquettes-statut`, via un composant unique (`<StatusBadge>`). Une seule étiquette par objet.
 - Un seul bouton primaire par écran. Action réversible : pas de confirmation, un message avec « Annuler ».
 - Pas de logo. Le mot « TimeSheet », « Time » en `#f16e00`, « Sheet » en blanc sur fond noir.
-- Pas de Tailwind, pas de bibliothèque de composants tierce, pas de bibliothèque de graphiques.
-- Chaque requête passe par la couche d'accès aux données, avec `divisionId`. Aucune donnée ne traverse d'une division à l'autre.
+- Pas de bibliothèque de graphiques. Tailwind et HeadlessUI seulement, thème limité aux valeurs ci-dessus ; pas d'autre bibliothèque de composants.
+- Chaque requête de l'API filtre sur la division de l'utilisateur connecté. Aucune donnée ne traverse d'une division à l'autre.
 - Interface en français. Libellés repris des maquettes mot pour mot.
 - Aucune donnée réelle ni secret dans le dépôt.
+- MediatR reste en 12.x et FluentAssertions en 7.x (versions suivantes sous licence payante).
 
 ## Méthode
 
-- Un jalon à la fois (voir `PROMPT.md`, §21). Tests, comparaison avec `design/captures/`, commit, résumé, puis attendre l'accord.
-- Une question ouverte se note dans `docs/questions-ouvertes.md`. Un écart avec Boosted se note dans `docs/ecarts-ods.md`.
+- Un changement à la fois : tests, comparaison avec `design/captures/`, commit, résumé, puis attendre l'accord.
+- Une question ouverte se note dans `docs/questions-ouvertes.md`. Un écart avec ODS se note dans `docs/ecarts-ods.md`. Les choix de la réécriture sont dans `docs/reecriture.md`.
 
 ## Commandes
 
-- Installation : `npm install`, puis `npx prisma generate` et `npx playwright install chromium`. Copier `.env.example` en `.env`.
-- Services de développement : `docker compose up -d` (PostgreSQL sur 5432, Mailpit sur 1025 / interface 8025).
-- Développement : `npm run dev`, puis http://localhost:3000/design pour les composants.
-- Contrôles : `npm run check` (TypeScript, ESLint, contrôle de style, tests unitaires).
-- Tests unitaires : `npm test`. Tests de bout en bout et axe-core : `npm run test:e2e`.
-- Contrôle de style seul (§4.2) : `npm run lint:styles`.
-- Base : `npm run db:migrate`, `npm run db:seed`. Repartir de zéro : `npm run db:reset` (le journal d'audit refuse les suppressions, la base est recréée).
-- Tests d'intégration (base du seed) : `npm run test:int`.
-- Comptes de démonstration : mot de passe `SEED_PASSWORD` de `.env` ; aicha.ndongo, samuel.etoga, brigitte.mbarga, paul.tchouta, rose.ekambi @exemple.com. `DEMO_PROFILES="true"` affiche les profils sur l'écran de connexion.
+- Services de développement : `docker compose up -d` (PostgreSQL sur 5432, Mailpit sur 1025 / interface 8025). Poste sans Docker : PostgreSQL et Mailpit installés à part, sur les mêmes ports.
+- API (`backend/`) : `dotnet build TimeSheet.slnx`, `dotnet test TimeSheet.slnx` (bases de test recréées sur le PostgreSQL local, `TIMESHEET_TEST_DB`), `dotnet run --project TimeSheet.Api/src/TimeSheet.Api` (port 5000). Données de démonstration : `… -- --seed` ; base de développement à recréer : `dropdb` puis `createdb timesheet_api`. Chromium pour les PDF : `backend/README.md`.
+- Interface (`frontend/`) : `npm run dev` (port 5173, `/api` relayé vers le port 5000 ; composants sur `/design`), `npm run check` (TypeScript, ESLint, contrôle de style, tests unitaires). Sous Windows, lancer les tests depuis PowerShell, pas depuis Git Bash.
+- Tests de bout en bout : `npm run test:e2e` dans `frontend/` (pile à eux : base `timesheet_api_e2e` recréée, API port 5100, interface port 5174 ; la base de développement n'est jamais touchée).
+- Image de production : `docker build -f deploy/Dockerfile -t timesheet .` ; premier admin plateforme : `--admin-plateforme adresse "Prénom" "Nom"` (`docs/exploitation.md`).
+- Comptes de démonstration : mot de passe `SEED_PASSWORD` (`appsettings.Development.json`) ; aicha.ndongo, samuel.etoga, brigitte.mbarga, paul.tchouta, rose.ekambi @exemple.com.
 
 ## Repères
 
-- Styles : Boosted (`boosted.css`) puis `styles/timesheet.css`. Section 0 = neutralisation de Boosted, section 1 = reprise de `design/ods.css`, section 2 = application.
-- Composants ODS : `components/ods/`. Composants spécifiques : `components/ts/`. Statuts : `<StatusBadge>` et `lib/status.ts` uniquement.
-- Règles métier pures dans `lib/` (testées par Vitest). Prisma seulement dans `lib/data/` (règle ESLint).
-- Textes d'interface dans `lib/i18n/fr.ts`. Formats (virgule, espace insécable, dates) dans `lib/format.ts`.
-- Prisma 6 tant que Node < 22.12 (voir `docs/questions-ouvertes.md`).
-- Horloge : `now()` de `lib/clock.ts`, jamais `new Date()` pour une règle métier. `TIMESHEET_NOW` (démonstration) part du jeudi 19 mars 2026, semaine 12.
-- Saisie : règles pures dans `lib/timesheet/` (`rules`, `draft`, `dashboard`), données dans `lib/data/timesheets.ts`, actions dans `app/actions/timesheet.ts`.
-- Tests de bout en bout qui écrivent : « Division de test » (comptes `*.e2e@exemple.com`), remise à zéro par `prisma/e2e-fixtures.ts` (préparation globale de Playwright). CX Expertise n'est jamais modifiée par les tests.
-- Validation : `lib/data/validation.ts` (portée manager / owner, décisions, relances), actions dans `app/actions/validation.ts`. E-mails : `lib/mail/` (Mailpit en développement, http://localhost:8025).
-- Tâches planifiées (`Authorization: Bearer $TASKS_SECRET`) : `POST /api/taches/relances` chaque jour ouvré, `POST /api/taches/rappels-saisie` le vendredi à 12:00. Mise en production : `docs/exploitation.md` ; staging sur un serveur (Docker Compose, Caddy) : `docs/staging.md` et `deploy/staging/` ; architecture : `docs/architecture.md`.
-- Pilotage : règles pures dans `lib/projects/`, `lib/reporting/`, `lib/division/` ; données dans `lib/data/projects.ts`, `reporting.ts`, `division.ts` ; exports dans `lib/export/` (CSV et Excel purs, PDF par Chromium via `playwright-core`), route `/reporting/export`.
-- Administration et Paramètres : règles pures dans `lib/admin/rules.ts` ; données dans `lib/data/admin.ts` (division), `lib/data/settings.ts` (compte de l'utilisateur connecté seulement), `lib/data/tokens.ts` (liens d'invitation et de réinitialisation, empreinte seule) ; actions dans `app/actions/admin.ts`, `settings.ts`, `account.ts`. Pages publiques `/invitation/[jeton]`, `/reinitialisation/[jeton]`, `/mot-de-passe-oublie`. Tests de bout en bout : « Division d'administration de test » (`*.e2e@exemple.com`).
-- Plateforme : catalogue, filtres et exports du journal dans `lib/audit/` ; onboarding dans `lib/onboarding/rules.ts` ; données dans `lib/data/platform.ts` (admin plateforme seulement) ; actions dans `app/actions/platform.ts` ; champs de configuration partagés avec l'écran 12 dans `components/ts/DivisionSettingsFields.tsx`. Journal : `at` sur l'horloge de l'application, `recordedAt` (heure réelle) pour les fenêtres de limitation.
-- Fiche de présence : règles et gabarit unique (aperçu et PDF) dans `lib/attendance/`, données dans `lib/data/attendance.ts` (génération appelée par la validation), PDF par `/api/fiches-presence/[id]/pdf`, fichiers signés dans `STORAGE_DIR` (`lib/storage.ts`). Superviseur : `/validation/presence`.
-- Tâches (tableau Kanban par projet, §9.12) : règles pures dans `lib/tasks/rules.ts`, données dans `lib/data/tasks.ts` (membres du projet et ceux qui le gèrent), actions dans `app/actions/tasks.ts`, écran `/taches`. Étiquettes des colonnes : `<StatusBadge kind="task">` et `TaskStatusMenu` (déplacement au clavier, à côté du glisser-déposer). Glisser-déposer commun aux tableaux en colonnes (Tâches, Projets) : `components/ts/useBoardDrag.ts`.
-- Saisie en jours entiers (point 82) : une cellule vaut 1 ou reste vide ; `formatDays`, `DAY_ENTRY`. Les noms techniques `hours`, `budgetHours`, `hoursPerDay` portent des jours.
-- Écran avec `loading.tsx` : permission et existence vérifiées dans un `layout.tsx` du segment (sinon statut 200 au lieu de 404).
-- Authentification : `auth.ts` (Auth.js, JWT). Utilisateur connecté : `getViewer()` / `requirePermission()` dans `lib/data/viewer.ts`. Navigation : `lib/navigation.ts`.
-
-<!-- BEGIN:nextjs-agent-rules -->
-
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+- API : `backend/TimeSheet.Api/src/TimeSheet.Api/`. Routes dans `Controllers/v1/` ; règles pures dans `Domain/<Domaine>/*Rules.cs` (testées par `tests/…UnitTests`) ; gestionnaires MediatR dans `Domain/<Domaine>/Features/` ; utilisateur connecté et portée par `IViewerAccessor` (`Services/Access/`). Erreur de règle : `RuleException(code, champs)` → 422 ; hors portée → 404.
+- Horloge : `TimeProvider` de l'application (`Services/AppClock.cs`), jamais `DateTime.Now` pour une règle métier. `TIMESHEET_NOW` (démonstration) part du jeudi 19 mars 2026, semaine 12. Fenêtres de sécurité en heure réelle (`AuditEntry.RecordedAt`).
+- Saisie en jours entiers (point 82) : une journée par jour, sur un seul projet ; `FrenchFormat.Days`.
+- E-mails : gabarits dans `Services/Mail/MailTemplates.cs` (Mailpit en développement) ; préférences de notification de l'utilisateur (écran 14) respectées avant chaque envoi.
+- PDF : gabarits HTML imprimés par Chromium (`Services/Export/`), pour les exports du reporting et du journal d'audit. `STORAGE_DIR` ne garde plus que les clés des sessions.
+- Seeds : `Databases/Seed/` (`DemoSeed`, `E2eSeed` pour les divisions de test `*.e2e@exemple.com`, `PlatformAdmin`). CX Expertise n'est jamais modifiée par les tests.
+- Interface : `frontend/src/`, Feature-Sliced Design (`app` > `pages` > `widgets` > `features` > `entities` > `shared`). Composants ODS dans `shared/ui/`, textes dans `shared/i18n/fr.ts`, formats dans `shared/lib/format.ts`, statuts dans `shared/lib/status.ts` et `<StatusBadge>`. Thème Tailwind : `app/styles/index.css` ; contrôle : `scripts/check-styles.mjs`.
+- Données de l'interface : requêtes et écritures TanStack Query dans `entities/<domaine>/api/` ; règles d'affichage pures dans `entities/<domaine>/lib/` (testées par Vitest).
+- Production : `deploy/Dockerfile` (l'API sert l'interface), staging `deploy/staging/` et `docs/staging.md`, exploitation `docs/exploitation.md`, architecture `docs/architecture.md`.

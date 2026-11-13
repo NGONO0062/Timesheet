@@ -1,5 +1,4 @@
 node_modules
-.next
 **/.env
 **/.env.local
 test-results
@@ -7,3 +6,9 @@ playwright-report
 storage
 design
 .claude
+**/node_modules
+**/bin
+**/obj
+**/storage
+frontend/dist
+**/test-results
